@@ -13,7 +13,7 @@ interface Invitation {
 }
 interface Props {
   orgId: string; orgName: string; myUserId: string; myRole: string; myEmail: string
-  members: Member[]; invitations: Invitation[]
+  members: Member[]; invitations: Invitation[]; migrationNeeded?: boolean
 }
 
 const ROLE_META: Record<string, { label: string; color: string; bg: string; desc: string }> = {
@@ -39,7 +39,7 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(diff/86400000)}d`
 }
 
-export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, members, invitations }: Props) {
+export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, members, invitations, migrationNeeded }: Props) {
   const [showInvite, setShowInvite]   = useState(false)
   const [invEmail, setInvEmail]       = useState('')
   const [invRole, setInvRole]         = useState('staff')
@@ -101,8 +101,12 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
 
         .section-hd{display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px}
         .section-title{font-size:13px;font-weight:700;color:var(--text-3,rgba(26,26,32,0.40));text-transform:uppercase;letter-spacing:0.07em}
-        .invite-btn{display:flex;align-items:center;gap:7px;background:var(--grad-brand-btn,linear-gradient(145deg,#1D4ED8,#2563EB));color:white;border:none;border-radius:var(--r-pill,50px);padding:9px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:var(--shadow-brand-sm);transition:opacity 0.15s;white-space:nowrap}
+        .invite-btn{display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:var(--grad-brand-btn,linear-gradient(145deg,#1D4ED8,#2563EB));color:white;border:none;border-radius:50%;cursor:pointer;font-family:inherit;box-shadow:var(--shadow-brand-sm);transition:opacity 0.15s,transform 0.12s;flex-shrink:0}
         .invite-btn:hover{opacity:.90}
+        .invite-btn:active{transform:scale(0.93)}
+        @media(min-width:480px){.invite-btn{width:auto;height:auto;border-radius:var(--r-pill,50px);padding:9px 18px;gap:6px}}
+        .invite-btn-lbl{display:none}
+        @media(min-width:480px){.invite-btn-lbl{display:inline;font-size:13px;font-weight:700}}
 
         .card{background:var(--bg,#ECEEF2);border-radius:var(--r-xl,24px);overflow:hidden;box-shadow:var(--shadow-card);margin-bottom:16px}
         .member-row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-top:1px solid var(--border-light,rgba(0,0,0,0.04))}
@@ -163,13 +167,18 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
       </div>
 
       <div className="content">
+        {migrationNeeded && (
+          <div style={{ background:'rgba(217,119,6,0.09)', border:'1px solid rgba(217,119,6,0.22)', borderRadius:'var(--r-md,16px)', padding:'14px 18px', marginBottom:'16px', fontSize:'13px', fontWeight:600, color:'#92400e', lineHeight:1.5 }}>
+            ⚠️ Ejecuta la migración <strong>003_team_management.sql</strong> en Supabase → SQL Editor para activar esta sección.
+          </div>
+        )}
         {/* Members */}
         <div className="section-hd">
           <div className="section-title">{memberList.length} miembro{memberList.length !== 1 ? 's' : ''}</div>
           {canManage && (
             <button className="invite-btn" onClick={() => { setShowInvite(true); setInvMsg(null) }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Invitar
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span className="invite-btn-lbl">Invitar</span>
             </button>
           )}
         </div>
