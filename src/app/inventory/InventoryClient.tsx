@@ -98,7 +98,6 @@ export default function InventoryClient({ variants: initial, orgId, userName, or
         .main  { flex: 1; overflow-y: auto; }
         .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 52px 20px 20px; }
         @media (min-width: 768px) { .topbar { padding: 32px 32px 24px; } }
-        .page-title { font-size: 26px; font-weight: 800; color: #1A1A20; letter-spacing: -0.5px; }
         .content { padding: 0 16px 120px; }
         @media (min-width: 768px) { .content { padding: 0 32px 48px; } }
         .search-wrap { margin-bottom: 16px; position: relative; }

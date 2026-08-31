@@ -153,8 +153,6 @@ export default function SettingsClient({
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
         .topbar{padding-bottom:20px}
         .back-btn{width:38px;height:38px;border-radius:var(--r-sm,12px);background:var(--bg,#ECEEF2);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;box-shadow:var(--shadow-sm);flex-shrink:0}
-        .page-title{font-size:22px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.4px}
-        @media(min-width:768px){.page-title{font-size:var(--text-xl,26px)}}
         .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
         @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px);max-width:640px;margin:0 auto}}
         .settings-nav{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
@@ -165,7 +163,6 @@ export default function SettingsClient({
         .av{width:72px;height:72px;border-radius:50%;background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#3B82F6));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:white;flex-shrink:0;box-shadow:var(--shadow-brand-sm)}
         .av-name{font-size:18px;font-weight:800;color:var(--text-1,#1A1A20)}
         .av-email{font-size:13px;color:var(--text-3,rgba(26,26,32,0.40));margin-top:2px}
-        .sec-title{font-size:var(--text-md,17px);font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.3px;margin:20px 0 10px}
         .card{background:var(--bg,#ECEEF2);border-radius:var(--r-xl,24px);overflow:hidden;box-shadow:var(--shadow-card);margin-bottom:16px}
         .field{padding:14px 20px;border-top:1px solid var(--border-light,rgba(0,0,0,0.04))}
         .field:first-child{border-top:none}

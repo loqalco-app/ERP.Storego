@@ -45,7 +45,6 @@ export default function CustomersClient({ customers: initCustomers, userName, or
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
         .topbar{justify-content:space-between}
-        .page-title{font-size:26px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.5px}
         /* Botón en topbar — solo desktop */
         .new-btn{display:none;align-items:center;justify-content:center;gap:6px;border-radius:var(--r-pill,50px);padding:10px 18px;background:var(--grad-brand-btn,linear-gradient(145deg,#1D4ED8,#2563EB));color:white;border:none;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:var(--shadow-brand-sm);transition:opacity 0.15s,transform 0.12s;flex-shrink:0;font-size:13px;font-weight:700}
         @media(min-width:768px){.new-btn{display:flex}}
