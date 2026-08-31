@@ -76,4 +76,10 @@
 
   /* ── Nav ── */
   --nav-h: 88px; /* alto total del área del nav (incluye padding) */
+
+  /* ── Profile chip (esquina superior derecha) ── */
+  --chip-w:      154px;  /* ancho estimado del chip de perfil */
+  --chip-gap:    20px;   /* margen derecho del chip */
+  /* padding-right mínimo para cualquier .topbar */
+  --topbar-pr:   calc(var(--chip-w) + var(--chip-gap) + 12px);
 }

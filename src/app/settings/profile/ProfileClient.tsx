@@ -41,8 +41,7 @@ export default function ProfileClient({ userId, email, fullName, phone, orgName 
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{display:flex;align-items:center;gap:12px;padding:max(env(safe-area-inset-top,0px),52px) 20px 20px}
-        @media(min-width:768px){.topbar{padding:36px 40px 24px}}
+        .topbar{padding-bottom:20px}
         .back-btn{width:38px;height:38px;border-radius:var(--r-sm,12px);background:var(--bg,#ECEEF2);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;box-shadow:var(--shadow-sm);flex-shrink:0}
         .page-title{font-size:22px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.4px}
         @media(min-width:768px){.page-title{font-size:var(--text-xl,26px)}}
@@ -66,6 +65,10 @@ export default function ProfileClient({ userId, email, fullName, phone, orgName 
         .save-btn:hover{opacity:.92}
         .save-btn:active{transform:scale(0.98)}
         .save-btn:disabled{opacity:.5;cursor:not-allowed}
+        .settings-nav{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+        .snav-link{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:var(--r-md,16px);background:var(--bg,#ECEEF2);box-shadow:var(--shadow-sm);text-decoration:none;font-size:13px;font-weight:700;color:var(--text-2,#0A0A0E);transition:box-shadow 0.15s}
+        .snav-link.active{background:var(--brand-alpha,rgba(29,78,216,0.10));color:var(--brand,#1D4ED8)}
+        .snav-link:hover{box-shadow:var(--shadow-md)}
       `}</style>
 
       <Sidebar active="settings" />
@@ -78,6 +81,17 @@ export default function ProfileClient({ userId, email, fullName, phone, orgName 
       </div>
 
       <div className="content">
+        <div className="settings-nav">
+          <Link href="/settings/profile" className="snav-link active">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+            Mi perfil
+          </Link>
+          <Link href="/settings/team" className="snav-link">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
+            Equipo
+          </Link>
+        </div>
+
         <div className="av-section">
           <div className="av">{initials(name || email)}</div>
           <div>

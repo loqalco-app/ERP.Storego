@@ -132,8 +132,7 @@ export default function CatalogClient({ products: initProducts, categories: init
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:max(env(safe-area-inset-top,0px),52px) 20px 16px}
-        @media(min-width:768px){.topbar{padding:36px 40px 20px}}
+        .topbar{justify-content:space-between}
         .page-title{font-size:26px;font-weight:800;color:#1A1A20;letter-spacing:-0.5px}
         .new-btn{display:flex;align-items:center;gap:7px;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;border-radius:14px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 6px 20px rgba(29,78,216,0.28);transition:opacity 0.15s;white-space:nowrap}
         .new-btn:hover{opacity:.90}

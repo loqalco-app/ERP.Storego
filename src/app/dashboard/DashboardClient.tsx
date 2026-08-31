@@ -19,10 +19,7 @@ export default function DashboardClient({ userName, orgName, stats, recentCustom
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        /* topbar: padding-right extra para no encimarse con el chip de perfil fijo */
-        .topbar{padding:max(env(safe-area-inset-top,0px),52px) 20px 20px}
-        @media(min-width:480px){.topbar{padding-top:max(env(safe-area-inset-top,0px),52px);padding-right:calc(20px + 150px)}}
-        @media(min-width:768px){.topbar{padding-top:max(env(safe-area-inset-top,0px),36px);padding-left:40px;padding-right:calc(40px + 160px)}}
+        .topbar{display:block}
         .greeting-txt{font-size:var(--text-sm,13px);color:var(--text-3,rgba(10,10,14,0.45));font-weight:500;margin-bottom:2px}
         .username-txt{font-size:28px;font-weight:800;color:var(--text-1,#0A0A0E);letter-spacing:-0.8px;line-height:1.1}
         @media(min-width:768px){.username-txt{font-size:34px}}
