@@ -143,9 +143,9 @@ export default function CatalogClient({ products: initProducts, categories: init
         .content{padding:0 16px 120px}
         @media(min-width:768px){.content{padding:0 32px 48px}}
 
-        .tabs{display:flex;gap:4px;background:#ECEEF2;border-radius:16px;padding:4px;box-shadow:inset 3px 3px 8px rgba(0,0,0,0.07),inset -2px -2px 6px rgba(255,255,255,0.85);margin-bottom:20px}
-        .tab{flex:1;padding:10px 8px;border-radius:12px;border:none;background:transparent;font-size:13px;font-weight:600;color:rgba(26,26,32,0.40);cursor:pointer;font-family:inherit;transition:all 0.15s}
-        .tab.on{background:#ECEEF2;color:#1D4ED8;font-weight:700;box-shadow:3px 3px 10px rgba(0,0,0,0.08),-2px -2px 6px rgba(255,255,255,0.90)}
+        .tabs{display:flex;gap:8px;margin-bottom:20px}
+        .tab{flex:1;padding:11px 8px;border-radius:50px;border:2px solid rgba(0,0,0,0.08);background:#ECEEF2;font-size:13px;font-weight:700;color:rgba(26,26,32,0.45);cursor:pointer;font-family:inherit;transition:all 0.18s;box-shadow:3px 3px 8px rgba(0,0,0,0.07),-2px -2px 6px rgba(255,255,255,0.90)}
+        .tab.on{background:linear-gradient(135deg,#1D4ED8,#2563EB);color:white;border-color:transparent;box-shadow:0 6px 18px rgba(29,78,216,0.32)}
 
         .search-wrap{margin-bottom:14px;position:relative}
         .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none}
