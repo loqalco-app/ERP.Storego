@@ -181,7 +181,7 @@ export default function CatalogClient({ products: initProducts, categories: init
         <Sidebar orgName={orgName} userName={userName} active="catalog" />
         <main className="main">
           <div className="topbar">
-            <div className="page-title">Catálogo</div>
+            <div className="page-title">Inventario</div>
             {tab === 'products'   && <Link href="/catalog/new" className="new-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Producto</Link>}
             {tab === 'categories' && <button className="new-btn" onClick={() => openCat()}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Categoría</button>}
             {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Marca</button>}
