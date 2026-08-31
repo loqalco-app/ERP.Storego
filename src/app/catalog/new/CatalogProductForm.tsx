@@ -84,10 +84,10 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
       const { data: d2, error: e2 } = await supabase.from('categories')
         .insert(payload).select('id, name, parent_id').single()
       if (e2) { setErr('Error al crear categoría: ' + e2.message); return }
-      if (d2) { setCats(cs => [...cs, d2]); setCategoryId(d2.id); setNewCatName(''); setShowNewCat(false) }
+      if (d2) { setCats(cs => [...cs, d2]); setRootCatId(d2.id); setSubCatId(''); setNewCatName(''); setShowNewCat(false) }
       return
     }
-    if (data) { setCats(cs => [...cs, data]); setCategoryId(data.id); setNewCatName(''); setShowNewCat(false) }
+    if (data) { setCats(cs => [...cs, data]); setRootCatId(data.id); setSubCatId(''); setNewCatName(''); setShowNewCat(false) }
   }
 
   async function createBrandInline() {
