@@ -24,8 +24,8 @@ create table if not exists organization_invitations (
   unique (organization_id, email, status)
 );
 
-create index if not exists on organization_invitations (organization_id, status);
-create index if not exists on organization_invitations (email);
+create index if not exists idx_org_inv_org_status on organization_invitations (organization_id, status);
+create index if not exists idx_org_inv_email on organization_invitations (email);
 
 -- 3. Trigger: al crear un usuario invitado, crear su user_profile con org y rol
 create or replace function handle_invited_user()
