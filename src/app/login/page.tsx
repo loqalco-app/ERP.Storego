@@ -29,270 +29,210 @@ export default function LoginPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .login-root {
+        .root {
           min-height: 100dvh;
+          background: #ECEEF2;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 24px;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          background: #fff;
-          position: relative;
-          overflow: hidden;
+          font-family: 'Inter', -apple-system, sans-serif;
         }
 
-        /* ── Background blobs ── */
-        .blob {
-          position: fixed;
-          border-radius: 50%;
-          filter: blur(80px);
-          pointer-events: none;
-          z-index: 0;
-        }
-        .blob-1 {
-          width: 500px; height: 500px;
-          background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
-          top: -150px; right: -100px;
-        }
-        .blob-2 {
-          width: 400px; height: 400px;
-          background: radial-gradient(circle, rgba(59,130,246,0.20) 0%, transparent 70%);
-          bottom: -100px; left: -80px;
-        }
-        .blob-3 {
-          width: 300px; height: 300px;
-          background: radial-gradient(circle, rgba(167,139,250,0.18) 0%, transparent 70%);
-          top: 40%; left: 30%;
-        }
-
-        /* ── Glass card ── */
-        .glass-card {
-          position: relative;
-          z-index: 1;
+        .card {
           width: 100%;
-          max-width: 400px;
-          background: rgba(255, 255, 255, 0.45);
-          backdrop-filter: blur(48px) saturate(200%) brightness(1.05);
-          -webkit-backdrop-filter: blur(48px) saturate(200%) brightness(1.05);
+          max-width: 390px;
+          background: #ECEEF2;
           border-radius: 36px;
-          border: 1px solid rgba(255, 255, 255, 0.75);
-          box-shadow:
-            0 32px 80px rgba(99, 102, 241, 0.12),
-            0 8px 32px rgba(0, 0, 0, 0.08),
-            inset 0 1.5px 0 rgba(255, 255, 255, 0.95),
-            inset 0 -1px 0 rgba(255, 255, 255, 0.3);
           padding: 44px 40px 40px;
+          box-shadow:
+            16px 16px 40px rgba(0,0,0,0.10),
+            -10px -10px 28px rgba(255,255,255,0.95),
+            inset 0 1.5px 0 rgba(255,255,255,0.90);
+          position: relative;
           overflow: hidden;
         }
 
-        /* specular shimmer at top */
-        .glass-card::before {
+        /* top specular edge */
+        .card::before {
           content: '';
           position: absolute;
-          top: 0; left: 10%; right: 10%;
+          top: 0; left: 12%; right: 12%;
           height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 40%, rgba(255,255,255,0.9) 60%, transparent);
-          border-radius: 50%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,1) 40%, rgba(255,255,255,1) 60%, transparent);
         }
 
-        /* soft inner light */
-        .glass-card::after {
-          content: '';
-          position: absolute;
-          top: -60px; left: -60px;
-          width: 220px; height: 220px;
-          background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 70%);
-          pointer-events: none;
-        }
-
-        /* ── Logo mark ── */
-        .logo-mark {
+        .logo-wrap {
           width: 56px; height: 56px;
-          background: linear-gradient(145deg, #4F46E5 0%, #818CF8 100%);
           border-radius: 18px;
+          background: #ECEEF2;
           display: flex; align-items: center; justify-content: center;
           margin-bottom: 28px;
           box-shadow:
-            0 12px 32px rgba(79,70,229,0.35),
-            inset 0 1px 0 rgba(255,255,255,0.3);
-          position: relative;
-          z-index: 1;
+            6px 6px 16px rgba(0,0,0,0.12),
+            -4px -4px 12px rgba(255,255,255,0.95),
+            inset 0 1px 0 rgba(255,255,255,0.8);
         }
 
-        /* ── Headings ── */
-        .login-title {
+        h1 {
           font-size: 30px;
           font-weight: 800;
-          color: #0A0A0F;
+          color: #1A1A20;
           letter-spacing: -0.8px;
           line-height: 1.05;
           margin-bottom: 6px;
-          position: relative; z-index: 1;
         }
-        .login-sub {
+        .sub {
           font-size: 14px;
-          color: rgba(10,10,15,0.45);
+          color: rgba(26,26,32,0.40);
           font-weight: 400;
           margin-bottom: 36px;
-          position: relative; z-index: 1;
         }
 
-        /* ── Form ── */
-        .form-group {
-          margin-bottom: 14px;
-          position: relative; z-index: 1;
-        }
-        .form-label {
+        .label {
           display: block;
           font-size: 11px;
           font-weight: 700;
-          color: rgba(10,10,15,0.40);
-          letter-spacing: 0.08em;
+          color: rgba(26,26,32,0.38);
+          letter-spacing: 0.09em;
           text-transform: uppercase;
           margin-bottom: 8px;
         }
-        .form-input {
+
+        .input {
           width: 100%;
           padding: 15px 18px;
           border-radius: 16px;
-          border: 1.5px solid rgba(0,0,0,0.08);
-          background: rgba(255,255,255,0.70);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
+          border: none;
+          background: #ECEEF2;
           font-size: 15px;
           font-weight: 500;
-          color: #0A0A0F;
+          color: #1A1A20;
           outline: none;
-          transition: all 0.2s ease;
           font-family: inherit;
-          box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+          margin-bottom: 16px;
+          box-shadow:
+            inset 4px 4px 10px rgba(0,0,0,0.08),
+            inset -3px -3px 8px rgba(255,255,255,0.90);
+          transition: box-shadow 0.2s ease;
         }
-        .form-input::placeholder { color: rgba(10,10,15,0.25); font-weight: 400; }
-        .form-input:focus {
-          border-color: rgba(79,70,229,0.45);
-          background: rgba(255,255,255,0.92);
-          box-shadow: 0 0 0 4px rgba(79,70,229,0.10), inset 0 1px 2px rgba(0,0,0,0.02);
+        .input::placeholder { color: rgba(26,26,32,0.22); font-weight: 400; }
+        .input:focus {
+          box-shadow:
+            inset 4px 4px 10px rgba(0,0,0,0.10),
+            inset -3px -3px 8px rgba(255,255,255,0.90),
+            0 0 0 2.5px rgba(37,99,235,0.25);
         }
 
-        /* ── Error ── */
-        .error-box {
-          background: rgba(239,68,68,0.07);
-          border: 1px solid rgba(239,68,68,0.18);
+        .error {
+          background: rgba(220,38,38,0.07);
+          border: 1px solid rgba(220,38,38,0.15);
           border-radius: 14px;
           padding: 11px 16px;
           font-size: 13px;
           font-weight: 500;
           color: #DC2626;
-          margin-bottom: 14px;
-          position: relative; z-index: 1;
+          margin-bottom: 16px;
         }
 
-        /* ── Button ── */
-        .submit-btn {
+        .btn {
           width: 100%;
           padding: 16px;
-          margin-top: 8px;
           border-radius: 18px;
-          background: linear-gradient(145deg, #4F46E5 0%, #6366F1 60%, #818CF8 100%);
-          color: white;
-          font-size: 15px;
-          font-weight: 700;
           border: none;
           cursor: pointer;
-          letter-spacing: -0.1px;
+          font-size: 15px;
+          font-weight: 700;
           font-family: inherit;
-          position: relative; z-index: 1;
+          letter-spacing: -0.1px;
+          color: white;
+          background: linear-gradient(145deg, #1D4ED8 0%, #2563EB 60%, #3B82F6 100%);
           box-shadow:
-            0 8px 24px rgba(79,70,229,0.40),
-            inset 0 1px 0 rgba(255,255,255,0.25);
+            0 8px 24px rgba(29,78,216,0.38),
+            0 2px 8px rgba(29,78,216,0.20),
+            inset 0 1.5px 0 rgba(255,255,255,0.22);
           transition: all 0.18s ease;
+          position: relative;
           overflow: hidden;
+          margin-top: 4px;
         }
-        .submit-btn::before {
+        .btn::before {
           content: '';
           position: absolute;
           top: 0; left: 0; right: 0;
-          height: 50%;
-          background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+          height: 48%;
+          background: linear-gradient(180deg, rgba(255,255,255,0.14) 0%, transparent 100%);
           border-radius: 18px 18px 0 0;
           pointer-events: none;
         }
-        .submit-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 12px 32px rgba(79,70,229,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
+        .btn:hover:not(:disabled) {
+          transform: translateY(-1.5px);
+          box-shadow:
+            0 14px 32px rgba(29,78,216,0.42),
+            0 4px 12px rgba(29,78,216,0.22),
+            inset 0 1.5px 0 rgba(255,255,255,0.22);
         }
-        .submit-btn:active:not(:disabled) {
-          transform: translateY(0px) scale(0.99);
-        }
-        .submit-btn:disabled { opacity: 0.6; cursor: default; }
+        .btn:active:not(:disabled) { transform: translateY(0) scale(0.99); }
+        .btn:disabled { opacity: 0.55; cursor: default; }
 
-        /* ── Footer ── */
-        .login-footer {
+        .footer {
           text-align: center;
           font-size: 12px;
-          color: rgba(10,10,15,0.28);
+          color: rgba(26,26,32,0.25);
           margin-top: 24px;
-          position: relative; z-index: 1;
           font-weight: 500;
           letter-spacing: 0.01em;
         }
       `}</style>
 
-      <div className="login-root">
-        <div className="blob blob-1" />
-        <div className="blob blob-2" />
-        <div className="blob blob-3" />
+      <div className="root">
+        <div>
+          <div className="card">
+            <div className="logo-wrap">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="3" y1="6" x2="21" y2="6" stroke="#2563EB" strokeWidth="2" strokeLinecap="round"/>
+                <path d="M16 10a4 4 0 0 1-8 0" stroke="#2563EB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
 
-        <div className="glass-card">
-          {/* Logo */}
-          <div className="logo-mark">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="9,22 9,12 15,12 15,22" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
+            <h1>Bienvenido</h1>
+            <p className="sub">Inicia sesión en Store ERP</p>
 
-          <h1 className="login-title">Bienvenido</h1>
-          <p className="login-sub">Inicia sesión en Store ERP</p>
-
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label className="form-label">Correo</label>
+            <form onSubmit={handleLogin}>
+              <label className="label">Correo</label>
               <input
-                className="form-input"
+                className="input"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
                 placeholder="tu@correo.com"
               />
-            </div>
 
-            <div className="form-group">
-              <label className="form-label">Contraseña</label>
+              <label className="label">Contraseña</label>
               <input
-                className="form-input"
+                className="input"
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
               />
-            </div>
 
-            {error && <div className="error-box">{error}</div>}
+              {error && <div className="error">{error}</div>}
 
-            <button className="submit-btn" type="submit" disabled={loading}>
-              {loading ? 'Entrando…' : 'Iniciar sesión'}
-            </button>
-          </form>
+              <button className="btn" type="submit" disabled={loading}>
+                {loading ? 'Entrando…' : 'Iniciar sesión'}
+              </button>
+            </form>
+          </div>
+
+          <p className="footer">Store ERP · Acceso privado</p>
         </div>
-
-        <p className="login-footer">Store ERP · Acceso privado</p>
       </div>
     </>
   )
