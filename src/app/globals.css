@@ -81,3 +81,150 @@ input, select, textarea {
     padding-top: 24px;
   }
 }
+
+/*
+ * ── Typography system ─────────────────────────────────────────
+ * Usa estas clases en todos los componentes para garantizar
+ * tamaños y pesos consistentes en toda la app.
+ * ─────────────────────────────────────────────────────────────
+ */
+
+/* Page title — topbar "Inventario", "Clientes", etc. */
+.page-title {
+  font-size: var(--text-lg, 22px);
+  font-weight: 800;
+  color: var(--text-1, #0A0A0E);
+  letter-spacing: -0.4px;
+  line-height: 1.1;
+}
+@media (min-width: 768px) {
+  .page-title { font-size: var(--text-xl, 26px); }
+}
+
+/* Section titles — "Información personal", "Contraseña", etc. */
+.sec-title {
+  font-size: var(--text-md, 17px);
+  font-weight: 800;
+  color: var(--text-1, #0A0A0E);
+  letter-spacing: -0.3px;
+  margin: 20px 0 10px;
+}
+
+/* Field label — uppercase tiny label above inputs */
+.fl {
+  font-size: var(--text-2xs, 10px);
+  font-weight: 700;
+  color: var(--text-4, rgba(10,10,14,0.34));
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 6px;
+}
+
+/* Primary value — prices, names, key data */
+.val-primary {
+  font-size: var(--text-base, 15px);
+  font-weight: 700;
+  color: var(--text-1, #0A0A0E);
+}
+
+/* Secondary value / meta text */
+.val-meta {
+  font-size: var(--text-xs, 11px);
+  font-weight: 500;
+  color: var(--text-3, rgba(10,10,14,0.52));
+}
+
+/* Card row name (member names, product names in lists) */
+.row-name {
+  font-size: var(--text-sm, 13px);
+  font-weight: 700;
+  color: var(--text-1, #0A0A0E);
+}
+
+/* Sub text below row names */
+.row-sub {
+  font-size: var(--text-xs, 11px);
+  font-weight: 500;
+  color: var(--text-3, rgba(10,10,14,0.52));
+  margin-top: 2px;
+}
+
+/* Section header label (uppercase, muted) */
+.section-label {
+  font-size: var(--text-xs, 11px);
+  font-weight: 700;
+  color: var(--text-3, rgba(10,10,14,0.52));
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* Badge / pill */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--r-pill, 50px);
+  font-size: var(--text-2xs, 10px);
+  font-weight: 700;
+}
+
+/* Standard form input */
+.fi {
+  width: 100%;
+  padding: 13px 16px;
+  background: rgba(0,0,0,0.03);
+  border: 1.5px solid var(--border, rgba(0,0,0,0.07));
+  border-radius: var(--r-md, 16px);
+  font-size: var(--text-base, 15px);
+  font-weight: 500;
+  color: var(--text-1, #0A0A0E);
+  font-family: var(--font, inherit);
+  outline: none;
+  box-shadow: var(--shadow-inset);
+  transition: border-color 0.15s;
+}
+.fi:focus {
+  border-color: var(--brand-mid, #2563EB);
+  box-shadow: var(--shadow-inset), 0 0 0 3px var(--brand-alpha);
+}
+
+/* Alert banners */
+.alert-ok {
+  background: rgba(5,150,105,0.08);
+  border: 1px solid rgba(5,150,105,0.18);
+  border-radius: var(--r-md, 16px);
+  padding: 12px 16px;
+  font-size: var(--text-sm, 13px);
+  font-weight: 600;
+  color: #065f46;
+  margin-bottom: 16px;
+}
+.alert-err {
+  background: rgba(220,38,38,0.07);
+  border: 1px solid rgba(220,38,38,0.15);
+  border-radius: var(--r-md, 16px);
+  padding: 12px 16px;
+  font-size: var(--text-sm, 13px);
+  font-weight: 600;
+  color: #991b1b;
+  margin-bottom: 16px;
+}
+
+/* Primary CTA button */
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  background: var(--grad-brand-btn);
+  border: none;
+  border-radius: var(--r-xl, 24px);
+  font-size: var(--text-base, 15px);
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  font-family: var(--font, inherit);
+  box-shadow: var(--shadow-brand);
+  transition: opacity 0.15s, transform 0.12s;
+}
+.btn-primary:hover  { opacity: .92; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
