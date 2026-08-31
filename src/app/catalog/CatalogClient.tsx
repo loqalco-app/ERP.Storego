@@ -91,7 +91,7 @@ export default function CatalogClient({ products: initProducts, categories: init
       setBrands(bs => bs.map(b => b.id === editItem.id ? { ...b, name: mName.trim(), description: mDesc.trim()||null } : b))
     } else {
       const { data, error } = await supabase.from('brands')
-        .insert({ organization_id: orgId, name: mName.trim(), description: mDesc.trim()||null, slug })
+        .insert({ organization_id: orgId, name: mName.trim(), description: mDesc.trim()||null })
         .select('id,name,description').single()
       if (error) { setSaving(false); setErr(error.message.includes('slug') ? 'Ya existe una marca con ese nombre.' : error.message); return }
       setBrands(bs => [...bs, data])

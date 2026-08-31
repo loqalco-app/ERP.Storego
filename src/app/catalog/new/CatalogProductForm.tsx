@@ -87,7 +87,7 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
     setBrandErr(null)
     const supabase = createClient()
     const { data, error } = await supabase.from('brands')
-      .insert({ organization_id: orgId, name: newBrandName.trim(), slug: slugify(newBrandName.trim()) })
+      .insert({ organization_id: orgId, name: newBrandName.trim() })
       .select('id, name').single()
     if (error) { setBrandErr(error.message.includes('slug') ? 'Ya existe una marca con ese nombre.' : error.message); return }
     if (data) { setBrds(bs => [...bs, data]); setBrandId(data.id); setNewBrandName(''); setShowNewBrand(false) }
