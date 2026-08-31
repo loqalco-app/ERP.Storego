@@ -8,27 +8,29 @@
 }
 
 body {
-  background: #F5F5F7;
+  background: var(--bg, #ECEEF2);
   color: #0A0A0B;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100dvh;
 }
 
 /*
  * ── Global .topbar ───────────────────────────────────────────
- * Aplicado a TODAS las páginas. El padding-right reserva
- * espacio para el chip de perfil fixed en la esquina superior
- * derecha. Cambia --chip-w / --chip-gap en tokens.css.
+ * Zona roja: altura fija que NO invade el chip de perfil.
+ * padding-right reserva espacio para el chip fixed top-right.
  * ─────────────────────────────────────────────────────────────
  */
 .topbar {
   display: flex;
   align-items: center;
   gap: 12px;
+  /* padding-top empuja el contenido por debajo del chip */
   padding-top: max(env(safe-area-inset-top, 0px), 52px);
   padding-left: 20px;
   padding-bottom: 16px;
+  /* padding-right reserva el hueco del chip de perfil */
   padding-right: var(--topbar-pr, 186px);
 }
 
@@ -42,4 +44,19 @@ body {
       calc(var(--chip-w, 154px) + 40px + 12px)
     );
   }
+}
+
+/*
+ * ── Global .content ──────────────────────────────────────────
+ * Zona verde: llena toda la pantalla disponible entre el
+ * topbar y el nav inferior. Nunca deja espacio vacío.
+ * ─────────────────────────────────────────────────────────────
+ */
+.content {
+  min-height: calc(
+    100dvh
+    - var(--topbar-h, 104px)
+    - var(--nav-h, 88px)
+    - 16px
+  );
 }

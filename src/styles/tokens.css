@@ -75,11 +75,11 @@
   --text-2xl: 32px;
 
   /* ── Nav ── */
-  --nav-h: 88px; /* alto total del área del nav (incluye padding) */
+  --nav-h:     80px;   /* alto total del área del nav (incluye padding) */
+  --topbar-h:  104px;  /* alto estimado del topbar en mobile (safe-top + title + pb) */
 
   /* ── Profile chip (esquina superior derecha) ── */
-  --chip-w:      154px;  /* ancho estimado del chip de perfil */
-  --chip-gap:    20px;   /* margen derecho del chip */
-  /* padding-right mínimo para cualquier .topbar */
+  --chip-w:      154px;
+  --chip-gap:    20px;
   --topbar-pr:   calc(var(--chip-w) + var(--chip-gap) + 12px);
 }

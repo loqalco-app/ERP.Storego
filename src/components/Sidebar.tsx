@@ -139,16 +139,17 @@ export default function Sidebar({ active }: Props) {
           pointer-events:none;z-index:198
         }
 
-        /* ── Nav bar ── */
+        /* ── Nav bar — pegado al borde inferior ── */
         .nav-bar{
           position:fixed;bottom:0;left:0;right:0;z-index:199;
           display:flex;justify-content:center;
           padding-left:14px;
           padding-right:14px;
-          padding-bottom:max(env(safe-area-inset-bottom,0px),16px);
+          /* safe-area en notch, 8px en pantallas sin notch = más pegado al borde */
+          padding-bottom:max(env(safe-area-inset-bottom,0px),8px);
           pointer-events:none
         }
-        @media(min-width:480px){.nav-bar{padding-left:24px;padding-right:24px}}
+        @media(min-width:480px){.nav-bar{padding-left:24px;padding-right:24px;padding-bottom:max(env(safe-area-inset-bottom,0px),10px)}}
 
         /* ── Floating pill ── */
         .nav-pill{
