@@ -26,7 +26,15 @@ const NAV = [
   {
     section: 'Catálogo',
     items: [
-      { key: 'products', href: '/products', label: 'Productos', icon: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></>, fill: false },
+      { key: 'categories', href: '/categories', label: 'Categorías',  icon: <><rect x="2" y="3" width="9" height="9" rx="2"/><rect x="13" y="3" width="9" height="9" rx="2"/><rect x="2" y="14" width="9" height="9" rx="2"/><rect x="13" y="14" width="9" height="9" rx="2"/></>, fill: false },
+      { key: 'brands',     href: '/brands',     label: 'Marcas',      icon: <><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></>, fill: false },
+      { key: 'products',   href: '/products',   label: 'Productos',   icon: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></>, fill: false },
+    ],
+  },
+  {
+    section: 'Inventario',
+    items: [
+      { key: 'inventory',  href: '/inventory',  label: 'Stock',       icon: <><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 7h10M7 12h10M7 17h6"/></>, fill: false },
     ],
   },
   {
