@@ -233,7 +233,7 @@ create table customer_addresses (
   state           text not null,
   zip_code        text,
   country         text not null default 'MX',
-  references      text,
+  delivery_notes  text,
   is_default      boolean not null default false,
   created_at      timestamptz not null default now()
 );
