@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       userName={profile?.full_name ?? user.email ?? 'Usuario'}
-      orgName={(profile?.organizations as { name: string } | null)?.name ?? 'Store ERP'}
+      orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'}
       stats={{
         products: totalProducts ?? 0,
         customers: totalCustomers ?? 0,
