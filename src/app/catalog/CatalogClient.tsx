@@ -150,8 +150,8 @@ export default function CatalogClient({ products: initProducts, categories: init
         .fab{position:fixed;bottom:calc(var(--nav-h,80px) + 20px);right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(145deg,#1D4ED8,#2563EB);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;color:white;text-decoration:none;box-shadow:0 8px 28px rgba(29,78,216,0.40),inset 0 1px 0 rgba(255,255,255,0.20);z-index:190;transition:transform 0.12s,box-shadow 0.12s;-webkit-tap-highlight-color:transparent}
         .fab:active{transform:scale(0.90);box-shadow:0 4px 14px rgba(29,78,216,0.36)}
         @media(min-width:768px){.fab{display:none}}
-        .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px)}}
+        .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
+        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px)}}
 
         .tabs{display:flex;gap:8px;margin-bottom:20px}
         .tab{flex:1;padding:11px 8px;border-radius:50px;border:2px solid rgba(0,0,0,0.08);background:#ECEEF2;font-size:13px;font-weight:700;color:rgba(26,26,32,0.45);cursor:pointer;font-family:inherit;transition:all 0.18s;box-shadow:3px 3px 8px rgba(0,0,0,0.07),-2px -2px 6px rgba(255,255,255,0.90)}

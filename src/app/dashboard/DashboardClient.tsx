@@ -23,8 +23,8 @@ export default function DashboardClient({ userName, orgName, stats, recentCustom
         .greeting-txt{font-size:var(--text-sm,13px);color:var(--text-3,rgba(10,10,14,0.45));font-weight:500;margin-bottom:2px}
         .username-txt{font-size:28px;font-weight:800;color:var(--text-1,#0A0A0E);letter-spacing:-0.8px;line-height:1.1}
         @media(min-width:768px){.username-txt{font-size:34px}}
-        .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px)}}
+        .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
+        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px)}}
         .hero{background:var(--grad-brand-hero,linear-gradient(145deg,#1D4ED8,#2563EB,#3B82F6));border-radius:var(--r-2xl,28px);padding:28px 24px;margin-bottom:16px;box-shadow:var(--shadow-brand),inset 0 1px 0 rgba(255,255,255,0.20);position:relative;overflow:hidden}
         .hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(255,255,255,0.12) 0%,transparent 70%)}
         .hero-label{font-size:var(--text-sm,13px);color:rgba(255,255,255,0.65);font-weight:500;margin-bottom:6px}

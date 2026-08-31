@@ -203,8 +203,8 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
         .back-btn{width:38px;height:38px;border-radius:var(--r-sm,12px);background:var(--bg,#ECEEF2);display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;box-shadow:var(--shadow-sm)}
         .page-title{font-size:22px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.4px}
         @media(min-width:768px){.page-title{font-size:var(--text-xl,26px)}}
-        .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px);max-width:680px;margin:0 auto}}
+        .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
+        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px);max-width:680px;margin:0 auto}}
         .sec-title{font-size:17px;font-weight:800;color:#1A1A20;letter-spacing:-0.3px;margin:20px 0 10px}
         .card{background:#ECEEF2;border-radius:24px;overflow:hidden;box-shadow:6px 6px 18px rgba(0,0,0,0.08),-4px -4px 12px rgba(255,255,255,0.95),inset 0 1px 0 rgba(255,255,255,0.7);margin-bottom:16px}
         .field{padding:14px 20px;border-top:1px solid rgba(0,0,0,0.05)}

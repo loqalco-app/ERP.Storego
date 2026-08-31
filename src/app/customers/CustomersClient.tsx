@@ -55,8 +55,8 @@ export default function CustomersClient({ customers: initCustomers, userName, or
         .fab{position:fixed;bottom:calc(var(--nav-h,80px) + 20px);right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(145deg,#1D4ED8,#2563EB);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;color:white;text-decoration:none;box-shadow:0 8px 28px rgba(29,78,216,0.40),inset 0 1px 0 rgba(255,255,255,0.20);z-index:190;transition:transform 0.12s,box-shadow 0.12s;-webkit-tap-highlight-color:transparent}
         .fab:active{transform:scale(0.90)}
         @media(min-width:768px){.fab{display:none}}
-        .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px)}}
+        .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
+        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px)}}
         .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
         @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}}
         .stat{background:var(--bg,#ECEEF2);border-radius:var(--r-lg,20px);padding:14px 16px;box-shadow:var(--shadow-md);cursor:pointer;border:2px solid transparent;transition:all 0.15s}

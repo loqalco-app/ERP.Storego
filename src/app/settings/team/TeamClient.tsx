@@ -99,8 +99,8 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
         .page-title{font-size:22px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.4px;flex:1}
         @media(min-width:768px){.page-title{font-size:var(--text-xl,26px)}}
 
-        .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px);max-width:720px}}
+        .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
+        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px);max-width:720px}}
 
         .section-hd{display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px}
         .section-title{font-size:13px;font-weight:700;color:var(--text-3,rgba(26,26,32,0.40));text-transform:uppercase;letter-spacing:0.07em}

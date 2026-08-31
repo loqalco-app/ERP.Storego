@@ -65,8 +65,8 @@ export default function ProfileClient({ userId, email, fullName, phone, orgName 
         .back-btn{width:38px;height:38px;border-radius:var(--r-sm,12px);background:var(--bg,#ECEEF2);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;box-shadow:var(--shadow-sm);flex-shrink:0}
         .page-title{font-size:22px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.4px}
         @media(min-width:768px){.page-title{font-size:var(--text-xl,26px)}}
-        .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px);max-width:640px;margin:0 auto}}
+        .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
+        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px);max-width:640px;margin:0 auto}}
         .av-section{display:flex;align-items:center;gap:20px;margin-bottom:28px}
         .av{width:72px;height:72px;border-radius:50%;background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#3B82F6));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:white;flex-shrink:0;box-shadow:var(--shadow-brand-sm)}
         .av-name{font-size:18px;font-weight:800;color:var(--text-1,#1A1A20)}
