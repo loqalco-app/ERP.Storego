@@ -22,11 +22,13 @@
   /* ── Superficie / Fondo (neumórfico) ── */
   --bg: #ECEEF2;
 
-  /* ── Texto ── */
-  --text-1: #1A1A20;
-  --text-2: rgba(26, 26, 32, 0.55);
-  --text-3: rgba(26, 26, 32, 0.38);
-  --text-4: rgba(26, 26, 32, 0.22);
+  /* ── Texto (jerarquía por peso, no por color) ── */
+  /* Cambia --text-base para mover toda la paleta de texto */
+  --text-base-rgb: 10, 10, 14;       /* color base casi-negro */
+  --text-1: #0A0A0E;                 /* headings / valores — weight 700–800 */
+  --text-2: #0A0A0E;                 /* body principal     — weight 500–600 */
+  --text-3: rgba(10, 10, 14, 0.52);  /* labels / subtítulos — weight 500 */
+  --text-4: rgba(10, 10, 14, 0.34);  /* placeholders / meta — weight 400 */
 
   /* ── Bordes ── */
   --border:       rgba(0, 0, 0, 0.07);
