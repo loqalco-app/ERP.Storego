@@ -139,12 +139,17 @@ export default function CatalogClient({ products: initProducts, categories: init
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
         .topbar{justify-content:space-between}
         .page-title{font-size:26px;font-weight:800;color:#1A1A20;letter-spacing:-0.5px}
-        .new-btn{display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;border-radius:50%;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 6px 20px rgba(29,78,216,0.28);transition:opacity 0.15s,transform 0.12s;flex-shrink:0}
+        /* Botón en topbar — solo desktop */
+        .new-btn{display:none;align-items:center;justify-content:center;gap:6px;height:auto;border-radius:50px;padding:10px 18px;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 6px 20px rgba(29,78,216,0.28);transition:opacity 0.15s,transform 0.12s;flex-shrink:0;font-size:13px;font-weight:700}
+        @media(min-width:768px){.new-btn{display:flex}}
         .new-btn:hover{opacity:.90}
         .new-btn:active{transform:scale(0.93)}
-        @media(min-width:480px){.new-btn{width:auto;height:auto;border-radius:50px;padding:10px 18px;gap:6px}}
-        .new-btn-lbl{display:none}
-        @media(min-width:480px){.new-btn-lbl{display:inline;font-size:13px;font-weight:700}}
+        .new-btn-lbl{font-size:13px;font-weight:700}
+
+        /* FAB — flotante encima del nav, solo mobile */
+        .fab{position:fixed;bottom:calc(var(--nav-h,80px) + 20px);right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(145deg,#1D4ED8,#2563EB);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;color:white;text-decoration:none;box-shadow:0 8px 28px rgba(29,78,216,0.40),inset 0 1px 0 rgba(255,255,255,0.20);z-index:190;transition:transform 0.12s,box-shadow 0.12s;-webkit-tap-highlight-color:transparent}
+        .fab:active{transform:scale(0.90);box-shadow:0 4px 14px rgba(29,78,216,0.36)}
+        @media(min-width:768px){.fab{display:none}}
         .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
         @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px)}}
 
@@ -244,7 +249,7 @@ export default function CatalogClient({ products: initProducts, categories: init
         .empty{padding:40px 20px;text-align:center;color:rgba(26,26,32,0.32);font-size:14px;font-weight:500}
         .count{font-size:12px;color:rgba(26,26,32,0.32);font-weight:500;margin-bottom:10px}
 
-        .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+        .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.40);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:400;display:flex;align-items:flex-end;justify-content:center}
         @media(min-width:768px){.overlay{align-items:center}}
         .modal{background:#ECEEF2;border-radius:28px 28px 0 0;padding:28px 24px 40px;width:100%;max-width:520px;box-shadow:0 -8px 40px rgba(0,0,0,0.14)}
         @media(min-width:768px){.modal{border-radius:28px;padding:32px}}
@@ -261,12 +266,18 @@ export default function CatalogClient({ products: initProducts, categories: init
       `}</style>
 
       <Sidebar active="catalog" />
+
+      {/* FAB — mobile only, encima del nav */}
+      {tab === 'products'   && <Link href="/catalog/new" className="fab" aria-label="Agregar producto"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></Link>}
+      {tab === 'categories' && <button className="fab" onClick={() => openCat()} aria-label="Agregar categoría"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>}
+      {tab === 'brands'     && <button className="fab" onClick={() => openBrand()} aria-label="Agregar marca"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>}
+
       <div className="topbar">
-            <div className="page-title">Inventario</div>
-            {tab === 'products'   && <Link href="/catalog/new" className="new-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">Producto</span></Link>}
-            {tab === 'categories' && <button className="new-btn" onClick={() => openCat()}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">Categoría</span></button>}
-            {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">Marca</span></button>}
-          </div>
+        <div className="page-title">Inventario</div>
+        {tab === 'products'   && <Link href="/catalog/new" className="new-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Producto</span></Link>}
+        {tab === 'categories' && <button className="new-btn" onClick={() => openCat()}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Categoría</span></button>}
+        {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Marca</span></button>}
+      </div>
 
           <div className="content">
             <div className="tabs">

@@ -40,11 +40,13 @@ function timeAgo(dateStr: string) {
 }
 
 export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, members, invitations, migrationNeeded }: Props) {
-  const [showInvite, setShowInvite]   = useState(false)
-  const [invEmail, setInvEmail]       = useState('')
-  const [invRole, setInvRole]         = useState('staff')
-  const [sending, setSending]         = useState(false)
-  const [invMsg, setInvMsg]           = useState<{ type: 'ok'|'err'; text: string } | null>(null)
+  const [showInvite, setShowInvite]     = useState(false)
+  const [invFirstName, setInvFirstName] = useState('')
+  const [invLastName, setInvLastName]   = useState('')
+  const [invEmail, setInvEmail]         = useState('')
+  const [invRole, setInvRole]           = useState('staff')
+  const [sending, setSending]           = useState(false)
+  const [invMsg, setInvMsg]             = useState<{ type: 'ok'|'err'; text: string } | null>(null)
   const [memberList, setMemberList]   = useState<Member[]>(members)
   const [invList, setInvList]         = useState<Invitation[]>(invitations)
   const [updatingId, setUpdatingId]   = useState<string|null>(null)
@@ -53,17 +55,18 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
-    if (!invEmail.trim()) return
+    if (!invEmail.trim() || !invFirstName.trim()) return
     setSending(true); setInvMsg(null)
+    const fullName = `${invFirstName.trim()} ${invLastName.trim()}`.trim()
     const res = await fetch('/api/team/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: invEmail.trim(), role: invRole, orgId }),
+      body: JSON.stringify({ email: invEmail.trim(), role: invRole, orgId, fullName }),
     })
     const data = await res.json()
     if (!res.ok) { setInvMsg({ type: 'err', text: data.error ?? 'Error al enviar invitación' }); setSending(false); return }
-    setInvMsg({ type: 'ok', text: data.method === 'email' ? `Invitación enviada a ${invEmail}` : `Invitación creada. Agrega SUPABASE_SERVICE_ROLE_KEY en Vercel para enviar correos automáticos.` })
-    setInvEmail(''); setInvRole('staff'); setSending(false)
+    setInvMsg({ type: 'ok', text: data.method === 'resend' ? `Invitación enviada a ${invEmail}` : `Invitación creada. Agrega RESEND_API_KEY en Vercel para emails personalizados.` })
+    setInvFirstName(''); setInvLastName(''); setInvEmail(''); setInvRole('staff'); setSending(false)
     setInvList(prev => [{ id: Date.now().toString(), email: invEmail.trim(), role: invRole, status: 'pending', created_at: new Date().toISOString(), expires_at: new Date(Date.now()+7*86400000).toISOString() }, ...prev])
     setTimeout(() => { setShowInvite(false); setInvMsg(null) }, 2500)
   }
@@ -131,10 +134,11 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
         .cancel-btn:hover{background:rgba(220,38,38,0.15)}
         .cancel-btn:disabled{opacity:0.4;cursor:default}
 
-        /* Invite modal */
-        .modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,0.44);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+        /* Invite modal — z-index 500 cubre el nav (199) y el chip (300) */
+        .modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,0.44);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:500;display:flex;align-items:flex-end;justify-content:center}
         @media(min-width:600px){.modal-scrim{align-items:center}}
-        .modal{background:var(--bg,#ECEEF2);border-radius:var(--r-2xl,28px) var(--r-2xl,28px) var(--r-2xl,28px) var(--r-2xl,28px);padding:28px 24px 32px;width:100%;max-width:480px;box-shadow:var(--shadow-float);margin:0 8px}
+        .modal{background:var(--bg,#ECEEF2);border-radius:var(--r-2xl,28px);padding:28px 24px 32px;width:100%;max-width:480px;box-shadow:var(--shadow-float);margin:0 8px 8px}
+        .name-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
         .modal-title{font-size:20px;font-weight:800;color:var(--text-1,#1A1A20);margin-bottom:4px;letter-spacing:-0.3px}
         .modal-sub{font-size:13px;color:var(--text-3,rgba(26,26,32,0.40));margin-bottom:24px}
         .fl{font-size:11px;font-weight:700;color:var(--text-4,rgba(26,26,32,0.35));text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px}
@@ -280,8 +284,19 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
             {invMsg && <div className={invMsg.type === 'ok' ? 'alert-ok' : 'alert-err'}>{invMsg.text}</div>}
 
             <form onSubmit={handleInvite}>
-              <div className="fl">Correo electrónico</div>
-              <input className="fi" type="email" placeholder="nombre@ejemplo.com" value={invEmail} onChange={e => setInvEmail(e.target.value)} autoFocus required />
+              <div className="name-row">
+                <div>
+                  <div className="fl">Nombre *</div>
+                  <input className="fi" type="text" placeholder="Juan" value={invFirstName} onChange={e => setInvFirstName(e.target.value)} autoFocus required style={{marginBottom:0}} />
+                </div>
+                <div>
+                  <div className="fl">Apellido</div>
+                  <input className="fi" type="text" placeholder="García" value={invLastName} onChange={e => setInvLastName(e.target.value)} style={{marginBottom:0}} />
+                </div>
+              </div>
+
+              <div className="fl">Correo electrónico *</div>
+              <input className="fi" type="email" placeholder="nombre@ejemplo.com" value={invEmail} onChange={e => setInvEmail(e.target.value)} required />
 
               <div className="fl">Rol</div>
               <div className="role-pills">

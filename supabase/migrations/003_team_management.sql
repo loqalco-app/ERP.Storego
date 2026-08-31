@@ -13,6 +13,7 @@ create table if not exists organization_invitations (
   id              uuid primary key default uuid_generate_v4(),
   organization_id uuid not null references organizations(id) on delete cascade,
   email           text not null,
+  full_name       text,                        -- nombre ingresado al invitar
   role            text not null default 'staff'
     check (role in ('admin','staff','viewer')),
   invited_by      uuid references auth.users(id),

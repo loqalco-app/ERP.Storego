@@ -16,6 +16,12 @@ body {
   min-height: 100dvh;
 }
 
+/* Previene el auto-zoom de iOS en todos los inputs (<16px dispara zoom en Safari/PWA) */
+input, select, textarea {
+  font-size: max(16px, 1em) !important;
+  touch-action: manipulation;
+}
+
 /*
  * ── Global .topbar ───────────────────────────────────────────
  * Zona roja: sticky al tope + blur frosted-glass como iOS.
@@ -67,4 +73,11 @@ body {
     - var(--nav-h, 80px)
     - 16px
   );
+  padding-top: 4px;
+}
+
+@media (min-width: 768px) {
+  .content {
+    padding-top: 24px;
+  }
 }
