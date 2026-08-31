@@ -21,7 +21,7 @@ export default async function CatalogPage() {
       id, name, status, condition, created_at, category_id, brand_id,
       categories(id, name),
       brands(id, name),
-      product_variants(id, sku, sale_price, stock_levels(quantity_available))
+      product_variants(id, sku, sale_price, cost_price, stock_levels(quantity_available))
     `).eq('organization_id', orgId).order('created_at', { ascending: false }),
 
     supabase.from('categories').select('id, name, slug, description, parent_id').eq('organization_id', orgId).order('name'),

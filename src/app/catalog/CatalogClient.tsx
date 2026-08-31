@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 /* ── Types ── */
 interface Category { id: string; name: string; slug: string; description: string | null; parent_id: string | null }
 interface Brand    { id: string; name: string; description: string | null }
-interface Variant  { id: string; sku: string; sale_price: number; stock_levels: { quantity_available: number }[] }
+interface Variant  { id: string; sku: string; sale_price: number; cost_price: number; stock_levels: { quantity_available: number }[] }
 interface Product  { id: string; name: string; status: string; condition: string; created_at: string; category_id: string | null; brand_id: string | null; categories: { id: string; name: string } | null; brands: { id: string; name: string } | null; product_variants: Variant[] }
 
 interface Props { products: Product[]; categories: Category[]; brands: Brand[]; orgId: string; userName: string; orgName: string }
@@ -16,8 +16,13 @@ interface Props { products: Product[]; categories: Category[]; brands: Brand[]; 
 function slugify(s: string) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') }
 function totalStock(variants: Variant[]) { return variants.reduce((s,v) => s + v.stock_levels.reduce((a,sl) => a + sl.quantity_available, 0), 0) }
 function minPrice(variants: Variant[]) { if (!variants.length) return null; return Math.min(...variants.map(v => v.sale_price)) }
-const STATUS_LABEL: Record<string,string> = { active:'Activo', draft:'Borrador', archived:'Archivado' }
-const STATUS_COLOR: Record<string,string> = { active:'rgba(5,150,105,0.10);color:#065f46', draft:'rgba(202,138,4,0.10);color:#92400e', archived:'rgba(107,114,128,0.12);color:#374151' }
+function minCost(variants: Variant[])  { if (!variants.length) return null; return Math.min(...variants.map(v => v.cost_price ?? 0)) }
+function fmt(n: number) { return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+const STATUS_META: Record<string,{ label:string; bg:string; color:string }> = {
+  active:   { label:'Activo',   bg:'rgba(5,150,105,0.10)',   color:'#065f46' },
+  draft:    { label:'Borrador', bg:'rgba(202,138,4,0.10)',   color:'#92400e' },
+  archived: { label:'Archivado',bg:'rgba(107,114,128,0.12)', color:'#374151' },
+}
 
 export default function CatalogClient({ products: initProducts, categories: initCats, brands: initBrands, orgId, userName, orgName }: Props) {
   const [tab, setTab]               = useState<'products'|'categories'|'brands'>('products')
@@ -155,16 +160,60 @@ export default function CatalogClient({ products: initProducts, categories: init
 
         .card{background:#ECEEF2;border-radius:24px;overflow:hidden;box-shadow:6px 6px 18px rgba(0,0,0,0.08),-4px -4px 12px rgba(255,255,255,0.95),inset 0 1px 0 rgba(255,255,255,0.7)}
 
-        .prod-row{display:flex;align-items:center;gap:12px;padding:13px 18px;border-top:1px solid rgba(0,0,0,0.05);text-decoration:none;transition:background 0.12s}
-        .prod-row:first-child{border-top:none}
-        .prod-row:hover{background:rgba(37,99,235,0.04)}
-        .prod-icon{width:40px;height:40px;background:#ECEEF2;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:3px 3px 8px rgba(0,0,0,0.07),-2px -2px 6px rgba(255,255,255,0.90)}
-        .prod-name{font-size:14px;font-weight:700;color:#1A1A20}
-        .prod-meta{font-size:11px;color:rgba(26,26,32,0.38);margin-top:2px}
-        .prod-right{text-align:right;flex-shrink:0}
-        .prod-price{font-size:14px;font-weight:700;color:#1A1A20}
-        .prod-stock{font-size:11px;color:rgba(26,26,32,0.35);margin-top:2px}
-        .badge{display:inline-block;padding:2px 8px;border-radius:50px;font-size:10px;font-weight:700}
+        /* ── Product table ── */
+        .tbl-wrap{background:#ECEEF2;border-radius:24px;overflow:hidden;box-shadow:6px 6px 18px rgba(0,0,0,0.08),-4px -4px 12px rgba(255,255,255,0.95),inset 0 1px 0 rgba(255,255,255,0.7)}
+        .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+        table.ptbl{width:100%;border-collapse:collapse;min-width:680px}
+        .ptbl thead th{padding:11px 16px;font-size:10px;font-weight:700;color:rgba(26,26,32,0.38);text-transform:uppercase;letter-spacing:0.07em;text-align:left;border-bottom:1px solid rgba(0,0,0,0.05);white-space:nowrap;background:rgba(0,0,0,0.015)}
+        .ptbl thead th:first-child{padding-left:20px}
+        .ptbl thead th:last-child{text-align:center}
+        .ptbl tbody tr{border-top:1px solid rgba(0,0,0,0.04);transition:background 0.12s;cursor:pointer}
+        .ptbl tbody tr:first-child{border-top:none}
+        .ptbl tbody tr:hover{background:rgba(29,78,216,0.035)}
+        .ptbl td{padding:13px 16px;vertical-align:middle}
+        .ptbl td:first-child{padding-left:20px}
+        .ptbl td:last-child{text-align:center}
+        .p-icon{width:38px;height:38px;background:#ECEEF2;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:3px 3px 8px rgba(0,0,0,0.07),-2px -2px 6px rgba(255,255,255,0.90)}
+        .p-name{font-size:13px;font-weight:700;color:#1A1A20;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+        .p-sku{font-size:10px;font-weight:600;color:rgba(26,26,32,0.35);margin-top:2px;font-family:'SF Mono',ui-monospace,monospace;letter-spacing:0.03em}
+        .p-cat{font-size:12px;font-weight:600;color:rgba(26,26,32,0.55)}
+        .p-brand{font-size:11px;color:rgba(26,26,32,0.35);margin-top:1px}
+        .p-cost{font-size:13px;font-weight:600;color:rgba(26,26,32,0.45)}
+        .p-sale{font-size:13px;font-weight:800;color:#1D4ED8}
+        .p-variants{font-size:11px;color:rgba(26,26,32,0.35);margin-top:1px}
+        .stock-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:50px;font-size:11px;font-weight:700}
+        .stock-ok{background:rgba(5,150,105,0.10);color:#065f46}
+        .stock-low{background:rgba(202,138,4,0.10);color:#92400e}
+        .stock-zero{background:rgba(220,38,38,0.08);color:#991b1b}
+        .badge{display:inline-block;padding:3px 9px;border-radius:50px;font-size:10px;font-weight:700}
+        .edit-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:10px;border:none;background:rgba(29,78,216,0.08);color:#1D4ED8;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s;text-decoration:none;white-space:nowrap}
+        .edit-btn:hover{background:rgba(29,78,216,0.15)}
+
+        /* Mobile: horizontal scroll en pantallas < 768px */
+        @media(max-width:767px){
+          .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+          table.ptbl{min-width:720px}
+        }
+        /* Ocultar columna Marca en pantallas medianas si hay poco espacio */
+        @media(max-width:959px){
+          .ptbl .td-brand,.ptbl thead th:nth-child(4){display:none}
+        }
+        /* Mobile compacto: layout de tarjeta por fila */
+        @media(max-width:540px){
+          .tbl-scroll{overflow-x:unset}
+          table.ptbl{display:block;min-width:0}
+          .ptbl thead{display:none}
+          .ptbl tbody{display:flex;flex-direction:column}
+          .ptbl tbody tr{display:grid;grid-template-columns:44px 1fr auto;align-items:center;padding:13px 18px;border-top:1px solid rgba(0,0,0,0.04)}
+          .ptbl td{padding:0}
+          .ptbl td.td-icon{display:flex;align-items:center}
+          .ptbl td.td-main{padding:0 10px}
+          .ptbl td.td-price{text-align:right}
+          .ptbl td.td-cat,.ptbl td.td-brand,.ptbl td.td-cost,.ptbl td.td-stock,.ptbl td.td-status,.ptbl td.td-action{display:none}
+          .p-cat-inline{font-size:11px;color:rgba(26,26,32,0.38);margin-top:2px}
+          .p-sku{display:none}
+        }
+
         .count-badge{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:rgba(29,78,216,0.10);border-radius:50px;font-size:11px;font-weight:700;color:#1D4ED8}
 
         .list-row{display:flex;align-items:center;gap:10px;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.05);cursor:pointer;transition:background 0.12s}
@@ -233,37 +282,96 @@ export default function CatalogClient({ products: initProducts, categories: init
               <>
                 <div className="search-wrap">
                   <div className="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.35)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-                  <input className="search-input" placeholder="Buscar por nombre o SKU..." value={q} onChange={e => setQ(e.target.value)} />
+                  <input className="search-input" placeholder="Buscar por nombre, SKU o marca..." value={q} onChange={e => setQ(e.target.value)} />
                 </div>
                 {filteredProducts.length > 0 && <div className="count">{filteredProducts.length} producto{filteredProducts.length !== 1 ? 's' : ''}</div>}
-                <div className="card">
+                <div className="tbl-wrap">
                   {filteredProducts.length === 0 ? (
-                    <div className="empty">{q ? `Sin resultados para "${q}"` : 'Sin productos — crea el primero'}</div>
-                  ) : filteredProducts.map(p => {
-                    const price = minPrice(p.product_variants)
-                    const stock = totalStock(p.product_variants)
-                    const cat   = (p.categories as unknown as { name: string } | null)?.name
-                    const brand = (p.brands as unknown as { name: string } | null)?.name
-                    return (
-                      <Link key={p.id} href={`/catalog/${p.id}/edit`} className="prod-row">
-                        <div className="prod-icon">
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.55)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                        </div>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div className="prod-name">{p.name}</div>
-                          <div className="prod-meta">
-                            {cat && <span>{cat}{brand ? ` · ${brand}` : ''} · </span>}
-                            {!cat && brand && <span>{brand} · </span>}
-                            <span className="badge" style={{background: STATUS_COLOR[p.status]?.split(';')[0]?.replace('background:',''), color: STATUS_COLOR[p.status]?.split(';')[1]?.replace('color:','')}}>{STATUS_LABEL[p.status]}</span>
-                          </div>
-                        </div>
-                        <div className="prod-right">
-                          <div className="prod-price">{price !== null ? `$${price.toLocaleString('es-MX',{minimumFractionDigits:2})}` : '—'}</div>
-                          <div className="prod-stock">{stock} en stock</div>
-                        </div>
-                      </Link>
-                    )
-                  })}
+                    <div className="empty" style={{minWidth:0}}>{q ? `Sin resultados para "${q}"` : 'Sin productos — crea el primero'}</div>
+                  ) : (
+                    <div className="tbl-scroll">
+                      <table className="ptbl">
+                        <thead>
+                          <tr>
+                            <th style={{width:44}}></th>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Marca</th>
+                            <th>Precio costo</th>
+                            <th>Precio venta</th>
+                            <th>Stock</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredProducts.map(p => {
+                            const salePrice = minPrice(p.product_variants)
+                            const costPrice = minCost(p.product_variants)
+                            const stock     = totalStock(p.product_variants)
+                            const cat       = (p.categories as unknown as { name: string } | null)?.name
+                            const brand     = (p.brands    as unknown as { name: string } | null)?.name
+                            const sku       = p.product_variants[0]?.sku ?? '—'
+                            const sm        = STATUS_META[p.status] ?? STATUS_META.draft
+                            const stockCls  = stock === 0 ? 'stock-zero' : stock < 5 ? 'stock-low' : 'stock-ok'
+                            const varCount  = p.product_variants.length
+                            return (
+                              <tr key={p.id} onClick={() => window.location.href = `/catalog/${p.id}/edit`}>
+                                {/* Icon */}
+                                <td className="td-icon">
+                                  <div className="p-icon">
+                                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.55)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                                  </div>
+                                </td>
+                                {/* Nombre + SKU */}
+                                <td className="td-main">
+                                  <div className="p-name">{p.name}</div>
+                                  <div className="p-sku">SKU {sku}{varCount > 1 ? ` +${varCount-1}` : ''}</div>
+                                  {/* mobile inline cat+brand */}
+                                  <div className="p-cat-inline">{[cat, brand].filter(Boolean).join(' · ')}</div>
+                                </td>
+                                {/* Categoría */}
+                                <td className="td-cat">
+                                  <div className="p-cat">{cat ?? <span style={{opacity:.4}}>—</span>}</div>
+                                </td>
+                                {/* Marca */}
+                                <td className="td-brand">
+                                  <div className="p-cat">{brand ?? <span style={{opacity:.4}}>—</span>}</div>
+                                </td>
+                                {/* Precio costo */}
+                                <td className="td-cost">
+                                  <div className="p-cost">{costPrice !== null && costPrice > 0 ? `$${fmt(costPrice)}` : <span style={{opacity:.35}}>—</span>}</div>
+                                </td>
+                                {/* Precio venta */}
+                                <td className="td-price">
+                                  <div className="p-sale">{salePrice !== null ? `$${fmt(salePrice)}` : <span style={{opacity:.35}}>—</span>}</div>
+                                  {varCount > 1 && <div className="p-variants">{varCount} variantes</div>}
+                                </td>
+                                {/* Stock */}
+                                <td className="td-stock">
+                                  <span className={`stock-pill ${stockCls}`}>
+                                    <span style={{width:5,height:5,borderRadius:'50%',background:'currentColor',display:'inline-block',opacity:.7}} />
+                                    {stock}
+                                  </span>
+                                </td>
+                                {/* Estado */}
+                                <td className="td-status">
+                                  <span className="badge" style={{background:sm.bg,color:sm.color}}>{sm.label}</span>
+                                </td>
+                                {/* Acción */}
+                                <td className="td-action" onClick={e => e.stopPropagation()}>
+                                  <Link href={`/catalog/${p.id}/edit`} className="edit-btn">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Editar
+                                  </Link>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </>
             )}
