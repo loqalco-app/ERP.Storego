@@ -19,13 +19,13 @@ export default function DashboardClient({ userName, orgName, stats, recentCustom
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 20px}
-        @media(min-width:768px){.topbar{padding:36px 40px 24px}}
-        .greeting-txt{font-size:var(--text-sm,13px);color:var(--text-3,rgba(26,26,32,0.38));font-weight:500}
-        .username-txt{font-size:24px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.5px}
-        @media(min-width:768px){.username-txt{font-size:var(--text-xl,26px)}}
-        .notif-btn{width:42px;height:42px;border-radius:var(--r-md,16px);background:var(--bg,#ECEEF2);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0;box-shadow:var(--shadow-sm)}
-        .notif-dot{position:absolute;top:9px;right:9px;width:7px;height:7px;background:var(--brand,#2563EB);border-radius:50%;border:1.5px solid var(--bg,#ECEEF2)}
+        /* topbar: padding-right extra para no encimarse con el chip de perfil fijo */
+        .topbar{padding:max(env(safe-area-inset-top,0px),52px) 20px 20px}
+        @media(min-width:480px){.topbar{padding-top:max(env(safe-area-inset-top,0px),52px);padding-right:calc(20px + 150px)}}
+        @media(min-width:768px){.topbar{padding-top:max(env(safe-area-inset-top,0px),36px);padding-left:40px;padding-right:calc(40px + 160px)}}
+        .greeting-txt{font-size:var(--text-sm,13px);color:var(--text-3,rgba(10,10,14,0.45));font-weight:500;margin-bottom:2px}
+        .username-txt{font-size:28px;font-weight:800;color:var(--text-1,#0A0A0E);letter-spacing:-0.8px;line-height:1.1}
+        @media(min-width:768px){.username-txt{font-size:34px}}
         .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
         @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px)}}
         .hero{background:var(--grad-brand-hero,linear-gradient(145deg,#1D4ED8,#2563EB,#3B82F6));border-radius:var(--r-2xl,28px);padding:28px 24px;margin-bottom:16px;box-shadow:var(--shadow-brand),inset 0 1px 0 rgba(255,255,255,0.20);position:relative;overflow:hidden}
@@ -58,16 +58,8 @@ export default function DashboardClient({ userName, orgName, stats, recentCustom
       <Sidebar active="dashboard" />
 
       <div className="topbar">
-        <div>
-          <div className="greeting-txt">{greeting}</div>
-          <div className="username-txt">{userName.split(' ')[0]}</div>
-        </div>
-        <div className="notif-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-1,#1A1A20)" strokeWidth="2" strokeLinecap="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <div className="notif-dot" />
-        </div>
+        <div className="greeting-txt">{greeting}</div>
+        <div className="username-txt">{userName.split(' ')[0]}</div>
       </div>
 
       <div className="content">

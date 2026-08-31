@@ -41,7 +41,7 @@ export default function ProfileClient({ userId, email, fullName, phone, orgName 
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{display:flex;align-items:center;gap:12px;padding:52px 20px 20px}
+        .topbar{display:flex;align-items:center;gap:12px;padding:max(env(safe-area-inset-top,0px),52px) 20px 20px}
         @media(min-width:768px){.topbar{padding:36px 40px 24px}}
         .back-btn{width:38px;height:38px;border-radius:var(--r-sm,12px);background:var(--bg,#ECEEF2);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;box-shadow:var(--shadow-sm);flex-shrink:0}
         .page-title{font-size:22px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.4px}
