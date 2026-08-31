@@ -44,6 +44,9 @@ export default function CatalogClient({ products: initProducts, categories: init
   const [saving, setSaving]   = useState(false)
   const [err, setErr]         = useState<string|null>(null)
 
+  // Product detail modal
+  const [viewProduct, setViewProduct] = useState<Product|null>(null)
+
   function openCat(item?: Category, forceParent?: string) {
     setEditItem(item ?? null)
     setMName(item?.name ?? '')
@@ -263,6 +266,32 @@ export default function CatalogClient({ products: initProducts, categories: init
         .m-cancel{flex:1;padding:13px;border-radius:13px;border:1.5px solid rgba(0,0,0,0.10);background:transparent;font-size:14px;font-weight:700;color:rgba(26,26,32,0.50);cursor:pointer;font-family:inherit}
         .m-save{flex:2;padding:13px;border-radius:13px;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);font-size:14px;font-weight:700;color:white;cursor:pointer;font-family:inherit;box-shadow:0 6px 18px rgba(29,78,216,0.28)}
         .m-save:disabled{opacity:0.5;cursor:not-allowed}
+
+        /* Product detail modal */
+        .pd-scrim{position:fixed;inset:0;background:rgba(0,0,0,0.44);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:400;display:flex;align-items:flex-end;justify-content:center}
+        @media(min-width:600px){.pd-scrim{align-items:center}}
+        .pd-modal{background:#ECEEF2;border-radius:28px 28px 0 0;width:100%;max-width:520px;max-height:88dvh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,0.16);display:flex;flex-direction:column}
+        @media(min-width:600px){.pd-modal{border-radius:28px;max-height:82dvh;margin:0 12px}}
+        .pd-header{padding:24px 24px 0;display:flex;align-items:flex-start;gap:14px}
+        .pd-icon{width:48px;height:48px;border-radius:14px;background:#ECEEF2;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:4px 4px 10px rgba(0,0,0,0.08),-3px -3px 8px rgba(255,255,255,0.90)}
+        .pd-title{font-size:18px;font-weight:800;color:#1A1A20;letter-spacing:-0.3px;line-height:1.2;flex:1}
+        .pd-close{width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,0.07);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:rgba(26,26,32,0.55)}
+        .pd-close:hover{background:rgba(0,0,0,0.12)}
+        .pd-body{padding:16px 24px 24px;flex:1;overflow-y:auto}
+        .pd-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+        .pd-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:50px;background:rgba(0,0,0,0.055);font-size:11px;font-weight:600;color:rgba(26,26,32,0.60)}
+        .pd-section{font-size:10px;font-weight:700;color:rgba(26,26,32,0.35);text-transform:uppercase;letter-spacing:0.07em;margin:16px 0 8px}
+        .pd-card{background:#ECEEF2;border-radius:16px;box-shadow:4px 4px 12px rgba(0,0,0,0.07),-3px -3px 8px rgba(255,255,255,0.90);overflow:hidden;margin-bottom:12px}
+        .pd-row{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-top:1px solid rgba(0,0,0,0.05)}
+        .pd-row:first-child{border-top:none}
+        .pd-label{font-size:11px;font-weight:600;color:rgba(26,26,32,0.40)}
+        .pd-value{font-size:13px;font-weight:700;color:#1A1A20}
+        .pd-variant{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid rgba(0,0,0,0.05)}
+        .pd-variant:first-child{border-top:none}
+        .pd-sku{font-size:11px;font-weight:700;font-family:'SF Mono',ui-monospace,monospace;color:rgba(26,26,32,0.55);letter-spacing:0.03em}
+        .pd-footer{padding:0 24px 28px;display:flex;gap:10px}
+        .pd-edit-btn{flex:1;padding:14px;border-radius:16px;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);font-size:15px;font-weight:700;color:white;cursor:pointer;font-family:inherit;box-shadow:0 6px 18px rgba(29,78,216,0.28);text-decoration:none;text-align:center;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity 0.15s}
+        .pd-edit-btn:hover{opacity:.92}
       `}</style>
 
       <Sidebar active="catalog" />
@@ -327,7 +356,7 @@ export default function CatalogClient({ products: initProducts, categories: init
                             const stockCls  = stock === 0 ? 'stock-zero' : stock < 5 ? 'stock-low' : 'stock-ok'
                             const varCount  = p.product_variants.length
                             return (
-                              <tr key={p.id} onClick={() => window.location.href = `/catalog/${p.id}/edit`}>
+                              <tr key={p.id} onClick={() => setViewProduct(p)}>
                                 {/* Icon */}
                                 <td className="td-icon">
                                   <div className="p-icon">
@@ -528,6 +557,82 @@ export default function CatalogClient({ products: initProducts, categories: init
               </div>
             )}
           </div>
+
+      {/* ── Modal detalle de producto ── */}
+      {viewProduct && (() => {
+        const p = viewProduct
+        const cat   = (p.categories as unknown as {name:string}|null)?.name
+        const brand = (p.brands    as unknown as {name:string}|null)?.name
+        const stock = totalStock(p.product_variants)
+        const sm    = STATUS_META[p.status] ?? STATUS_META.draft
+        const stockCls = stock === 0 ? '#DC2626' : stock < 5 ? '#D97706' : '#059669'
+        return (
+          <div className="pd-scrim" onClick={e => { if (e.target === e.currentTarget) setViewProduct(null) }}>
+            <div className="pd-modal">
+              <div className="pd-header">
+                <div className="pd-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.55)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div className="pd-title">{p.name}</div>
+                  <div style={{marginTop:6,display:'flex',flexWrap:'wrap',gap:5}}>
+                    <span className="badge" style={{background:sm.bg,color:sm.color}}>{sm.label}</span>
+                    {p.condition !== 'new' && <span className="badge" style={{background:'rgba(107,114,128,0.10)',color:'#374151'}}>{p.condition === 'used' ? 'Usado' : p.condition}</span>}
+                  </div>
+                </div>
+                <button className="pd-close" onClick={() => setViewProduct(null)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+
+              <div className="pd-body">
+                {(cat || brand) && (
+                  <div className="pd-chips" style={{marginTop:14}}>
+                    {cat   && <span className="pd-chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="9" height="9" rx="2"/><rect x="13" y="3" width="9" height="9" rx="2"/><rect x="2" y="14" width="9" height="9" rx="2"/><rect x="13" y="14" width="9" height="9" rx="2"/></svg>{cat}</span>}
+                    {brand && <span className="pd-chip"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>{brand}</span>}
+                    <span className="pd-chip" style={{color:stockCls}}>{stock} en stock</span>
+                  </div>
+                )}
+
+                <div className="pd-section">Variantes ({p.product_variants.length})</div>
+                <div className="pd-card">
+                  {p.product_variants.map(v => {
+                    const vStock = v.stock_levels.reduce((a,sl) => a + sl.quantity_available, 0)
+                    return (
+                      <div key={v.id} className="pd-variant">
+                        <div>
+                          <div className="pd-sku">{v.sku}</div>
+                          <div style={{fontSize:11,color:'rgba(26,26,32,0.40)',marginTop:2}}>{vStock} en stock</div>
+                        </div>
+                        <div style={{textAlign:'right'}}>
+                          <div style={{fontSize:15,fontWeight:800,color:'#1D4ED8'}}>${fmt(v.sale_price)}</div>
+                          {v.cost_price > 0 && <div style={{fontSize:11,color:'rgba(26,26,32,0.40)',marginTop:1}}>Costo ${fmt(v.cost_price)}</div>}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                <div className="pd-section">Detalles</div>
+                <div className="pd-card">
+                  <div className="pd-row"><span className="pd-label">Creado</span><span className="pd-value">{new Date(p.created_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</span></div>
+                  <div className="pd-row"><span className="pd-label">Categoría</span><span className="pd-value">{cat ?? '—'}</span></div>
+                  <div className="pd-row"><span className="pd-label">Marca</span><span className="pd-value">{brand ?? '—'}</span></div>
+                  <div className="pd-row"><span className="pd-label">Condición</span><span className="pd-value">{p.condition === 'new' ? 'Nuevo' : p.condition === 'used' ? 'Usado' : p.condition}</span></div>
+                </div>
+              </div>
+
+              <div className="pd-footer">
+                <button style={{flex:1,padding:'13px',borderRadius:14,border:'1.5px solid rgba(0,0,0,0.10)',background:'transparent',fontSize:14,fontWeight:700,color:'rgba(26,26,32,0.50)',cursor:'pointer',fontFamily:'inherit'}} onClick={() => setViewProduct(null)}>Cerrar</button>
+                <Link href={`/catalog/${p.id}/edit`} className="pd-edit-btn">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Editar producto
+                </Link>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Modal categoría */}
       {modal === 'category' && (
