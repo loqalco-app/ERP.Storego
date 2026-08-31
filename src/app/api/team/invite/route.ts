@@ -168,44 +168,37 @@ export async function POST(request: Request) {
   const { data: org } = await supabase.from('organizations').select('name').eq('id', orgId).single()
   const orgName = (org as { name?: string } | null)?.name ?? 'Mi organización'
 
-  // Base URL para redirect post-invitación
   const appUrl = process.env.NEXT_PUBLIC_SITE_URL
     ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-  // Generate invite link — redirectTo lleva al usuario a configurar su contraseña
-  const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
-    type: 'invite',
-    email: email.toLowerCase(),
-    options: {
-      data: { org_id: orgId, role, full_name: fullName ?? '' },
-      redirectTo: `${appUrl}/auth/setup-password`,
-    },
-  })
-
-  if (linkErr || !linkData?.properties?.action_link) {
-    return NextResponse.json({ error: linkErr?.message ?? 'No se pudo generar el enlace.' }, { status: 400 })
-  }
-
-  const inviteUrl = linkData.properties.action_link
-
-  // Record invitation (incluye nombre para el setup de primer login)
-  await supabase.from('organization_invitations').insert({
-    organization_id: orgId,
-    email: email.toLowerCase(),
-    role,
-    invited_by: user.id,
-    full_name: fullName ?? null,
-  })
-
-  // Send branded email via Resend
   const resendKey = process.env.RESEND_API_KEY
+
+  // ── Camino A: Resend — generamos link personalizado y enviamos email ──
   if (resendKey) {
+    const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
+      type: 'invite',
+      email: email.toLowerCase(),
+      options: {
+        data: { org_id: orgId, role, full_name: fullName ?? '' },
+        redirectTo: `${appUrl}/auth/setup-password`,
+      },
+    })
+
+    if (linkErr || !linkData?.properties?.action_link) {
+      return NextResponse.json({ error: linkErr?.message ?? 'No se pudo generar el enlace.' }, { status: 400 })
+    }
+
+    await supabase.from('organization_invitations').insert({
+      organization_id: orgId, email: email.toLowerCase(),
+      role, invited_by: user.id, full_name: fullName ?? null,
+    })
+
     const resend = new Resend(resendKey)
     const { error: emailErr } = await resend.emails.send({
       from: `${orgName} via Store ERP <noreply@resend.dev>`,
       to: email.toLowerCase(),
       subject: `${invitedByName} te invitó a ${orgName}`,
-      html: inviteEmailHtml({ orgName, invitedByName, role, inviteUrl }),
+      html: inviteEmailHtml({ orgName, invitedByName, role, inviteUrl: linkData.properties.action_link }),
     })
     if (emailErr) {
       return NextResponse.json({ error: 'Invitación creada pero error al enviar correo: ' + emailErr.message }, { status: 207 })
@@ -213,13 +206,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, method: 'resend' })
   }
 
-  // Fallback: Supabase default email (already sent by generateLink internally? No — generateLink doesn't send email)
-  // We already have the link, send via Supabase invite as fallback
-  await adminClient.auth.admin.inviteUserByEmail(email.toLowerCase(), {
-    data: { org_id: orgId, role },
+  // ── Camino B: sin Resend — usamos inviteUserByEmail que SÍ envía el email automáticamente ──
+  const { error: invErr } = await adminClient.auth.admin.inviteUserByEmail(email.toLowerCase(), {
+    data: { org_id: orgId, role, full_name: fullName ?? '' },
+    options: { redirectTo: `${appUrl}/auth/setup-password` },
+  } as Parameters<typeof adminClient.auth.admin.inviteUserByEmail>[1])
+
+  if (invErr) {
+    return NextResponse.json({ error: invErr.message }, { status: 400 })
+  }
+
+  await supabase.from('organization_invitations').insert({
+    organization_id: orgId, email: email.toLowerCase(),
+    role, invited_by: user.id, full_name: fullName ?? null,
   })
 
-  return NextResponse.json({ ok: true, method: 'supabase_default', note: 'Agrega RESEND_API_KEY en Vercel para emails personalizados.' })
+  return NextResponse.json({ ok: true, method: 'supabase_default' })
 }
 
 export async function DELETE(request: Request) {
