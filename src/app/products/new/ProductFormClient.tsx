@@ -9,7 +9,7 @@ import BottomNav from '@/components/BottomNav'
 
 interface Category { id: string; name: string }
 interface Brand    { id: string; name: string }
-interface Variant  { name: string; sku: string; sale_price: string; cost_price: string }
+interface Variant  { name: string; sku: string; sale_price: string; cost_price: string; stock: string }
 
 interface Props {
   mode: 'create' | 'edit'
@@ -31,7 +31,7 @@ function slugify(s: string) {
   return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-const emptyVariant = (): Variant => ({ name: 'Estándar', sku: '', sale_price: '', cost_price: '' })
+const emptyVariant = (): Variant => ({ name: 'Estándar', sku: '', sale_price: '', cost_price: '', stock: '' })
 
 export default function ProductFormClient({ mode, orgId, userName, orgName, categories, brands, productId, initial }: Props) {
   const router = useRouter()
@@ -85,21 +85,74 @@ export default function ProductFormClient({ mode, orgId, userName, orgName, cate
         return
       }
 
-      const { error: vErr } = await supabase.from('product_variants').insert(
-        variants.map(v => ({
-          organization_id: orgId,
-          product_id: product.id,
-          name: v.name.trim() || 'Estándar',
-          sku: v.sku.trim(),
-          sale_price: parseFloat(v.sale_price),
-          cost_price: parseFloat(v.cost_price) || 0,
-        }))
-      )
+      const { data: insertedVariants, error: vErr } = await supabase
+        .from('product_variants')
+        .insert(
+          variants.map(v => ({
+            organization_id: orgId,
+            product_id: product.id,
+            name: v.name.trim() || 'Estándar',
+            sku: v.sku.trim(),
+            sale_price: parseFloat(v.sale_price),
+            cost_price: parseFloat(v.cost_price) || 0,
+          }))
+        )
+        .select('id, sku')
 
       if (vErr) {
         setSaving(false)
         setErr(vErr.message.includes('sku') ? 'Uno de los SKUs ya existe. Usa un SKU diferente.' : vErr.message)
         return
+      }
+
+      // Registrar stock inicial si hay cantidades
+      const variantsWithStock = variants.filter(v => parseFloat(v.stock) > 0)
+      if (variantsWithStock.length > 0 && insertedVariants) {
+        // Obtener o crear ubicación por defecto
+        let locationId: string | null = null
+        const { data: loc } = await supabase
+          .from('inventory_locations')
+          .select('id')
+          .eq('organization_id', orgId)
+          .eq('is_default', true)
+          .single()
+
+        if (loc) {
+          locationId = loc.id
+        } else {
+          const { data: newLoc } = await supabase
+            .from('inventory_locations')
+            .insert({ organization_id: orgId, name: 'Almacén principal', is_default: true })
+            .select('id')
+            .single()
+          locationId = newLoc?.id ?? null
+        }
+
+        if (locationId) {
+          for (const [i, v] of variants.entries()) {
+            const qty = parseFloat(v.stock)
+            if (!qty || qty <= 0) continue
+            const variantId = insertedVariants[i]?.id
+            if (!variantId) continue
+
+            await supabase.from('inventory_ledger').insert({
+              organization_id: orgId,
+              variant_id: variantId,
+              location_id: locationId,
+              movement_type: 'purchase',
+              quantity: qty,
+              unit_cost: parseFloat(v.cost_price) || 0,
+              notes: 'Stock inicial al crear producto',
+              performed_by: (await supabase.auth.getUser()).data.user?.id,
+            })
+
+            await supabase.from('stock_levels').upsert({
+              variant_id: variantId,
+              location_id: locationId,
+              quantity_available: qty,
+            }, { onConflict: 'variant_id,location_id' })
+          }
+        }
       }
 
       router.push('/products')
@@ -291,6 +344,12 @@ export default function ProductFormClient({ mode, orgId, userName, orgName, cate
                         <input className="field-input" type="number" min="0" step="0.01" value={v.cost_price} onChange={e => updateVariant(i, 'cost_price', e.target.value)} placeholder="0.00" />
                       </div>
                     </div>
+                    {mode === 'create' && (
+                      <div>
+                        <div className="field-lbl">Stock inicial</div>
+                        <input className="field-input" type="number" min="0" step="1" value={v.stock} onChange={e => updateVariant(i, 'stock', e.target.value)} placeholder="0" />
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

@@ -26,8 +26,7 @@ const NAV = [
   {
     section: 'Catálogo',
     items: [
-      { key: 'products',  href: '/products',  label: 'Productos',  icon: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></>, fill: false },
-      { key: 'inventory', href: '/inventory', label: 'Inventario', icon: <><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 7h10M7 12h10M7 17h6"/></>, fill: false },
+      { key: 'products', href: '/products', label: 'Productos', icon: <><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></>, fill: false },
     ],
   },
   {

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
 import BottomNav from '@/components/BottomNav'
 
-interface Variant { id: string; sku: string; sale_price: number; cost_price: number; status: string }
+interface Variant { id: string; sku: string; sale_price: number; cost_price: number; status: string; stock_levels: { quantity_available: number }[] }
 interface Product {
   id: string; name: string; slug: string; status: string
   condition: string; is_published: boolean; created_at: string
@@ -29,6 +29,12 @@ function priceRange(variants: Variant[]) {
   const min = Math.min(...prices), max = Math.max(...prices)
   const fmt = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
   return min === max ? fmt(min) : `${fmt(min)} – ${fmt(max)}`
+}
+
+function totalStock(variants: Variant[]) {
+  return variants.reduce((sum, v) =>
+    sum + (v.stock_levels ?? []).reduce((s, sl) => s + (sl.quantity_available ?? 0), 0), 0
+  )
 }
 
 export default function ProductsClient({ products, userName, orgName }: Props) {
@@ -182,7 +188,9 @@ export default function ProductsClient({ products, userName, orgName }: Props) {
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <div className="prod-price">{priceRange(p.product_variants)}</div>
-                        <div className="prod-sku">SKU: {firstSku}</div>
+                        <div className="prod-sku">
+                          {totalStock(p.product_variants)} en stock · {firstSku}
+                        </div>
                       </div>
                     </Link>
                   )

@@ -21,7 +21,7 @@ export default async function ProductsPage() {
       id, name, slug, status, condition, is_published, created_at,
       categories(name),
       brands(name),
-      product_variants(id, sku, sale_price, cost_price, status)
+      product_variants(id, sku, sale_price, cost_price, status, stock_levels(quantity_available))
     `)
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
