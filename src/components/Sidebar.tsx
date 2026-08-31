@@ -37,22 +37,22 @@ export default function Sidebar({ orgName, userName, active }: Props) {
   return (
     <>
       <style>{`
-        .sidebar { display:none; width:220px; flex-shrink:0; background:#ECEEF2; border-right:1px solid rgba(0,0,0,0.06); padding:24px 12px; flex-direction:column; gap:2px; box-shadow:4px 0 20px rgba(0,0,0,0.04); position:sticky; top:0; height:100vh; overflow-y:auto; }
+        .sidebar { display:none; width:240px; flex-shrink:0; background:#ECEEF2; border-right:1px solid rgba(0,0,0,0.06); padding:28px 16px; flex-direction:column; gap:4px; box-shadow:4px 0 20px rgba(0,0,0,0.04); position:sticky; top:0; height:100vh; overflow-y:auto; }
         @media(min-width:768px){ .sidebar { display:flex; } }
-        .sb-logo { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; margin-bottom:4px; border-bottom:1px solid rgba(0,0,0,0.06); }
-        .sb-logo-mark { width:34px; height:34px; background:linear-gradient(145deg,#1D4ED8,#3B82F6); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 12px rgba(29,78,216,0.30); }
-        .sb-logo-name { font-size:14px; font-weight:800; color:#1A1A20; letter-spacing:-0.3px; }
+        .sb-logo { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; margin-bottom:8px; border-bottom:1px solid rgba(0,0,0,0.06); }
+        .sb-logo-mark { width:36px; height:36px; background:linear-gradient(145deg,#1D4ED8,#3B82F6); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 12px rgba(29,78,216,0.30); }
+        .sb-logo-name { font-size:15px; font-weight:800; color:#1A1A20; letter-spacing:-0.3px; }
         .sb-logo-sub  { font-size:10px; color:rgba(26,26,32,0.35); font-weight:500; text-transform:uppercase; letter-spacing:0.05em; }
-        .sb-item { display:flex; align-items:center; gap:9px; padding:9px 10px; border-radius:12px; font-size:13px; font-weight:500; color:rgba(26,26,32,0.45); text-decoration:none; transition:all 0.12s; }
+        .sb-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:12px; font-size:13.5px; font-weight:500; color:rgba(26,26,32,0.50); text-decoration:none; transition:all 0.12s; }
         .sb-item:hover { background:rgba(0,0,0,0.04); color:#1A1A20; }
         .sb-item.active { background:#ECEEF2; color:#1D4ED8; font-weight:700; box-shadow:3px 3px 10px rgba(0,0,0,0.08),-2px -2px 6px rgba(255,255,255,0.90); }
-        .sb-footer { margin-top:auto; padding-top:14px; border-top:1px solid rgba(0,0,0,0.06); }
-        .sb-user { display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:12px; text-decoration:none; }
+        .sb-footer { margin-top:auto; padding-top:16px; border-top:1px solid rgba(0,0,0,0.06); }
+        .sb-user { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:12px; text-decoration:none; }
         .sb-user:hover { background:rgba(0,0,0,0.03); }
-        .sb-av { width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,#1D4ED8,#3B82F6); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:white; flex-shrink:0; }
-        .sb-uname { font-size:12px; font-weight:600; color:#1A1A20; }
-        .sb-urole  { font-size:10px; color:#2563EB; font-weight:600; }
-        .logout-btn { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; margin-top:2px; border-radius:12px; border:none; background:transparent; font-size:12px; font-weight:500; color:rgba(26,26,32,0.38); cursor:pointer; font-family:inherit; transition:all 0.12s; }
+        .sb-av { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#1D4ED8,#3B82F6); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:white; flex-shrink:0; }
+        .sb-uname { font-size:13px; font-weight:600; color:#1A1A20; }
+        .sb-urole  { font-size:11px; color:#2563EB; font-weight:600; }
+        .logout-btn { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; margin-top:4px; border-radius:12px; border:none; background:transparent; font-size:13px; font-weight:500; color:rgba(26,26,32,0.40); cursor:pointer; font-family:inherit; transition:all 0.12s; }
         .logout-btn:hover { background:rgba(220,38,38,0.06); color:#DC2626; }
       `}</style>
       <aside className="sidebar">
@@ -72,7 +72,7 @@ export default function Sidebar({ orgName, userName, active }: Props) {
 
         {NAV.map(item => (
           <Link key={item.key} href={item.href} className={`sb-item${active === item.key ? ' active' : ''}`}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill={item.fill ? 'currentColor' : 'none'} stroke={item.fill ? 'none' : 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={item.fill ? 'currentColor' : 'none'} stroke={item.fill ? 'none' : 'currentColor'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               {item.icon}
             </svg>
             {item.label}
