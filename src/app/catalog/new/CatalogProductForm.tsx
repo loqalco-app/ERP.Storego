@@ -58,24 +58,40 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
   async function createCategoryInline() {
     if (!newCatName.trim()) return
     const supabase = createClient()
+    const slug = slugify(newCatName.trim())
+    const payload: Record<string, unknown> = { organization_id: orgId, name: newCatName.trim() }
+    // include slug only if column exists (swallow mismatch silently)
     const { data, error } = await supabase.from('categories')
-      .insert({ organization_id: orgId, name: newCatName.trim(), slug: slugify(newCatName.trim()) })
+      .insert({ ...payload, slug })
       .select('id, name, parent_id').single()
-    if (!error && data) {
-      setCats(cs => [...cs, data])
-      setCategoryId(data.id)
-      setNewCatName('')
-      setShowNewCat(false)
+    if (error) {
+      // retry without slug in case column doesn't exist
+      const { data: d2, error: e2 } = await supabase.from('categories')
+        .insert(payload).select('id, name, parent_id').single()
+      if (e2) { setErr('Error al crear categoría: ' + e2.message); return }
+      if (d2) { setCats(cs => [...cs, d2]); setCategoryId(d2.id); setNewCatName(''); setShowNewCat(false) }
+      return
     }
+    if (data) { setCats(cs => [...cs, data]); setCategoryId(data.id); setNewCatName(''); setShowNewCat(false) }
   }
 
   async function createBrandInline() {
     if (!newBrandName.trim()) return
     const supabase = createClient()
+    const slug = slugify(newBrandName.trim())
+    const payload: Record<string, unknown> = { organization_id: orgId, name: newBrandName.trim() }
     const { data, error } = await supabase.from('brands')
-      .insert({ organization_id: orgId, name: newBrandName.trim(), slug: slugify(newBrandName.trim()) })
+      .insert({ ...payload, slug })
       .select('id, name').single()
-    if (!error && data) {
+    if (error) {
+      // retry without slug
+      const { data: d2, error: e2 } = await supabase.from('brands')
+        .insert(payload).select('id, name').single()
+      if (e2) { setErr('Error al crear marca: ' + e2.message); return }
+      if (d2) { setBrds(bs => [...bs, d2]); setBrandId(d2.id); setNewBrandName(''); setShowNewBrand(false) }
+      return
+    }
+    if (data) {
       setBrds(bs => [...bs, data])
       setBrandId(data.id)
       setNewBrandName('')
