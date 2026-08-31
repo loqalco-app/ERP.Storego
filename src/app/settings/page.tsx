@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import SettingsClient from './SettingsClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SettingsPage({
   searchParams,
 }: {
@@ -12,27 +14,19 @@ export default async function SettingsPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Perfil base
+  // Una sola query: perfil + rol + org
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('full_name, phone, avatar_url, organization_id, organizations(name)')
+    .select('full_name, phone, avatar_url, organization_id, role, organizations(name)')
     .eq('id', user.id)
     .single()
 
   if (!profile) redirect('/dashboard')
 
-  const orgId = profile.organization_id
+  const orgId   = profile.organization_id
   const orgName = (profile.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'
+  const myRole  = (profile as unknown as { role?: string }).role ?? 'owner'
 
-  // Role (migration 003)
-  const { data: roleRow } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle()
-  const myRole = (roleRow as { role?: string } | null)?.role ?? 'owner'
-
-  // Team data
   const [{ data: members }, { data: invitations }] = await Promise.all([
     supabase
       .from('user_profiles')
@@ -47,7 +41,7 @@ export default async function SettingsPage({
       .order('created_at', { ascending: false }),
   ])
 
-  const migrationNeeded = !invitations && !roleRow
+  const migrationNeeded = !invitations
 
   return (
     <SettingsClient
