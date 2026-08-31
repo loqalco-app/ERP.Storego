@@ -7,7 +7,7 @@ interface Props { active: string }
 const ITEMS = [
   { key: 'dashboard', href: '/dashboard', icon: <path d="M10.707 2.293a1 1 0 0 1 1.414 0l7 7A1 1 0 0 1 19 11h-1v9a1 1 0 0 1-1 1h-4v-5h-2v5H7a1 1 0 0 1-1-1v-9H5a1 1 0 0 1-.707-1.707l7-7z"/>, fill: true, label: 'Inicio' },
   { key: 'orders',    href: '/orders',    icon: <><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2M8 7V5a2 2 0 0 0-4 0v2"/></>, fill: false, label: 'Órdenes' },
-  { key: 'products',  href: '/products',  icon: <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>, fill: false, label: 'Productos' },
+  { key: 'catalog',   href: '/catalog',   icon: <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>, fill: false, label: 'Catálogo' },
   { key: 'customers', href: '/customers', icon: <><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/></>, fill: false, label: 'Clientes' },
 ]
 
@@ -32,7 +32,7 @@ export default function BottomNav({ active }: Props) {
             </Link>
           ))}
         </div>
-        <Link href="/products/new" style={{ width: 56, height: 56, flexShrink: 0, background: '#1D4ED8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(29,78,216,0.38)', textDecoration: 'none' }}>
+        <Link href="/catalog/new" style={{ width: 56, height: 56, flexShrink: 0, background: '#1D4ED8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 24px rgba(29,78,216,0.38)', textDecoration: 'none' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
