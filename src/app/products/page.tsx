@@ -15,7 +15,7 @@ export default async function ProductsPage() {
 
   const orgId = profile?.organization_id
 
-  const { data: products } = await supabase
+  const { data: rawProducts } = await supabase
     .from('products')
     .select(`
       id, name, slug, status, condition, is_published, created_at,
@@ -26,9 +26,12 @@ export default async function ProductsPage() {
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const products = (rawProducts ?? []) as any[]
+
   return (
     <ProductsClient
-      products={products ?? []}
+      products={products}
       userName={profile?.full_name && !profile.full_name.includes('@') ? profile.full_name : (user.email?.split('@')[0] ?? 'Usuario')}
       orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'}
     />
