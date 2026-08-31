@@ -37,23 +37,24 @@ export default function Sidebar({ orgName, userName, active }: Props) {
   return (
     <>
       <style>{`
-        .sidebar { display:none; width:240px; flex-shrink:0; background:#ECEEF2; border-right:1px solid rgba(0,0,0,0.06); padding:28px 16px; flex-direction:column; gap:4px; box-shadow:4px 0 20px rgba(0,0,0,0.04); position:sticky; top:0; height:100vh; overflow-y:auto; }
+        .sidebar { display:none; width:240px; flex-shrink:0; background:#E4E7ED; border-right:1px solid rgba(0,0,0,0.10); padding:28px 16px; flex-direction:column; gap:2px; box-shadow:4px 0 24px rgba(0,0,0,0.07); position:sticky; top:0; height:100vh; overflow-y:auto; }
         @media(min-width:768px){ .sidebar { display:flex; } }
-        .sb-logo { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; margin-bottom:8px; border-bottom:1px solid rgba(0,0,0,0.06); }
-        .sb-logo-mark { width:36px; height:36px; background:linear-gradient(145deg,#1D4ED8,#3B82F6); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 12px rgba(29,78,216,0.30); }
-        .sb-logo-name { font-size:15px; font-weight:800; color:#1A1A20; letter-spacing:-0.3px; }
-        .sb-logo-sub  { font-size:10px; color:rgba(26,26,32,0.35); font-weight:500; text-transform:uppercase; letter-spacing:0.05em; }
-        .sb-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:12px; font-size:13.5px; font-weight:500; color:rgba(26,26,32,0.50); text-decoration:none; transition:all 0.12s; }
-        .sb-item:hover { background:rgba(0,0,0,0.04); color:#1A1A20; }
-        .sb-item.active { background:#ECEEF2; color:#1D4ED8; font-weight:700; box-shadow:3px 3px 10px rgba(0,0,0,0.08),-2px -2px 6px rgba(255,255,255,0.90); }
-        .sb-footer { margin-top:auto; padding-top:16px; border-top:1px solid rgba(0,0,0,0.06); }
+        .sb-logo { display:flex; align-items:center; gap:10px; padding:4px 8px 20px; margin-bottom:8px; border-bottom:1px solid rgba(0,0,0,0.09); }
+        .sb-logo-mark { width:36px; height:36px; background:linear-gradient(145deg,#1D4ED8,#3B82F6); border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 14px rgba(29,78,216,0.35); }
+        .sb-logo-name { font-size:15px; font-weight:800; color:#0F1117; letter-spacing:-0.3px; }
+        .sb-logo-sub  { font-size:10px; color:rgba(15,17,23,0.40); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; }
+        .sb-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:12px; font-size:13.5px; font-weight:500; color:rgba(15,17,23,0.55); text-decoration:none; transition:all 0.12s; }
+        .sb-item:hover { background:rgba(0,0,0,0.06); color:#0F1117; }
+        .sb-item.active { background:linear-gradient(135deg,#1D4ED8,#2563EB); color:white; font-weight:700; box-shadow:0 4px 14px rgba(29,78,216,0.30); }
+        .sb-item.active svg { opacity:1; }
+        .sb-footer { margin-top:auto; padding-top:16px; border-top:1px solid rgba(0,0,0,0.09); }
         .sb-user { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:12px; text-decoration:none; }
-        .sb-user:hover { background:rgba(0,0,0,0.03); }
+        .sb-user:hover { background:rgba(0,0,0,0.05); }
         .sb-av { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#1D4ED8,#3B82F6); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:white; flex-shrink:0; }
-        .sb-uname { font-size:13px; font-weight:600; color:#1A1A20; }
+        .sb-uname { font-size:13px; font-weight:700; color:#0F1117; }
         .sb-urole  { font-size:11px; color:#2563EB; font-weight:600; }
-        .logout-btn { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; margin-top:4px; border-radius:12px; border:none; background:transparent; font-size:13px; font-weight:500; color:rgba(26,26,32,0.40); cursor:pointer; font-family:inherit; transition:all 0.12s; }
-        .logout-btn:hover { background:rgba(220,38,38,0.06); color:#DC2626; }
+        .logout-btn { display:flex; align-items:center; gap:8px; width:100%; padding:8px 12px; margin-top:4px; border-radius:12px; border:none; background:transparent; font-size:13px; font-weight:500; color:rgba(15,17,23,0.45); cursor:pointer; font-family:inherit; transition:all 0.12s; }
+        .logout-btn:hover { background:rgba(220,38,38,0.08); color:#DC2626; }
       `}</style>
       <aside className="sidebar">
         <div className="sb-logo">

@@ -69,49 +69,29 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
   const [newBrandName, setNewBrandName] = useState('')
   const [showNewBrand, setShowNewBrand] = useState(false)
   const [brds, setBrds]                 = useState<Brand[]>(brands)
+  const [brandErr, setBrandErr]         = useState<string | null>(null)
+  const [catErr, setCatErr]             = useState<string | null>(null)
 
   async function createCategoryInline() {
     if (!newCatName.trim()) return
+    setCatErr(null)
     const supabase = createClient()
-    const slug = slugify(newCatName.trim())
-    const payload: Record<string, unknown> = { organization_id: orgId, name: newCatName.trim() }
-    // include slug only if column exists (swallow mismatch silently)
     const { data, error } = await supabase.from('categories')
-      .insert({ ...payload, slug })
+      .insert({ organization_id: orgId, name: newCatName.trim(), slug: slugify(newCatName.trim()) })
       .select('id, name, parent_id').single()
-    if (error) {
-      // retry without slug in case column doesn't exist
-      const { data: d2, error: e2 } = await supabase.from('categories')
-        .insert(payload).select('id, name, parent_id').single()
-      if (e2) { setErr('Error al crear categoría: ' + e2.message); return }
-      if (d2) { setCats(cs => [...cs, d2]); setRootCatId(d2.id); setSubCatId(''); setNewCatName(''); setShowNewCat(false) }
-      return
-    }
+    if (error) { setCatErr(error.message.includes('slug') ? 'Ya existe una categoría con ese nombre.' : error.message); return }
     if (data) { setCats(cs => [...cs, data]); setRootCatId(data.id); setSubCatId(''); setNewCatName(''); setShowNewCat(false) }
   }
 
   async function createBrandInline() {
     if (!newBrandName.trim()) return
+    setBrandErr(null)
     const supabase = createClient()
-    const slug = slugify(newBrandName.trim())
-    const payload: Record<string, unknown> = { organization_id: orgId, name: newBrandName.trim() }
     const { data, error } = await supabase.from('brands')
-      .insert({ ...payload, slug })
+      .insert({ organization_id: orgId, name: newBrandName.trim(), slug: slugify(newBrandName.trim()) })
       .select('id, name').single()
-    if (error) {
-      // retry without slug
-      const { data: d2, error: e2 } = await supabase.from('brands')
-        .insert(payload).select('id, name').single()
-      if (e2) { setErr('Error al crear marca: ' + e2.message); return }
-      if (d2) { setBrds(bs => [...bs, d2]); setBrandId(d2.id); setNewBrandName(''); setShowNewBrand(false) }
-      return
-    }
-    if (data) {
-      setBrds(bs => [...bs, data])
-      setBrandId(data.id)
-      setNewBrandName('')
-      setShowNewBrand(false)
-    }
+    if (error) { setBrandErr(error.message.includes('slug') ? 'Ya existe una marca con ese nombre.' : error.message); return }
+    if (data) { setBrds(bs => [...bs, data]); setBrandId(data.id); setNewBrandName(''); setShowNewBrand(false) }
   }
 
   function updateVariant(i: number, field: keyof Variant, val: string) {
@@ -303,11 +283,14 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
                     {roots.map(root => <option key={root.id} value={root.id}>{root.name}</option>)}
                   </select>
                   {showNewCat ? (
-                    <div className="inline-new">
-                      <input className="inline-input" type="text" value={newCatName} onChange={e => setNewCatName(e.target.value)} placeholder="Nombre de la categoría..." autoFocus onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), createCategoryInline())} />
-                      <button type="button" className="inline-btn" onClick={createCategoryInline}>Crear</button>
-                      <button type="button" className="inline-cancel" onClick={() => setShowNewCat(false)}>×</button>
-                    </div>
+                    <>
+                      <div className="inline-new">
+                        <input className="inline-input" type="text" value={newCatName} onChange={e => { setNewCatName(e.target.value); setCatErr(null) }} placeholder="Nombre de la categoría..." autoFocus onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), createCategoryInline())} />
+                        <button type="button" className="inline-btn" onClick={createCategoryInline}>Crear</button>
+                        <button type="button" className="inline-cancel" onClick={() => { setShowNewCat(false); setCatErr(null) }}>×</button>
+                      </div>
+                      {catErr && <div style={{marginTop:6,fontSize:12,color:'#991b1b',fontWeight:600}}>⚠ {catErr}</div>}
+                    </>
                   ) : (
                     <span className="create-link" onClick={() => setShowNewCat(true)}>+ Crear nueva categoría</span>
                   )}
@@ -331,11 +314,14 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
                     {brds.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                   {showNewBrand ? (
-                    <div className="inline-new">
-                      <input className="inline-input" type="text" value={newBrandName} onChange={e => setNewBrandName(e.target.value)} placeholder="Nombre de la marca..." autoFocus onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), createBrandInline())} />
-                      <button type="button" className="inline-btn" onClick={createBrandInline}>Crear</button>
-                      <button type="button" className="inline-cancel" onClick={() => setShowNewBrand(false)}>×</button>
-                    </div>
+                    <>
+                      <div className="inline-new">
+                        <input className="inline-input" type="text" value={newBrandName} onChange={e => { setNewBrandName(e.target.value); setBrandErr(null) }} placeholder="Nombre de la marca..." autoFocus onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), createBrandInline())} />
+                        <button type="button" className="inline-btn" onClick={createBrandInline}>Crear</button>
+                        <button type="button" className="inline-cancel" onClick={() => { setShowNewBrand(false); setBrandErr(null) }}>×</button>
+                      </div>
+                      {brandErr && <div style={{marginTop:6,fontSize:12,color:'#991b1b',fontWeight:600}}>⚠ {brandErr}</div>}
+                    </>
                   ) : (
                     <span className="create-link" onClick={() => setShowNewBrand(true)}>+ Crear nueva marca</span>
                   )}
