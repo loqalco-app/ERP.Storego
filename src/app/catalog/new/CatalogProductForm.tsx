@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
-import BottomNav from '@/components/BottomNav'
 
 interface Category { id: string; name: string; parent_id: string | null }
 interface Brand    { id: string; name: string }
@@ -199,16 +198,14 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        body{background:#ECEEF2;font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-        .shell{display:flex;min-height:100dvh}
-        .main{flex:1;overflow-y:auto}
+        body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
         .topbar{display:flex;align-items:center;gap:12px;padding:52px 20px 20px}
-        @media(min-width:768px){.topbar{padding:32px 32px 24px}}
-        .back-btn{width:38px;height:38px;border-radius:12px;background:#ECEEF2;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;box-shadow:4px 4px 12px rgba(0,0,0,0.08),-3px -3px 8px rgba(255,255,255,0.95)}
-        .page-title{font-size:22px;font-weight:800;color:#1A1A20;letter-spacing:-0.4px}
-        @media(min-width:768px){.page-title{font-size:26px}}
-        .content{padding:0 16px 120px}
-        @media(min-width:768px){.content{padding:0 32px 48px;max-width:680px;margin:0 auto}}
+        @media(min-width:768px){.topbar{padding:36px 40px 24px}}
+        .back-btn{width:38px;height:38px;border-radius:var(--r-sm,12px);background:var(--bg,#ECEEF2);display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;box-shadow:var(--shadow-sm)}
+        .page-title{font-size:22px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.4px}
+        @media(min-width:768px){.page-title{font-size:var(--text-xl,26px)}}
+        .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
+        @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px);max-width:680px;margin:0 auto}}
         .sec-title{font-size:17px;font-weight:800;color:#1A1A20;letter-spacing:-0.3px;margin:20px 0 10px}
         .card{background:#ECEEF2;border-radius:24px;overflow:hidden;box-shadow:6px 6px 18px rgba(0,0,0,0.08),-4px -4px 12px rgba(255,255,255,0.95),inset 0 1px 0 rgba(255,255,255,0.7);margin-bottom:16px}
         .field{padding:14px 20px;border-top:1px solid rgba(0,0,0,0.05)}
@@ -245,10 +242,8 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
         .save-btn:disabled{opacity:.5;cursor:not-allowed}
       `}</style>
 
-      <div className="shell">
-        <Sidebar orgName={orgName} userName={userName} active="catalog" />
-        <main className="main">
-          <div className="topbar">
+      <Sidebar active="catalog" />
+      <div className="topbar">
             <Link href="/catalog" className="back-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A20" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
             </Link>
@@ -400,9 +395,6 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
               </button>
             </form>
           </div>
-        </main>
-      </div>
-      <BottomNav active="catalog" />
     </>
   )
 }

@@ -1,0 +1,77 @@
+/*
+ * ╔══════════════════════════════════════════════════╗
+ * ║         STORE ERP — DESIGN TOKENS                ║
+ * ║  Cambia aquí → cambia en toda la aplicación      ║
+ * ╚══════════════════════════════════════════════════╝
+ *
+ * COLORES DE MARCA — edita --brand-* para cambiar el acento
+ * FONDO — edita --bg para cambiar toda la paleta neumórfica
+ * SOMBRAS — ajusta --shadow-* para cambiar la profundidad
+ * TIPOGRAFÍA — edita --font y --text-* para nueva tipografía
+ * RADIO — edita --r-* para esquinas más cuadradas o redondeadas
+ */
+
+:root {
+  /* ── Brand (acento principal) ── */
+  --brand:       #1D4ED8;
+  --brand-mid:   #2563EB;
+  --brand-light: #3B82F6;
+  --brand-alpha: rgba(29, 78, 216, 0.12);
+  --brand-glow:  rgba(29, 78, 216, 0.28);
+
+  /* ── Superficie / Fondo (neumórfico) ── */
+  --bg: #ECEEF2;
+
+  /* ── Texto ── */
+  --text-1: #1A1A20;
+  --text-2: rgba(26, 26, 32, 0.55);
+  --text-3: rgba(26, 26, 32, 0.38);
+  --text-4: rgba(26, 26, 32, 0.22);
+
+  /* ── Bordes ── */
+  --border:       rgba(0, 0, 0, 0.07);
+  --border-light: rgba(0, 0, 0, 0.04);
+
+  /* ── Sombras neumórficas ── */
+  --shadow-card:  6px 6px 18px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.95), inset 0 1px 0 rgba(255,255,255,0.70);
+  --shadow-md:    5px 5px 14px rgba(0,0,0,0.08), -3px -3px 10px rgba(255,255,255,0.95);
+  --shadow-sm:    4px 4px 12px rgba(0,0,0,0.07), -3px -3px 8px rgba(255,255,255,0.92);
+  --shadow-xs:    3px 3px 8px  rgba(0,0,0,0.07), -2px -2px 6px rgba(255,255,255,0.90);
+  --shadow-inset: inset 2px 2px 6px rgba(0,0,0,0.06), inset -2px -2px 5px rgba(255,255,255,0.80);
+
+  /* ── Sombras de marca (azul) ── */
+  --shadow-brand:    0 8px 24px rgba(29,78,216,0.30), inset 0 1px 0 rgba(255,255,255,0.20);
+  --shadow-brand-sm: 0 4px 14px rgba(29,78,216,0.28);
+
+  /* ── Sombra flotante (nav, modales) ── */
+  --shadow-float: 0 16px 48px rgba(0,0,0,0.13), 0 4px 16px rgba(0,0,0,0.08);
+
+  /* ── Gradiente de marca ── */
+  --grad-brand: linear-gradient(135deg, var(--brand), var(--brand-mid));
+  --grad-brand-btn: linear-gradient(145deg, var(--brand), var(--brand-mid));
+  --grad-brand-hero: linear-gradient(145deg, var(--brand) 0%, var(--brand-mid) 55%, var(--brand-light) 100%);
+
+  /* ── Border radius ── */
+  --r-xs:   8px;
+  --r-sm:   12px;
+  --r-md:   16px;
+  --r-lg:   20px;
+  --r-xl:   24px;
+  --r-2xl:  28px;
+  --r-pill: 50px;
+
+  /* ── Tipografía ── */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --text-2xs: 10px;
+  --text-xs:  11px;
+  --text-sm:  13px;
+  --text-base:15px;
+  --text-md:  17px;
+  --text-lg:  22px;
+  --text-xl:  26px;
+  --text-2xl: 32px;
+
+  /* ── Nav ── */
+  --nav-h: 88px; /* alto total del área del nav (incluye padding) */
+}

@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
-import BottomNav from '@/components/BottomNav'
 import { createClient } from '@/lib/supabase/client'
 
 /* ── Types ── */
@@ -132,16 +131,14 @@ export default function CatalogClient({ products: initProducts, categories: init
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        body{background:#ECEEF2;font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-        .shell{display:flex;min-height:100dvh}
-        .main{flex:1;overflow-y:auto}
+        body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
         .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:52px 20px 16px}
-        @media(min-width:768px){.topbar{padding:32px 32px 20px}}
+        @media(min-width:768px){.topbar{padding:36px 40px 20px}}
         .page-title{font-size:26px;font-weight:800;color:#1A1A20;letter-spacing:-0.5px}
         .new-btn{display:flex;align-items:center;gap:7px;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;border-radius:14px;padding:11px 18px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 6px 20px rgba(29,78,216,0.28);transition:opacity 0.15s;white-space:nowrap}
         .new-btn:hover{opacity:.90}
-        .content{padding:0 16px 120px}
-        @media(min-width:768px){.content{padding:0 32px 48px}}
+        .content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
+        @media(min-width:768px){.content{padding:0 40px calc(var(--nav-h,88px) + 16px)}}
 
         .tabs{display:flex;gap:8px;margin-bottom:20px}
         .tab{flex:1;padding:11px 8px;border-radius:50px;border:2px solid rgba(0,0,0,0.08);background:#ECEEF2;font-size:13px;font-weight:700;color:rgba(26,26,32,0.45);cursor:pointer;font-family:inherit;transition:all 0.18s;box-shadow:3px 3px 8px rgba(0,0,0,0.07),-2px -2px 6px rgba(255,255,255,0.90)}
@@ -211,10 +208,8 @@ export default function CatalogClient({ products: initProducts, categories: init
         .m-save:disabled{opacity:0.5;cursor:not-allowed}
       `}</style>
 
-      <div className="shell">
-        <Sidebar orgName={orgName} userName={userName} active="catalog" />
-        <main className="main">
-          <div className="topbar">
+      <Sidebar active="catalog" />
+      <div className="topbar">
             <div className="page-title">Inventario</div>
             {tab === 'products'   && <Link href="/catalog/new" className="new-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Producto</Link>}
             {tab === 'categories' && <button className="new-btn" onClick={() => openCat()}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Categoría</button>}
@@ -412,10 +407,6 @@ export default function CatalogClient({ products: initProducts, categories: init
               </div>
             )}
           </div>
-        </main>
-      </div>
-
-      <BottomNav active="catalog" />
 
       {/* Modal categoría */}
       {modal === 'category' && (
