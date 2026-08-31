@@ -195,7 +195,7 @@ export async function POST(request: Request) {
 
     const resend = new Resend(resendKey)
     const { error: emailErr } = await resend.emails.send({
-      from: `${orgName} via Store ERP <noreply@resend.dev>`,
+      from: 'Store ERP <onboarding@resend.dev>',
       to: email.toLowerCase(),
       subject: `${invitedByName} te invitó a ${orgName}`,
       html: inviteEmailHtml({ orgName, invitedByName, role, inviteUrl: linkData.properties.action_link }),

@@ -65,6 +65,7 @@
   /* ── Tipografía ── */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
+  /* Escala base */
   --text-2xs: 10px;
   --text-xs:  11px;
   --text-sm:  13px;
@@ -73,6 +74,27 @@
   --text-lg:  22px;
   --text-xl:  26px;
   --text-2xl: 32px;
+
+  /*
+   * ── 4 niveles semánticos (úsalos siempre) ────────────────
+   *  T1  Título de página   → topbar "Inventario", "Clientes"
+   *  T2  Título de sección  → "Información personal", "Equipo"
+   *  T3  Cuerpo / filas     → nombres, valores, texto principal
+   *  T4  Meta / etiquetas   → sublabels, fechas, badges, hints
+   * ─────────────────────────────────────────────────────────
+   */
+  --t1-size:   22px;   /* mobile */
+  --t1-size-d: 26px;   /* ≥768px */
+  --t1-weight: 800;
+
+  --t2-size:   17px;
+  --t2-weight: 800;
+
+  --t3-size:   14px;
+  --t3-weight: 600;
+
+  --t4-size:   11px;
+  --t4-weight: 500;
 
   /* ── Nav ── */
   --nav-h:     80px;   /* alto total del área del nav (incluye padding) */
