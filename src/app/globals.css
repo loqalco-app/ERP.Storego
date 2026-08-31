@@ -18,19 +18,26 @@ body {
 
 /*
  * ── Global .topbar ───────────────────────────────────────────
- * Zona roja: altura fija que NO invade el chip de perfil.
+ * Zona roja: sticky al tope + blur frosted-glass como iOS.
+ * El contenido scroll pasa por debajo con el blur visible.
  * padding-right reserva espacio para el chip fixed top-right.
  * ─────────────────────────────────────────────────────────────
  */
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  /* frosted-glass: fondo semitransparente + blur */
+  background: rgba(236, 238, 242, 0.82);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+
   display: flex;
   align-items: center;
   gap: 12px;
-  /* padding-top empuja el contenido por debajo del chip */
   padding-top: max(env(safe-area-inset-top, 0px), 52px);
   padding-left: 20px;
   padding-bottom: 16px;
-  /* padding-right reserva el hueco del chip de perfil */
   padding-right: var(--topbar-pr, 186px);
 }
 
@@ -48,15 +55,16 @@ body {
 
 /*
  * ── Global .content ──────────────────────────────────────────
- * Zona verde: llena toda la pantalla disponible entre el
- * topbar y el nav inferior. Nunca deja espacio vacío.
+ * Zona verde: con topbar sticky ya no hace falta min-height
+ * forzado — el contenido ocupa el espacio natural restante.
+ * El padding-bottom deja espacio libre sobre el nav flotante.
  * ─────────────────────────────────────────────────────────────
  */
 .content {
   min-height: calc(
     100dvh
     - var(--topbar-h, 104px)
-    - var(--nav-h, 88px)
+    - var(--nav-h, 80px)
     - 16px
   );
 }
