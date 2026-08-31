@@ -39,8 +39,23 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
   const [desc, setDesc]             = useState(initial?.description ?? '')
   const [status, setStatus]         = useState(initial?.status ?? 'active')
   const [condition, setCondition]   = useState(initial?.condition ?? 'new')
-  const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '')
   const [brandId, setBrandId]       = useState(initial?.brandId ?? '')
+
+  // Cascading category: rootCatId → subcategoryId
+  // Determine initial root/sub from initial.categoryId
+  const initialCatId = initial?.categoryId ?? ''
+  const [rootCatId, setRootCatId]   = useState(() => {
+    if (!initialCatId) return ''
+    const cat = categories.find(c => c.id === initialCatId)
+    if (!cat) return ''
+    return cat.parent_id ? cat.parent_id : cat.id
+  })
+  const [subCatId, setSubCatId]     = useState(() => {
+    if (!initialCatId) return ''
+    const cat = categories.find(c => c.id === initialCatId)
+    return cat?.parent_id ? cat.id : ''
+  })
+  const categoryId = subCatId || rootCatId
   const [variants, setVariants]     = useState<Variant[]>(initial?.variants ?? [emptyVariant()])
   const [saving, setSaving]         = useState(false)
   const [err, setErr]               = useState<string | null>(null)
@@ -197,9 +212,7 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
     }
   }
 
-  // Build category options — roots first, then children indented
   const roots = cats.filter(c => !c.parent_id)
-  const children = (pid: string) => cats.filter(c => c.parent_id === pid)
 
   return (
     <>
@@ -282,21 +295,12 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
               {/* Categoría y Marca */}
               <div className="sec-title">Clasificación</div>
               <div className="card">
+                {/* Categoría raíz */}
                 <div className="field">
                   <div className="fl">Categoría</div>
-                  <select className="fsel" value={categoryId} onChange={e => { if (e.target.value === '__new__') { setShowNewCat(true) } else { setCategoryId(e.target.value) } }}>
+                  <select className="fsel" value={rootCatId} onChange={e => { setRootCatId(e.target.value); setSubCatId('') }}>
                     <option value="">Sin categoría</option>
-                    {roots.map(root => (
-                      <optgroup key={root.id} label={root.name}>
-                        <option value={root.id}>{root.name}</option>
-                        {children(root.id).map(child => (
-                          <option key={child.id} value={child.id}>  ↳ {child.name}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                    {cats.filter(c => !c.parent_id && children(c.id).length === 0).length === 0 && cats.length === 0 && (
-                      <option value="__new__">+ Crear categoría...</option>
-                    )}
+                    {roots.map(root => <option key={root.id} value={root.id}>{root.name}</option>)}
                   </select>
                   {showNewCat ? (
                     <div className="inline-new">
@@ -308,6 +312,18 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
                     <span className="create-link" onClick={() => setShowNewCat(true)}>+ Crear nueva categoría</span>
                   )}
                 </div>
+                {/* Subcategoría — solo aparece si la categoría raíz tiene hijos */}
+                {rootCatId && cats.filter(c => c.parent_id === rootCatId).length > 0 && (
+                  <div className="field">
+                    <div className="fl">Subcategoría</div>
+                    <select className="fsel" value={subCatId} onChange={e => setSubCatId(e.target.value)}>
+                      <option value="">Sin subcategoría (usar categoría raíz)</option>
+                      {cats.filter(c => c.parent_id === rootCatId).map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="field">
                   <div className="fl">Marca</div>
                   <select className="fsel" value={brandId} onChange={e => setBrandId(e.target.value)}>
