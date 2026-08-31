@@ -83,7 +83,7 @@ export default function CustomerForm({ mode, orgId, userId, userName, orgName, c
         .del-btn{padding:9px 14px;border-radius:12px;border:none;background:rgba(220,38,38,0.08);color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s}
         .del-btn:hover{background:rgba(220,38,38,0.14)}
         .content{padding:0 16px 120px}
-        @media(min-width:768px){.content{padding:0 32px 48px;max-width:640px}}
+        @media(min-width:768px){.content{padding:0 32px 48px;max-width:640px;margin:0 auto}}
         .sec-title{font-size:17px;font-weight:800;color:#1A1A20;letter-spacing:-0.3px;margin:20px 0 10px}
         .card{background:#ECEEF2;border-radius:24px;overflow:hidden;box-shadow:6px 6px 18px rgba(0,0,0,0.08),-4px -4px 12px rgba(255,255,255,0.95),inset 0 1px 0 rgba(255,255,255,0.7);margin-bottom:16px}
         .field{padding:14px 20px;border-top:1px solid rgba(0,0,0,0.05)}

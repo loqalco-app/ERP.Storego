@@ -77,7 +77,7 @@ export default function ProfileClient({ userId, email, fullName, phone, orgName 
         .page-title{font-size:22px;font-weight:800;color:#1A1A20;letter-spacing:-0.4px}
         @media(min-width:768px){.page-title{font-size:26px}}
         .content{padding:0 16px 120px}
-        @media(min-width:768px){.content{padding:0 32px 48px;max-width:640px}}
+        @media(min-width:768px){.content{padding:0 32px 48px;max-width:640px;margin:0 auto}}
         .av-section{display:flex;align-items:center;gap:20px;margin-bottom:28px}
         .av{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#1D4ED8,#3B82F6);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:white;flex-shrink:0;box-shadow:0 8px 24px rgba(29,78,216,0.28)}
         .av-name{font-size:18px;font-weight:800;color:#1A1A20}

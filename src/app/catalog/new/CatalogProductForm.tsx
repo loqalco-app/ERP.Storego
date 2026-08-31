@@ -208,7 +208,7 @@ export default function CatalogProductForm({ mode, orgId, userName, orgName, cat
         .page-title{font-size:22px;font-weight:800;color:#1A1A20;letter-spacing:-0.4px}
         @media(min-width:768px){.page-title{font-size:26px}}
         .content{padding:0 16px 120px}
-        @media(min-width:768px){.content{padding:0 32px 48px;max-width:680px}}
+        @media(min-width:768px){.content{padding:0 32px 48px;max-width:680px;margin:0 auto}}
         .sec-title{font-size:17px;font-weight:800;color:#1A1A20;letter-spacing:-0.3px;margin:20px 0 10px}
         .card{background:#ECEEF2;border-radius:24px;overflow:hidden;box-shadow:6px 6px 18px rgba(0,0,0,0.08),-4px -4px 12px rgba(255,255,255,0.95),inset 0 1px 0 rgba(255,255,255,0.7);margin-bottom:16px}
         .field{padding:14px 20px;border-top:1px solid rgba(0,0,0,0.05)}
