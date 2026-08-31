@@ -326,7 +326,6 @@ export default function CatalogClient({ products: initProducts, categories: init
                                 {/* Nombre + SKU */}
                                 <td className="td-main">
                                   <div className="p-name">{p.name}</div>
-                                  <div className="p-sku">SKU {sku}{varCount > 1 ? ` +${varCount-1}` : ''}</div>
                                   {/* mobile inline cat+brand */}
                                   <div className="p-cat-inline">{[cat, brand].filter(Boolean).join(' · ')}</div>
                                 </td>
