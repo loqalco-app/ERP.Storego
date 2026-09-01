@@ -235,20 +235,22 @@ export default function FinanzasClient({
       <Sidebar active="finanzas" />
 
       <div className="content">
-        <div className="page-hd-row">
-          <div className="page-title">Finanzas</div>
-          <select
-            className="periodo-select"
-            value={periodo}
-            onChange={e => changePeriodo(e.target.value)}
-          >
-            {PERIODOS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
-          </select>
-        </div>
-        <div className="page-hd-tabs">
-          {([['resumen','Resumen'],['productos','Productos'],['gastos','Gastos'],['cobros','Cobros']] as const).map(([k,l]) => (
-            <button key={k} className={`page-hd-tab${tab===k?' on':''}`} onClick={() => setTab(k)}>{l}</button>
-          ))}
+        <div className="page-hd">
+          <div className="page-hd-row">
+            <div className="page-title">Finanzas</div>
+            <select
+              className="periodo-select"
+              value={periodo}
+              onChange={e => changePeriodo(e.target.value)}
+            >
+              {PERIODOS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+            </select>
+          </div>
+          <div className="page-hd-tabs">
+            {([['resumen','Resumen'],['productos','Productos'],['gastos','Gastos'],['cobros','Cobros']] as const).map(([k,l]) => (
+              <button key={k} className={`page-hd-tab${tab===k?' on':''}`} onClick={() => setTab(k)}>{l}</button>
+            ))}
+          </div>
         </div>
 
         {/* Rango personalizado */}

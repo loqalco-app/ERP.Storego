@@ -297,18 +297,20 @@ export default function CatalogClient({ products: initProducts, categories: init
       <Sidebar active="catalog" />
 
           <div className="content">
-            <div className="page-hd-row">
-              <div className="page-title">Inventario</div>
-              {tab === 'products'   && <Link href="/catalog/new" className="new-btn" aria-label="Agregar producto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Producto</span></Link>}
-              {tab === 'categories' && <button className="new-btn" onClick={() => openCat()} aria-label="Agregar categoría"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Categoría</span></button>}
-              {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()} aria-label="Agregar marca"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Marca</span></button>}
-            </div>
-            <div className="page-hd-tabs">
-              {(['products','categories','brands'] as const).map(t => (
-                <button key={t} className={`page-hd-tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>
-                  {t === 'products' ? 'Productos' : t === 'categories' ? 'Categorías' : 'Marcas'}
-                </button>
-              ))}
+            <div className="page-hd">
+              <div className="page-hd-row">
+                <div className="page-title">Inventario</div>
+                {tab === 'products'   && <Link href="/catalog/new" className="new-btn" aria-label="Agregar producto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Producto</span></Link>}
+                {tab === 'categories' && <button className="new-btn" onClick={() => openCat()} aria-label="Agregar categoría"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Categoría</span></button>}
+                {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()} aria-label="Agregar marca"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Marca</span></button>}
+              </div>
+              <div className="page-hd-tabs">
+                {(['products','categories','brands'] as const).map(t => (
+                  <button key={t} className={`page-hd-tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>
+                    {t === 'products' ? 'Productos' : t === 'categories' ? 'Categorías' : 'Marcas'}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* ── PRODUCTOS ── */}

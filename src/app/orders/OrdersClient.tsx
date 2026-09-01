@@ -165,16 +165,18 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
       <Sidebar active="orders" />
 
       <div className="content">
-        <div className="page-hd-row">
-          <div className="page-title">Órdenes</div>
-          <div className="ord-count">{filtered.length} {filtered.length === 1 ? 'orden' : 'órdenes'}</div>
-        </div>
-        <div className="page-hd-chips">
-          {['todos','pagado','apartado','en_preparacion','enviado','entregado','cancelado'].map(s => (
-            <button key={s} className={`page-hd-chip${statusFilter===s?' on':''}`} onClick={() => setStatusFilter(s)}>
-              {s === 'todos' ? 'Todos' : STATUS[s]?.label ?? s}
-            </button>
-          ))}
+        <div className="page-hd">
+          <div className="page-hd-row">
+            <div className="page-title">Órdenes</div>
+            <div className="ord-count">{filtered.length} {filtered.length === 1 ? 'orden' : 'órdenes'}</div>
+          </div>
+          <div className="page-hd-chips">
+            {['todos','pagado','apartado','en_preparacion','enviado','entregado','cancelado'].map(s => (
+              <button key={s} className={`page-hd-chip${statusFilter===s?' on':''}`} onClick={() => setStatusFilter(s)}>
+                {s === 'todos' ? 'Todos' : STATUS[s]?.label ?? s}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="ord-list">

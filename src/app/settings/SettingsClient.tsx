@@ -324,12 +324,14 @@ export default function SettingsClient({
       <Sidebar active="settings" />
 
       <div className="content">
-        <div className="page-hd-row">
-          <div className="page-title">Ajustes</div>
-        </div>
-        <div className="page-hd-tabs">
-          <button className={`page-hd-tab${tab === 'profile' ? ' on' : ''}`} onClick={() => switchTab('profile')}>Mi perfil</button>
-          <button className={`page-hd-tab${tab === 'team' ? ' on' : ''}`} onClick={() => switchTab('team')}>Equipo</button>
+        <div className="page-hd">
+          <div className="page-hd-row">
+            <div className="page-title">Ajustes</div>
+          </div>
+          <div className="page-hd-tabs">
+            <button className={`page-hd-tab${tab === 'profile' ? ' on' : ''}`} onClick={() => switchTab('profile')}>Mi perfil</button>
+            <button className={`page-hd-tab${tab === 'team' ? ' on' : ''}`} onClick={() => switchTab('team')}>Equipo</button>
+          </div>
         </div>
 
         {tab === 'profile' && (

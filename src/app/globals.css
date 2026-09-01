@@ -38,10 +38,23 @@ input, select, textarea {
 
 /*
  * ── Global .page-hd ──────────────────────────────────────────
- * Cabecera de página: vive DENTRO de .content (no sticky).
- * El único bar anclado es .desk-header (el chip de perfil).
+ * Wrapper que agrupa .page-hd-row + .page-hd-tabs / chips.
+ * En mobile se vuelve sticky justo debajo del status bar del PWA.
+ * En desktop es un div normal (el .desk-header ya es fixed).
  * ─────────────────────────────────────────────────────────────
  */
+@media (max-width: 767px) {
+  .page-hd {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 90;
+    background: var(--bg, #ECEEF2);
+    margin-left: -20px;
+    margin-right: -20px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
 
 /* Fila horizontal: título flex-1 + botón de acción a la derecha */
 .page-hd-row { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; }

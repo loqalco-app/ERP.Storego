@@ -64,8 +64,10 @@ export default function DashboardClient({ userName, orgName, stats, recentOrders
       <Sidebar active="dashboard" />
 
       <div className="content">
-        <div className="page-hd-row">
-          <div className="page-title">Inicio</div>
+        <div className="page-hd">
+          <div className="page-hd-row">
+            <div className="page-title">Inicio</div>
+          </div>
         </div>
         <div className="hero">
           <div className="hero-label">Ingresos del mes</div>
