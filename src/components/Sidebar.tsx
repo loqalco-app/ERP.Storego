@@ -103,115 +103,34 @@ export default function Sidebar({ active }: Props) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-        /* ── Profile chip — fixed bottom right ── */
-        .nav-profile-wrap{
-          position:fixed;
-          bottom:calc(var(--nav-h,80px) + max(env(safe-area-inset-bottom,0px),8px) + 76px);
-          right:16px;
-          z-index:300
-        }
-        @media(min-width:768px){.nav-profile-wrap{bottom:calc(var(--nav-h,80px) + max(env(safe-area-inset-bottom,0px),16px) + 16px);right:24px}}
-
-        .profile-chip{
-          display:flex;align-items:center;gap:8px;
-          background:var(--bg,#ECEEF2);
-          border:none;
-          border-radius:var(--r-pill,50px);
-          padding:5px 12px 5px 5px;
-          box-shadow:0 8px 32px rgba(0,0,0,0.16),0 2px 8px rgba(0,0,0,0.08),4px 4px 12px rgba(0,0,0,0.06),-3px -3px 8px rgba(255,255,255,0.92);
-          text-decoration:none;
-          -webkit-tap-highlight-color:transparent;
-          transition:opacity 0.12s;
-          outline:none;
-          cursor:pointer;
-          font-family:inherit
-        }
-        .profile-chip:active{opacity:0.75}
-
-        .pc-av{
-          width:32px;height:32px;border-radius:50%;
-          background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
-          display:flex;align-items:center;justify-content:center;
-          font-size:12px;font-weight:800;color:white;
-          flex-shrink:0;letter-spacing:0;
-          box-shadow:0 2px 8px rgba(29,78,216,0.30)
-        }
-        .pc-text{display:flex;flex-direction:column;gap:1px;min-width:0}
-        .pc-name{
-          font-size:13px;font-weight:700;
-          color:var(--text-1,#0A0A0E);
-          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-          max-width:90px;
-          font-family:var(--font,'Inter',-apple-system,sans-serif);
-          line-height:1
-        }
-        .pc-role{
-          font-size:10px;font-weight:500;
-          color:var(--text-3,rgba(10,10,14,0.45));
-          font-family:var(--font,'Inter',-apple-system,sans-serif);
-          line-height:1
-        }
-
-        /* ── Profile dropdown menu ── */
-        .pc-dropdown{
-          position:absolute;bottom:calc(100% + 8px);right:0;top:auto;
-          background:var(--bg,#ECEEF2);
-          border-radius:var(--r-lg,20px);
-          box-shadow:0 -8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
-          min-width:200px;
-          overflow:hidden;
-          z-index:400
-        }
-        .pc-menu-item{
-          display:flex;align-items:center;gap:10px;
-          width:100%;padding:13px 18px;
-          background:none;border:none;
-          font-size:14px;font-weight:600;
-          color:var(--text-1,#0A0A0E);
-          font-family:var(--font,'Inter',-apple-system,sans-serif);
-          cursor:pointer;text-decoration:none;
-          transition:background 0.12s;
-          text-align:left;
-          -webkit-tap-highlight-color:transparent
-        }
-        .pc-menu-item:hover{background:rgba(0,0,0,0.04)}
-        .pc-menu-item:active{background:rgba(0,0,0,0.07)}
-        .pc-menu-item.danger{color:#DC2626}
-        .pc-menu-item.danger:hover{background:rgba(220,38,38,0.06)}
-        .pc-divider{height:1px;background:rgba(0,0,0,0.06);margin:4px 0}
-
         /* ── Bottom fade ── */
         .nav-fade{
           position:fixed;bottom:0;left:0;right:0;
-          height:calc(var(--nav-h,88px) + 8px);
+          height:96px;
           background:linear-gradient(to top,var(--bg,#ECEEF2) 60%,transparent);
           pointer-events:none;z-index:198
         }
 
-        /* ── Nav bar ── */
+        /* ── Nav bar — contiene pill + chip en la misma fila ── */
         .nav-bar{
           position:fixed;bottom:0;left:0;right:0;z-index:199;
-          display:flex;justify-content:center;
-          padding-left:14px;
-          padding-right:14px;
-          /* mobile: más pegado al borde */
-          padding-bottom:max(env(safe-area-inset-bottom,0px),8px);
+          display:flex;align-items:center;justify-content:center;gap:8px;
+          padding:0 12px max(env(safe-area-inset-bottom,0px),8px);
           pointer-events:none
         }
-        /* desktop: padding original */
-        @media(min-width:480px){.nav-bar{padding-left:24px;padding-right:24px;padding-bottom:max(env(safe-area-inset-bottom,0px),16px)}}
+        @media(min-width:480px){.nav-bar{padding:0 20px max(env(safe-area-inset-bottom,0px),16px);gap:10px}}
 
         /* ── Floating pill ── */
         .nav-pill{
+          flex:1;max-width:440px;
           display:flex;align-items:center;gap:2px;
           background:var(--bg,#ECEEF2);
           border-radius:var(--r-2xl,28px);
           padding:7px;
           box-shadow:0 20px 60px rgba(0,0,0,0.14),0 6px 20px rgba(0,0,0,0.09),inset 0 1px 0 rgba(255,255,255,0.80);
-          pointer-events:all;
-          width:100%
+          pointer-events:all
         }
-        @media(min-width:480px){.nav-pill{width:auto;min-width:380px;max-width:520px}}
+        @media(min-width:480px){.nav-pill{min-width:340px;max-width:460px}}
 
         /* ── Nav item ── */
         .nav-item{
@@ -227,7 +146,7 @@ export default function Sidebar({ active }: Props) {
           cursor:pointer;min-width:0;
           -webkit-tap-highlight-color:transparent
         }
-        @media(min-width:480px){.nav-item{padding:10px 14px 9px;min-width:76px}}
+        @media(min-width:480px){.nav-item{padding:10px 12px 9px;min-width:70px}}
 
         .nav-item.on{
           background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
@@ -241,47 +160,98 @@ export default function Sidebar({ active }: Props) {
         .nav-lbl{font-size:9px;font-weight:700;letter-spacing:0.04em;white-space:nowrap;line-height:1}
         @media(max-width:379px){.nav-lbl{display:none}}
         @media(min-width:480px){.nav-lbl{font-size:10px}}
+
+        /* ── Profile chip wrap — inline en nav-bar ── */
+        .nav-profile-wrap{
+          position:relative;
+          flex-shrink:0;
+          pointer-events:all
+        }
+
+        /* ── Profile chip — mobile: solo avatar ── */
+        .profile-chip{
+          display:flex;align-items:center;justify-content:center;
+          background:var(--bg,#ECEEF2);
+          border:none;border-radius:50%;
+          padding:6px;
+          box-shadow:0 4px 16px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06),inset 0 1px 0 rgba(255,255,255,0.80);
+          cursor:pointer;outline:none;
+          -webkit-tap-highlight-color:transparent;
+          transition:opacity 0.12s;
+          font-family:inherit
+        }
+        .profile-chip:active{opacity:0.75}
+
+        /* Desktop: chip expandido con nombre */
+        @media(min-width:600px){
+          .profile-chip{
+            border-radius:50px;
+            padding:5px 12px 5px 5px;
+            gap:8px;
+            justify-content:flex-start
+          }
+        }
+
+        .pc-av{
+          width:32px;height:32px;border-radius:50%;
+          background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
+          display:flex;align-items:center;justify-content:center;
+          font-size:12px;font-weight:800;color:white;
+          flex-shrink:0;letter-spacing:0;
+          box-shadow:0 2px 8px rgba(29,78,216,0.30)
+        }
+
+        /* Texto del chip oculto en mobile, visible en desktop */
+        .pc-text{
+          display:none;flex-direction:column;gap:1px;min-width:0
+        }
+        @media(min-width:600px){.pc-text{display:flex}}
+
+        .pc-name{
+          font-size:13px;font-weight:700;
+          color:var(--text-1,#0A0A0E);
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+          max-width:90px;
+          font-family:var(--font,'Inter',-apple-system,sans-serif);
+          line-height:1
+        }
+        .pc-role{
+          font-size:10px;font-weight:500;
+          color:var(--text-3,rgba(10,10,14,0.45));
+          font-family:var(--font,'Inter',-apple-system,sans-serif);
+          line-height:1
+        }
+
+        /* ── Dropdown ── */
+        .pc-dropdown{
+          position:absolute;bottom:calc(100% + 8px);right:0;top:auto;
+          background:var(--bg,#ECEEF2);
+          border-radius:var(--r-lg,20px);
+          box-shadow:0 -8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
+          min-width:200px;overflow:hidden;z-index:400
+        }
+        .pc-menu-item{
+          display:flex;align-items:center;gap:10px;
+          width:100%;padding:13px 18px;
+          background:none;border:none;
+          font-size:14px;font-weight:600;
+          color:var(--text-1,#0A0A0E);
+          font-family:var(--font,'Inter',-apple-system,sans-serif);
+          cursor:pointer;text-decoration:none;
+          transition:background 0.12s;text-align:left;
+          -webkit-tap-highlight-color:transparent
+        }
+        .pc-menu-item:hover{background:rgba(0,0,0,0.04)}
+        .pc-menu-item:active{background:rgba(0,0,0,0.07)}
+        .pc-menu-item.danger{color:#DC2626}
+        .pc-menu-item.danger:hover{background:rgba(220,38,38,0.06)}
+        .pc-divider{height:1px;background:rgba(0,0,0,0.06);margin:4px 0}
       `}</style>
-
-      {/* Profile chip — bottom right */}
-      <div className="nav-profile-wrap">
-        <button
-          className="profile-chip"
-          aria-label="Menú de perfil"
-          onClick={() => setMenuOpen(v => !v)}
-        >
-          <div className="pc-av">{initials}</div>
-          {displayName && (
-            <div className="pc-text">
-              <span className="pc-name">{displayName}</span>
-              <span className="pc-role">Mi perfil</span>
-            </div>
-          )}
-        </button>
-
-        {menuOpen && (
-          <div className="pc-dropdown" onClick={() => setMenuOpen(false)}>
-            <Link href="/settings" className="pc-menu-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
-              Mi perfil
-            </Link>
-            <Link href="/settings?tab=team" className="pc-menu-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
-              Equipo
-            </Link>
-            <div className="pc-divider" />
-            <button className="pc-menu-item danger" onClick={signOut}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Cerrar sesión
-            </button>
-          </div>
-        )}
-      </div>
 
       {/* Bottom fade */}
       <div className="nav-fade" aria-hidden="true" />
 
-      {/* Bottom nav pill */}
+      {/* Nav bar: pill de navegación + chip de perfil en la misma fila */}
       <nav className="nav-bar" aria-label="Navegación principal">
         <div className="nav-pill">
           {NAV.map(item => {
@@ -298,6 +268,41 @@ export default function Sidebar({ active }: Props) {
               </Link>
             )
           })}
+        </div>
+
+        {/* Chip de perfil — mismo nivel que el pill */}
+        <div className="nav-profile-wrap">
+          <button
+            className="profile-chip"
+            aria-label="Menú de perfil"
+            onClick={() => setMenuOpen(v => !v)}
+          >
+            <div className="pc-av">{initials}</div>
+            {displayName && (
+              <div className="pc-text">
+                <span className="pc-name">{displayName}</span>
+                <span className="pc-role">Mi perfil</span>
+              </div>
+            )}
+          </button>
+
+          {menuOpen && (
+            <div className="pc-dropdown" onClick={() => setMenuOpen(false)}>
+              <Link href="/settings" className="pc-menu-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+                Mi perfil
+              </Link>
+              <Link href="/settings?tab=team" className="pc-menu-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
+                Equipo
+              </Link>
+              <div className="pc-divider" />
+              <button className="pc-menu-item danger" onClick={signOut}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Cerrar sesión
+              </button>
+            </div>
+          )}
         </div>
       </nav>
     </>
