@@ -60,10 +60,13 @@ export async function POST(request: Request) {
     }
   }
 
-  // Usar el origin del request — siempre es el dominio correcto en producción
+  const fwdHost = request.headers.get('x-forwarded-host')
+  const fwdProto = request.headers.get('x-forwarded-proto') || 'https'
   const appUrl = process.env.NEXT_PUBLIC_SITE_URL
-    || request.headers.get('origin')
-    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    || process.env.SITE_URL
+    || (fwdHost && !fwdHost.includes('localhost') ? `${fwdProto}://${fwdHost}` : null)
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+    || 'https://erp-storego.vercel.app'
 
   // Generar link de invite (single-use, no envía correo)
   const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
