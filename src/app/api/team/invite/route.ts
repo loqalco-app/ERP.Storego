@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     email: email.toLowerCase(),
     options: {
       data: { org_id: orgId, role, full_name: fullName ?? '' },
-      redirectTo: `${appUrl}/auth/setup-password`,
+      redirectTo: `${appUrl}/auth/callback?next=/auth/setup-password`,
     },
   })
 
