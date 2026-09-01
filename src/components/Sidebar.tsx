@@ -245,12 +245,14 @@ export default function Sidebar({ active }: Props) {
         }
         .nav-av-btn.on .nav-av-circle{background:rgba(255,255,255,0.28)}
 
-        /* Dropdown mobile — sube del pill */
+        /* Dropdown mobile — fixed para escapar overflow del pill */
         .pc-dropdown{
-          position:absolute;bottom:calc(100% + 12px);right:-8px;
+          position:fixed;
+          bottom:calc(max(env(safe-area-inset-bottom,0px),10px) + 82px);
+          right:16px;
           background:var(--bg,#ECEEF2);border-radius:var(--r-lg,20px);
-          box-shadow:0 -8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
-          min-width:200px;overflow:hidden;z-index:400
+          box-shadow:0 -8px 32px rgba(0,0,0,0.14),0 4px 16px rgba(0,0,0,0.08);
+          min-width:210px;overflow:hidden;z-index:600
         }
 
         /* ── Header desktop full-width ── */

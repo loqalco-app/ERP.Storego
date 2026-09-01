@@ -236,33 +236,51 @@ export default function POSClient({
     .btn-sm{padding:5px 12px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:11px;font-weight:700;color:rgba(10,10,14,0.5);cursor:pointer;font-family:inherit;white-space:nowrap}
 
     /* ── HOME ── */
-    .home-wrap{display:flex;flex-direction:column;min-height:100dvh;padding:max(env(safe-area-inset-top,0px),32px) 24px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
+    .home-wrap{display:flex;flex-direction:column;min-height:100dvh;padding:max(env(safe-area-inset-top,0px),32px) 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
     @media(min-width:768px){.home-wrap{padding-top:max(env(safe-area-inset-top,0px),64px);max-width:600px;margin:0 auto;padding-left:0;padding-right:0}}
     .home-greeting{font-size:13px;font-weight:700;color:rgba(10,10,14,0.40);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
     .home-title{font-size:30px;font-weight:900;color:#0A0A0E;letter-spacing:-.8px;margin-bottom:4px;line-height:1.1}
     @media(min-width:768px){.home-title{font-size:38px}}
-    .home-sub{font-size:14px;color:rgba(10,10,14,0.45);font-weight:500;margin-bottom:40px}
-    .home-cards{display:flex;flex-direction:row;gap:16px}
-    .hcard{flex:1;aspect-ratio:1/1;border-radius:28px;padding:28px 24px;cursor:pointer;border:none;font-family:inherit;text-align:left;display:flex;flex-direction:column;gap:0;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
+    .home-sub{font-size:14px;color:rgba(10,10,14,0.45);font-weight:500;margin-bottom:28px}
+    .home-cards{display:flex;gap:14px}
+    /* Desktop: side by side square */
+    @media(min-width:768px){
+      .home-cards{flex-direction:row}
+      .hcard{flex:1;aspect-ratio:1/1;flex-direction:column;padding:28px 24px;border-radius:28px}
+      .hcard-icon{margin-bottom:20px;flex-shrink:unset}
+      .hcard-text{flex:1;min-width:unset}
+      .hcard-badge{position:absolute;top:20px;right:20px}
+      .hcard-arrow{position:absolute;bottom:24px;right:24px}
+    }
+    /* Mobile: stacked, horizontal layout */
+    @media(max-width:767px){
+      .home-cards{flex-direction:column;gap:12px}
+      .hcard{aspect-ratio:unset;flex-direction:row;align-items:center;padding:20px 18px;border-radius:22px;gap:14px}
+      .hcard-icon{margin-bottom:0;flex-shrink:0;width:46px;height:46px;border-radius:14px}
+      .hcard-text{flex:1;min-width:0}
+      .hcard-badge{position:static;display:inline-flex;margin-bottom:4px;align-self:flex-start;padding:3px 10px;font-size:11px}
+      .hcard-arrow{flex-shrink:0;position:static;opacity:.55}
+    }
+    .hcard{cursor:pointer;border:none;font-family:inherit;text-align:left;display:flex;gap:0;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
     .hcard:active{transform:scale(.98)}
     .hcard-new{background:linear-gradient(145deg,#1D4ED8,#2563EB);box-shadow:0 12px 40px rgba(29,78,216,0.35)}
     .hcard-parked{background:var(--bg,#ECEEF2);box-shadow:8px 8px 20px rgba(0,0,0,0.09),-6px -6px 16px rgba(255,255,255,0.95);border:1.5px solid rgba(0,0,0,0.06)}
-    .hcard-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+    .hcard-icon{display:flex;align-items:center;justify-content:center}
     .hcard-new .hcard-icon{background:rgba(255,255,255,0.18)}
     .hcard-parked .hcard-icon{background:rgba(217,119,6,0.12)}
-    .hcard-label{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:6px}
+    .hcard-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
     .hcard-new .hcard-label{color:rgba(255,255,255,0.65)}
     .hcard-parked .hcard-label{color:rgba(217,119,6,0.80)}
-    .hcard-title{font-size:22px;font-weight:900;letter-spacing:-.4px;margin-bottom:8px;line-height:1.1}
-    @media(min-width:768px){.hcard-title{font-size:26px}}
+    .hcard-title{font-size:20px;font-weight:900;letter-spacing:-.4px;margin-bottom:4px;line-height:1.1}
+    @media(min-width:768px){.hcard-title{font-size:24px}}
     .hcard-new .hcard-title{color:white}
     .hcard-parked .hcard-title{color:#0A0A0E}
-    .hcard-desc{font-size:13px;font-weight:500;line-height:1.45}
+    .hcard-desc{font-size:12px;font-weight:500;line-height:1.4}
     .hcard-new .hcard-desc{color:rgba(255,255,255,0.70)}
     .hcard-parked .hcard-desc{color:rgba(10,10,14,0.45)}
-    .hcard-badge{position:absolute;top:20px;right:20px;background:rgba(255,255,255,0.25);border-radius:50px;padding:5px 12px;font-size:12px;font-weight:800;color:white}
+    .hcard-badge{background:rgba(255,255,255,0.25);border-radius:50px;padding:5px 12px;font-size:12px;font-weight:800;color:white}
     .hcard-parked .hcard-badge{background:rgba(217,119,6,0.15);color:#92400E}
-    .hcard-arrow{position:absolute;bottom:24px;right:24px;opacity:.5;transition:opacity .15s,transform .15s}
+    .hcard-arrow{opacity:.5;transition:opacity .15s,transform .15s}
     .hcard:hover .hcard-arrow{opacity:.9;transform:translateX(4px)}
     .hcard-new .hcard-arrow{color:white}
     .hcard-parked .hcard-arrow{color:#0A0A0E}
@@ -309,22 +327,22 @@ export default function POSClient({
     .pk-empty-sub{font-size:13px;color:rgba(10,10,14,0.30);font-weight:500}
 
     /* ── SELLING ── */
-    /* ── SELLING — desktop centrado y compacto ── */
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--bg,#ECEEF2);padding-top:env(safe-area-inset-top,0px)}
     @media(min-width:768px){.pos-wrap{height:calc(100dvh - 60px)}}
-    .pos-topbar{display:flex;align-items:center;gap:12px;padding:12px 20px 10px;flex-shrink:0}
+    .pos-topbar{display:flex;align-items:center;gap:12px;padding:14px 18px 10px;flex-shrink:0}
     @media(min-width:768px){.pos-topbar{padding:16px 40px 10px}}
-    .pos-back-btn{width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
+    .pos-back-btn{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pos-topbar-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px;flex:1}
     @media(min-width:768px){.pos-topbar-title{font-size:26px}}
     .pos-body{display:flex;flex:1;overflow:hidden;min-height:0}
-    /* mobile: stack vertical */
-    .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 10px 12px 12px}
+    /* mobile */
+    .pos-body-inner{display:flex;flex:1;overflow:hidden;min-height:0;width:100%}
+    .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 16px 12px}
     @media(max-width:767px){.pos-left{padding-bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 96px)}}
     /* desktop: centrado en max-width con dos columnas */
     @media(min-width:768px){
       .pos-body{justify-content:center}
-      .pos-body-inner{display:flex;width:100%;max-width:960px;height:100%;margin:0 auto}
+      .pos-body-inner{max-width:960px;height:100%;margin:0 auto}
       .pos-left{padding:0 16px 16px 0}
       .pos-right{width:280px;flex-shrink:0;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);display:flex;flex-direction:column}
     }
@@ -474,9 +492,11 @@ export default function POSClient({
           <div className="hcard-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
           </div>
-          <div className="hcard-label">Cobrar ahora</div>
-          <div className="hcard-title">Nueva venta</div>
-          <div className="hcard-desc">Agrega productos, selecciona cliente y cobra al momento.</div>
+          <div className="hcard-text">
+            <div className="hcard-label">Cobrar ahora</div>
+            <div className="hcard-title">Nueva venta</div>
+            <div className="hcard-desc">Agrega productos, selecciona cliente y cobra al momento.</div>
+          </div>
           <div className="hcard-arrow">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </div>
@@ -484,18 +504,20 @@ export default function POSClient({
 
         {/* Ventas guardadas */}
         <button className="hcard hcard-parked" onClick={() => setPosView('parked')}>
-          {parkedSales.length > 0 && (
-            <div className="hcard-badge">{parkedSales.length} en espera</div>
-          )}
           <div className="hcard-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           </div>
-          <div className="hcard-label">Retomar</div>
-          <div className="hcard-title">Ventas guardadas</div>
-          <div className="hcard-desc">
-            {parkedSales.length === 0
-              ? 'Guarda ventas en curso para atender a otro cliente.'
-              : `Tienes ${parkedSales.length} venta${parkedSales.length > 1 ? 's' : ''} pausada${parkedSales.length > 1 ? 's' : ''} esperando.`}
+          <div className="hcard-text">
+            {parkedSales.length > 0 && (
+              <div className="hcard-badge">{parkedSales.length} en espera</div>
+            )}
+            <div className="hcard-label">Retomar</div>
+            <div className="hcard-title">Ventas guardadas</div>
+            <div className="hcard-desc">
+              {parkedSales.length === 0
+                ? 'Guarda ventas en curso para atender a otro cliente.'
+                : `Tienes ${parkedSales.length} venta${parkedSales.length > 1 ? 's' : ''} pausada${parkedSales.length > 1 ? 's' : ''} esperando.`}
+            </div>
           </div>
           <div className="hcard-arrow">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
