@@ -51,6 +51,7 @@ export default function FinanzasClient({
   const [expError, setExpError] = useState('')
 
   // Selector personalizado
+  const [showCustom, setShowCustom]   = useState(periodo === 'personalizado')
   const [customDesde, setCustomDesde] = useState(desde)
   const [customHasta, setCustomHasta] = useState(hasta)
 
@@ -131,7 +132,8 @@ export default function FinanzasClient({
   }
 
   function changePeriodo(p: string) {
-    if (p === 'personalizado') return  // solo abre el selector, no navega aún
+    if (p === 'personalizado') { setShowCustom(true); return }
+    setShowCustom(false)
     router.push(`/finanzas?periodo=${p}`)
   }
 
@@ -250,7 +252,7 @@ export default function FinanzasClient({
         </div>
 
         {/* Rango personalizado */}
-        {periodo === 'personalizado' && (
+        {showCustom && (
           <div className="custom-range">
             <input className="custom-input" type="date" value={customDesde} onChange={e => setCustomDesde(e.target.value)} />
             <span className="custom-sep">al</span>
