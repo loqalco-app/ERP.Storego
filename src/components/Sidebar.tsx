@@ -197,7 +197,7 @@ export default function Sidebar({ active }: Props) {
         /* ── Nav item ── */
         .nav-item{
           flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-          padding:9px 6px 8px;border-radius:20px;text-decoration:none;
+          padding:9px 6px 8px;border-radius:14px;text-decoration:none;
           color:#0A0A0E;opacity:0.38;
           font-family:var(--font,'Inter',-apple-system,sans-serif);
           transition:color 0.14s,background 0.14s,opacity 0.14s;

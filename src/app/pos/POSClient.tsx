@@ -303,10 +303,12 @@ export default function POSClient({
     /* ── SELLING ── */
     /* ── SELLING — desktop centrado y compacto ── */
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--bg,#ECEEF2);padding-top:env(safe-area-inset-top,0px)}
-    .pos-topbar{display:flex;align-items:center;gap:10px;padding:12px 16px 8px;flex-shrink:0;position:relative;z-index:50}
-    @media(min-width:768px){.pos-topbar{padding:16px 0 10px;max-width:960px;margin:0 auto;width:100%;padding-left:0;padding-right:0}}
+    @media(min-width:768px){.pos-wrap{height:calc(100dvh - 60px)}}
+    .pos-topbar{display:flex;align-items:center;gap:12px;padding:12px 20px 10px;flex-shrink:0}
+    @media(min-width:768px){.pos-topbar{padding:16px 40px 10px}}
     .pos-back-btn{width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
-    .pos-topbar-title{font-size:15px;font-weight:800;color:#0A0A0E}
+    .pos-topbar-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px;flex:1}
+    @media(min-width:768px){.pos-topbar-title{font-size:26px}}
     .pos-body{display:flex;flex:1;overflow:hidden;min-height:0}
     /* mobile: stack vertical */
     .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 10px 12px 12px}
@@ -364,7 +366,7 @@ export default function POSClient({
     .search-input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none;transition:border-color .15s}
     .search-input:focus{border-color:#2563EB}
     .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;overflow-y:auto;flex:1;padding-right:4px;align-content:start}
-    .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s;aspect-ratio:1/1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+    .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s;aspect-ratio:1/1;display:flex;flex-direction:column;overflow:hidden;min-height:0;align-self:start}
     .prod-card:active{transform:scale(.97)}
     .prod-card-name{font-size:12px;font-weight:700;color:var(--text,#0A0A0E);margin-bottom:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .prod-card-var{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
