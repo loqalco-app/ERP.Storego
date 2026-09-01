@@ -21,11 +21,32 @@ export default async function DashboardPage() {
     { count: totalProducts },
     { count: totalCustomers },
     { count: totalVariants },
+    { count: totalOrders },
   ] = await Promise.all([
     supabase.from('products').select('*', { count: 'exact', head: true }).eq('organization_id', orgId).eq('status', 'active'),
     supabase.from('customers').select('*', { count: 'exact', head: true }).eq('organization_id', orgId).eq('status', 'active'),
     supabase.from('product_variants').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
+    supabase.from('orders').select('*', { count: 'exact', head: true }).eq('organization_id', orgId),
   ])
+
+  // Ventas del mes
+  const startOfMonth = new Date(); startOfMonth.setDate(1); startOfMonth.setHours(0,0,0,0)
+  const { data: monthOrders } = await supabase
+    .from('orders')
+    .select('total')
+    .eq('organization_id', orgId)
+    .gte('created_at', startOfMonth.toISOString())
+    .neq('status', 'cancelado')
+
+  const monthRevenue = (monthOrders ?? []).reduce((s, o) => s + Number(o.total), 0)
+
+  // Órdenes recientes
+  const { data: recentOrders } = await supabase
+    .from('orders')
+    .select('id, folio, total, status, created_at, customers(full_name)')
+    .eq('organization_id', orgId)
+    .order('created_at', { ascending: false })
+    .limit(5)
 
   // Clientes recientes
   const { data: recentCustomers } = await supabase
@@ -43,7 +64,10 @@ export default async function DashboardPage() {
         products: totalProducts ?? 0,
         customers: totalCustomers ?? 0,
         variants: totalVariants ?? 0,
+        orders: totalOrders ?? 0,
+        monthRevenue,
       }}
+      recentOrders={(recentOrders ?? []) as any[]}
       recentCustomers={recentCustomers ?? []}
     />
   )
