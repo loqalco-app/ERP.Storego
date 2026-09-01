@@ -19,6 +19,14 @@ type CartItem = {
 
 type PaymentEntry = { method: 'efectivo' | 'tarjeta' | 'transferencia' | 'otro'; amount: string }
 
+type ParkedSale = {
+  id: string
+  savedAt: string
+  customer: Customer | null
+  cart: CartItem[]
+  total: number
+}
+
 const METHODS = [
   { value: 'efectivo',      label: 'Efectivo' },
   { value: 'tarjeta',       label: 'Tarjeta' },
@@ -117,6 +125,63 @@ export default function POSClient({
     document.addEventListener('mousedown', handle)
     return () => document.removeEventListener('mousedown', handle)
   }, [])
+
+  // Parked sales
+  const PARK_KEY = `pos_parked_${orgId}`
+  const [parkedSales, setParkedSales] = useState<ParkedSale[]>([])
+  const [showParked, setShowParked] = useState(false)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PARK_KEY)
+      if (stored) setParkedSales(JSON.parse(stored))
+    } catch {}
+  }, [PARK_KEY])
+
+  function saveParkedState(sales: ParkedSale[]) {
+    setParkedSales(sales)
+    try { localStorage.setItem(PARK_KEY, JSON.stringify(sales)) } catch {}
+  }
+
+  function parkCurrentCart() {
+    if (cart.length === 0) return
+    const sale: ParkedSale = {
+      id: crypto.randomUUID(),
+      savedAt: new Date().toISOString(),
+      customer,
+      cart,
+      total: cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
+    }
+    saveParkedState([...parkedSales, sale])
+    setCart([]); setCustomer(null); setCustSearch('')
+    setShowCartSheet(false)
+  }
+
+  function restoreParkedSale(id: string) {
+    const sale = parkedSales.find(s => s.id === id)
+    if (!sale) return
+    // If there's a current cart, park it first
+    if (cart.length > 0) {
+      const current: ParkedSale = {
+        id: crypto.randomUUID(),
+        savedAt: new Date().toISOString(),
+        customer,
+        cart,
+        total: cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
+      }
+      saveParkedState([...parkedSales.filter(s => s.id !== id), current])
+    } else {
+      saveParkedState(parkedSales.filter(s => s.id !== id))
+    }
+    setCart(sale.cart)
+    setCustomer(sale.customer)
+    setCustSearch('')
+    setShowParked(false)
+  }
+
+  function deleteParkedSale(id: string) {
+    saveParkedState(parkedSales.filter(s => s.id !== id))
+  }
 
   // Result
   const [saving, setSaving] = useState(false)
@@ -298,6 +363,7 @@ export default function POSClient({
     setPayments([{ method:'efectivo', amount:'' }]); setIsApartado(false)
     setShipType('pickup'); setShipAddr({ line1:'', line2:'', city:'', state:'', zip:'' })
     setSkipAddr(false); setSavedFolio(''); setShowCartSheet(false); setSheetState('peek')
+    // Keep parked sales — they survive across completed transactions
   }
 
   if (savedFolio) return (
@@ -450,6 +516,26 @@ export default function POSClient({
         .new-cust-btns{display:flex;gap:6px;margin-top:2px}
         .btn-create{flex:1;padding:8px;border-radius:12px;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
         .btn-cancel-sm{padding:8px 14px;border-radius:12px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.5)}
+        /* PARKED SALES */
+        .park-badge{position:relative;display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:50px;border:1.5px solid rgba(217,119,6,0.30);background:rgba(217,119,6,0.08);font-size:11px;font-weight:800;color:#92400E;cursor:pointer;font-family:inherit;transition:all .15s}
+        .park-badge:hover{background:rgba(217,119,6,0.15)}
+        .park-count{width:16px;height:16px;border-radius:50%;background:#D97706;color:white;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .park-btn{padding:5px 12px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55);display:flex;align-items:center;gap:5px;transition:background .15s}
+        .park-btn:hover{background:rgba(0,0,0,0.05)}
+        .parked-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:800;display:flex;align-items:flex-end;justify-content:center}
+        @media(min-width:640px){.parked-overlay{align-items:center}}
+        .parked-sheet{background:var(--bg,#ECEEF2);border-radius:28px 28px 0 0;padding:24px 20px max(env(safe-area-inset-bottom,0px),24px);width:100%;max-width:480px;max-height:80dvh;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+        @media(min-width:640px){.parked-sheet{border-radius:28px}}
+        .parked-title{font-size:17px;font-weight:800;color:var(--text,#0A0A0E);display:flex;align-items:center;justify-content:space-between}
+        .parked-item{background:rgba(0,0,0,0.03);border:1.5px solid rgba(0,0,0,0.07);border-radius:18px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+        .parked-item:hover{border-color:rgba(37,99,235,0.3);background:rgba(37,99,235,0.04)}
+        .parked-info{flex:1;min-width:0}
+        .parked-cust{font-size:14px;font-weight:700;color:var(--text,#0A0A0E);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .parked-meta{font-size:11px;color:rgba(10,10,14,0.45);margin-top:2px}
+        .parked-total{font-size:16px;font-weight:800;color:#1D4ED8;white-space:nowrap;flex-shrink:0}
+        .parked-del{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.25);padding:6px;line-height:1;flex-shrink:0}
+        .parked-del:hover{color:#DC2626}
+        .parked-empty{text-align:center;color:rgba(10,10,14,0.35);font-size:13px;font-weight:600;padding:24px 0}
         /* Success */
         .success-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;background:var(--bg,#ECEEF2);padding:24px;text-align:center}
         .success-icon{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#059669,#10B981);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 8px 24px rgba(5,150,105,0.30)}
@@ -574,7 +660,21 @@ export default function POSClient({
           <div className="pos-right">
             <div className="cart-header">
               <span>Carrito</span>
-              {cart.length > 0 && <button className="btn-sm" style={{color:'#DC2626',borderColor:'rgba(220,38,38,0.2)'}} onClick={() => setCart([])}>Vaciar</button>}
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                {parkedSales.length > 0 && (
+                  <button className="park-badge" onClick={() => setShowParked(true)}>
+                    <div className="park-count">{parkedSales.length}</div>
+                    Guardadas
+                  </button>
+                )}
+                {cart.length > 0 && (
+                  <button className="park-btn" onClick={parkCurrentCart} title="Guardar venta y empezar otra">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Guardar
+                  </button>
+                )}
+                {cart.length > 0 && <button className="btn-sm" style={{color:'#DC2626',borderColor:'rgba(220,38,38,0.2)'}} onClick={() => setCart([])}>Vaciar</button>}
+              </div>
             </div>
 
             <div className="cart-body">
@@ -645,7 +745,19 @@ export default function POSClient({
 
             <div className="sheet-hd">
               <span className="sheet-title">Carrito · {cart.length} {cart.length === 1 ? 'art.' : 'arts.'}</span>
-              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                {parkedSales.length > 0 && (
+                  <button className="park-badge" onClick={() => { setShowCartSheet(false); setShowParked(true) }}>
+                    <div className="park-count">{parkedSales.length}</div>
+                    Guardadas
+                  </button>
+                )}
+                {cart.length > 0 && (
+                  <button className="park-btn" onClick={parkCurrentCart} title="Guardar venta y empezar otra">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Guardar
+                  </button>
+                )}
                 {cart.length > 0 && <button className="btn-sm" style={{color:'#DC2626',borderColor:'rgba(220,38,38,0.2)'}} onClick={() => setCart([])}>Vaciar</button>}
                 <button className="sheet-close" onClick={() => setShowCartSheet(false)}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -721,6 +833,64 @@ export default function POSClient({
                 {!customer ? 'Elige un cliente para continuar' : 'Ir al pago →'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PARKED SALES — floating badge when cart is empty */}
+      {cart.length === 0 && parkedSales.length > 0 && (
+        <button
+          className="cart-fab"
+          style={{background:'linear-gradient(145deg,#D97706,#B45309)',boxShadow:'0 8px 24px rgba(180,83,9,0.38)'}}
+          onClick={() => setShowParked(true)}
+        >
+          <span className="cart-fab-count">{parkedSales.length} guardada{parkedSales.length > 1 ? 's' : ''}</span>
+          <span className="cart-fab-total" style={{fontSize:14}}>Ventas en espera</span>
+          <span className="cart-fab-cta">Retomar →</span>
+        </button>
+      )}
+
+      {/* PARKED SALES MODAL */}
+      {showParked && (
+        <div className="parked-overlay" onClick={e => { if (e.target === e.currentTarget) setShowParked(false) }}>
+          <div className="parked-sheet">
+            <div className="parked-title">
+              Ventas guardadas
+              <button className="sheet-close" onClick={() => setShowParked(false)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            {parkedSales.length === 0 ? (
+              <div className="parked-empty">No hay ventas guardadas</div>
+            ) : parkedSales.slice().reverse().map(sale => {
+              const t = new Date(sale.savedAt)
+              const timeStr = t.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+              const itemCount = sale.cart.reduce((s, i) => s + i.quantity, 0)
+              return (
+                <div key={sale.id} className="parked-item" onClick={() => restoreParkedSale(sale.id)}>
+                  <div style={{width:36,height:36,borderRadius:12,background:'linear-gradient(135deg,#D97706,#B45309)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  </div>
+                  <div className="parked-info">
+                    <div className="parked-cust">{sale.customer?.full_name ?? 'Sin cliente'}</div>
+                    <div className="parked-meta">{itemCount} {itemCount === 1 ? 'artículo' : 'artículos'} · Guardada {timeStr}</div>
+                  </div>
+                  <div className="parked-total">{fmt(sale.total)}</div>
+                  <button
+                    className="parked-del"
+                    onClick={e => { e.stopPropagation(); deleteParkedSale(sale.id) }}
+                    title="Eliminar venta guardada"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                  </button>
+                </div>
+              )
+            })}
+            {parkedSales.length > 0 && (
+              <p style={{fontSize:11,color:'rgba(10,10,14,0.35)',textAlign:'center',fontWeight:600,marginTop:4}}>
+                Toca una venta para retomar · Las ventas se guardan en este dispositivo
+              </p>
+            )}
           </div>
         </div>
       )}
