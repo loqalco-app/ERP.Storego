@@ -48,7 +48,6 @@ export default function CustomersClient({ customers: initCustomers }: Props) {
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{display:flex;align-items:center;flex-wrap:nowrap;justify-content:space-between}
         .new-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 4px 14px rgba(29,78,216,0.30);transition:opacity 0.15s,transform 0.12s;flex-shrink:0}
         .new-btn:hover{opacity:.90}
         .new-btn:active{transform:scale(0.90)}
@@ -124,11 +123,13 @@ export default function CustomersClient({ customers: initCustomers }: Props) {
       <Sidebar active="customers" />
 
       <div className="topbar">
-        <div className="page-title">Clientes</div>
-        <Link href="/customers/new" className="new-btn" aria-label="Agregar cliente">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span className="new-btn-lbl">+ Cliente</span>
-        </Link>
+        <div className="topbar-row">
+          <div className="page-title">Clientes</div>
+          <Link href="/customers/new" className="new-btn" aria-label="Agregar cliente">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span className="new-btn-lbl">+ Cliente</span>
+          </Link>
+        </div>
       </div>
 
       <div className="content">

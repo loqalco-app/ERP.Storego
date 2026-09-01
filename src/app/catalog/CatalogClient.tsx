@@ -150,7 +150,6 @@ export default function CatalogClient({ products: initProducts, categories: init
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{display:flex;align-items:center;flex-wrap:nowrap;justify-content:space-between}
         /* Botón agregar — visible siempre, compacto */
         .new-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 4px 14px rgba(29,78,216,0.30);transition:opacity 0.15s,transform 0.12s;flex-shrink:0}
         .new-btn:hover{opacity:.90}
@@ -162,10 +161,6 @@ export default function CatalogClient({ products: initProducts, categories: init
         }
         .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
         @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px)}}
-
-        .tabs{display:flex;gap:8px;margin-bottom:20px}
-        .tab{flex:1;padding:11px 8px;border-radius:50px;border:2px solid rgba(0,0,0,0.08);background:#ECEEF2;font-size:13px;font-weight:700;color:rgba(26,26,32,0.45);cursor:pointer;font-family:inherit;transition:all 0.18s;box-shadow:3px 3px 8px rgba(0,0,0,0.07),-2px -2px 6px rgba(255,255,255,0.90)}
-        .tab.on{background:linear-gradient(135deg,#1D4ED8,#2563EB);color:white;border-color:transparent;box-shadow:0 6px 18px rgba(29,78,216,0.32)}
 
         .search-wrap{margin-bottom:14px;position:relative}
         .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none}
@@ -304,20 +299,22 @@ export default function CatalogClient({ products: initProducts, categories: init
       <Sidebar active="catalog" />
 
       <div className="topbar">
-        <div className="page-title">Inventario</div>
-        {tab === 'products'   && <Link href="/catalog/new" className="new-btn" aria-label="Agregar producto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Producto</span></Link>}
-        {tab === 'categories' && <button className="new-btn" onClick={() => openCat()} aria-label="Agregar categoría"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Categoría</span></button>}
-        {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()} aria-label="Agregar marca"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Marca</span></button>}
+        <div className="topbar-row">
+          <div className="page-title">Inventario</div>
+          {tab === 'products'   && <Link href="/catalog/new" className="new-btn" aria-label="Agregar producto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Producto</span></Link>}
+          {tab === 'categories' && <button className="new-btn" onClick={() => openCat()} aria-label="Agregar categoría"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Categoría</span></button>}
+          {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()} aria-label="Agregar marca"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Marca</span></button>}
+        </div>
+        <div className="topbar-tabs">
+          {(['products','categories','brands'] as const).map(t => (
+            <button key={t} className={`topbar-tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>
+              {t === 'products' ? 'Productos' : t === 'categories' ? 'Categorías' : 'Marcas'}
+            </button>
+          ))}
+        </div>
       </div>
 
           <div className="content">
-            <div className="tabs">
-              {(['products','categories','brands'] as const).map(t => (
-                <button key={t} className={`tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>
-                  {t === 'products' ? 'Productos' : t === 'categories' ? 'Categorías' : 'Marcas'}
-                </button>
-              ))}
-            </div>
 
             {/* ── PRODUCTOS ── */}
             {tab === 'products' && (

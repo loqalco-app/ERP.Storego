@@ -147,21 +147,10 @@ export default function FinanzasClient({
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-        .fin-topbar{position:sticky;top:0;z-index:100;background:rgba(236,238,242,0.82);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);padding:max(env(safe-area-inset-top,0px),20px) 20px 0;display:flex;flex-direction:column;gap:0}
-        @media(min-width:768px){.fin-topbar{top:60px;padding:16px 40px 0}}
-        .fin-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px}
-        @media(min-width:768px){.fin-title{font-size:26px}}
+        .fin-date{font-size:11px;font-weight:700;color:rgba(10,10,14,0.40)}
         .fin-content{padding:16px 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}
         @media(min-width:768px){.fin-content{padding:16px 40px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}}
 
-        .periodo-row{display:flex;gap:8px;margin-bottom:0;overflow-x:auto;scrollbar-width:none;padding-bottom:12px}
-        .periodo-row::-webkit-scrollbar{display:none}
-        .periodo-chip{padding:7px 16px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55);white-space:nowrap;transition:all .15s;flex-shrink:0}
-        .periodo-chip.on{border-color:#2563EB;background:rgba(37,99,235,0.08);color:#1D4ED8}
-        .fin-tabs-row{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-top:1px solid rgba(0,0,0,0.06)}
-        .fin-tabs-row::-webkit-scrollbar{display:none}
-        .fin-tab{padding:10px 20px;border:none;border-bottom:2.5px solid transparent;background:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.42);white-space:nowrap;flex-shrink:0;transition:all .15s}
-        .fin-tab.on{color:#1D4ED8;border-bottom-color:#1D4ED8}
 
         .custom-range{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
         .custom-input{padding:8px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;background:rgba(0,0,0,0.03);font-size:13px;font-family:inherit;color:#0A0A0E;outline:none;flex:1;min-width:120px}
@@ -243,23 +232,19 @@ export default function FinanzasClient({
 
       <Sidebar active="finanzas" />
 
-      <div className="fin-topbar">
-        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
-          <div className="fin-title">Finanzas</div>
-          <div style={{marginLeft:'auto',fontSize:11,fontWeight:700,color:'rgba(10,10,14,0.40)'}}>
-            {desde === hasta ? desde : `${desde} → ${hasta}`}
-          </div>
+      <div className="topbar">
+        <div className="topbar-row">
+          <div className="page-title">Finanzas</div>
+          <div className="fin-date">{desde === hasta ? desde : `${desde} → ${hasta}`}</div>
         </div>
-        {/* Selector de periodo */}
-        <div className="periodo-row">
+        <div className="topbar-chips">
           {PERIODOS.map(p => (
-            <button key={p.key} className={`periodo-chip${periodo===p.key?' on':''}`} onClick={() => changePeriodo(p.key)}>{p.label}</button>
+            <button key={p.key} className={`topbar-chip${periodo===p.key?' on':''}`} onClick={() => changePeriodo(p.key)}>{p.label}</button>
           ))}
         </div>
-        {/* Tabs */}
-        <div className="fin-tabs-row">
+        <div className="topbar-tabs">
           {([['resumen','Resumen'],['productos','Productos'],['gastos','Gastos'],['cobros','Cobros']] as const).map(([k,l]) => (
-            <button key={k} className={`fin-tab${tab===k?' on':''}`} onClick={() => setTab(k)}>{l}</button>
+            <button key={k} className={`topbar-tab${tab===k?' on':''}`} onClick={() => setTab(k)}>{l}</button>
           ))}
         </div>
       </div>

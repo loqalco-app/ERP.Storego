@@ -34,7 +34,6 @@ export default function DashboardClient({ userName, orgName, stats, recentOrders
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{display:block}
         .greeting-txt{font-size:var(--text-sm,13px);color:var(--text-3,rgba(10,10,14,0.45));font-weight:500;margin-bottom:2px}
         .username-txt{font-size:28px;font-weight:800;color:var(--text-1,#0A0A0E);letter-spacing:-0.8px;line-height:1.1}
         @media(min-width:768px){.username-txt{font-size:34px}}
@@ -71,8 +70,10 @@ export default function DashboardClient({ userName, orgName, stats, recentOrders
       <Sidebar active="dashboard" />
 
       <div className="topbar">
-        <div className="greeting-txt">{greeting}</div>
-        <div className="username-txt">{userName.split(' ')[0]}</div>
+        <div className="topbar-row" style={{flexDirection:'column',alignItems:'flex-start',gap:2}}>
+          <div className="greeting-txt">{greeting}</div>
+          <div className="username-txt">{userName.split(' ')[0]}</div>
+        </div>
       </div>
 
       <div className="content">

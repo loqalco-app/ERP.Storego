@@ -113,17 +113,9 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-        .ord-topbar{position:sticky;top:0;z-index:100;background:rgba(236,238,242,0.82);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);padding:max(env(safe-area-inset-top,0px),20px) 20px 16px;display:flex;align-items:center;gap:12px}
-        @media(min-width:768px){.ord-topbar{padding:max(env(safe-area-inset-top,0px),20px) 40px 20px}}
-        .ord-page-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px}
-        @media(min-width:768px){.ord-page-title{font-size:26px}}
-        .ord-count{margin-left:auto;font-size:12px;font-weight:700;color:rgba(10,10,14,0.40)}
+        .ord-count{font-size:12px;font-weight:700;color:rgba(10,10,14,0.40)}
         .ord-content{padding:16px 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}
         @media(min-width:768px){.ord-content{padding:16px 40px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}}
-        .filter-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;scrollbar-width:none}
-        .filter-row::-webkit-scrollbar{display:none}
-        .filter-chip{padding:7px 16px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55);white-space:nowrap;transition:all .15s;flex-shrink:0}
-        .filter-chip.active{border-color:#2563EB;background:rgba(37,99,235,0.08);color:#1D4ED8}
         .ord-list{background:var(--bg,#ECEEF2);border-radius:24px;overflow:hidden;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9)}
         .ord-row{display:flex;align-items:center;gap:12px;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.04);cursor:pointer;transition:background .12s}
         .ord-row:first-child{border-top:none}
@@ -174,19 +166,21 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
 
       <Sidebar active="orders" />
 
-      <div className="ord-topbar">
-        <div className="ord-page-title">Órdenes</div>
-        <div className="ord-count">{filtered.length} {filtered.length === 1 ? 'orden' : 'órdenes'}</div>
-      </div>
-
-      <div className="ord-content">
-        <div className="filter-row">
+      <div className="topbar">
+        <div className="topbar-row">
+          <div className="page-title">Órdenes</div>
+          <div className="ord-count">{filtered.length} {filtered.length === 1 ? 'orden' : 'órdenes'}</div>
+        </div>
+        <div className="topbar-chips">
           {['todos','pagado','apartado','en_preparacion','enviado','entregado','cancelado'].map(s => (
-            <button key={s} className={`filter-chip ${statusFilter===s?'active':''}`} onClick={() => setStatusFilter(s)}>
+            <button key={s} className={`topbar-chip${statusFilter===s?' on':''}`} onClick={() => setStatusFilter(s)}>
               {s === 'todos' ? 'Todos' : STATUS[s]?.label ?? s}
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="ord-content">
 
         <div className="ord-list">
           {filtered.length === 0 ? (

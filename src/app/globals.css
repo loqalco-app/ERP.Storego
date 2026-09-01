@@ -34,38 +34,44 @@ input, select, textarea {
 
 /*
  * ── Global .topbar ───────────────────────────────────────────
- * Zona roja: sticky al tope + blur frosted-glass como iOS.
- * El contenido scroll pasa por debajo con el blur visible.
- * padding-right reserva espacio para el chip fixed top-right.
+ * Header sticky universal: frosted-glass + flex-column.
+ * Sub-elementos: .topbar-row (título+botón), .topbar-chips (filtros pill),
+ * .topbar-tabs (tabs con underline activo).
  * ─────────────────────────────────────────────────────────────
  */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 200;
-  /* frosted-glass: fondo semitransparente + blur */
-  background: rgba(236, 238, 242, 0.82);
+  background: rgba(236, 238, 242, 0.92);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   backdrop-filter: blur(20px) saturate(160%);
-
+  border-bottom: 1px solid rgba(0,0,0,0.07);
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-top: max(env(safe-area-inset-top, 0px), 20px);
-  padding-left: 20px;
-  padding-bottom: 16px;
-  padding-right: 20px;
+  flex-direction: column;
+  padding-top: max(env(safe-area-inset-top, 0px), 16px);
+}
+@media (min-width: 768px) {
+  .topbar { top: 60px; padding-top: 12px; }
 }
 
-@media (min-width: 768px) {
-  .topbar {
-    top: 60px; /* debajo del desk-header fijo */
-    padding-top: 16px;
-    padding-left: 40px;
-    padding-bottom: 16px;
-    padding-right: 40px;
-  }
-}
+/* Fila horizontal: título flex-1 + botón de acción a la derecha */
+.topbar-row { display: flex; align-items: center; gap: 12px; padding: 0 20px 14px; }
+@media (min-width: 768px) { .topbar-row { padding: 4px 40px 14px; } }
+
+/* Tabs con underline */
+.topbar-tabs { display: flex; overflow-x: auto; scrollbar-width: none; border-top: 1px solid rgba(0,0,0,0.06); padding: 0 20px; }
+.topbar-tabs::-webkit-scrollbar { display: none; }
+@media (min-width: 768px) { .topbar-tabs { padding: 0 40px; } }
+.topbar-tab { padding: 10px 16px; border: none; border-bottom: 2.5px solid transparent; background: none; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; color: rgba(10,10,14,0.42); white-space: nowrap; flex-shrink: 0; transition: color .15s; }
+.topbar-tab.on { color: #1D4ED8; border-bottom-color: #1D4ED8; }
+
+/* Chips pill (filtros de estado, periodos, etc.) */
+.topbar-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 0 20px 12px; }
+.topbar-chips::-webkit-scrollbar { display: none; }
+@media (min-width: 768px) { .topbar-chips { padding: 0 40px 12px; } }
+.topbar-chip { padding: 7px 16px; border-radius: 50px; border: 1.5px solid rgba(0,0,0,0.10); background: none; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; color: rgba(10,10,14,0.55); white-space: nowrap; flex-shrink: 0; transition: all .15s; }
+.topbar-chip.on { border-color: #2563EB; background: rgba(37,99,235,0.08); color: #1D4ED8; }
 
 /*
  * ── Global .content ──────────────────────────────────────────
@@ -104,6 +110,8 @@ input, select, textarea {
   color: var(--text-1, #0A0A0E);
   letter-spacing: -0.4px;
   line-height: 1.1;
+  flex: 1;
+  min-width: 0;
 }
 @media (min-width: 768px) {
   .page-title { font-size: var(--text-xl, 26px); }
