@@ -111,14 +111,14 @@ export default function Sidebar({ active }: Props) {
           pointer-events:none;z-index:198
         }
 
-        /* ── Nav bar — contiene pill + chip en la misma fila ── */
+        /* ── Nav bar ── */
         .nav-bar{
           position:fixed;bottom:0;left:0;right:0;z-index:199;
-          display:flex;align-items:center;justify-content:center;gap:8px;
+          display:flex;align-items:center;justify-content:center;
           padding:0 12px max(env(safe-area-inset-bottom,0px),8px);
           pointer-events:none
         }
-        @media(min-width:480px){.nav-bar{padding:0 20px max(env(safe-area-inset-bottom,0px),16px);gap:10px}}
+        @media(min-width:480px){.nav-bar{padding:0 20px max(env(safe-area-inset-bottom,0px),16px)}}
 
         /* ── Floating pill ── */
         .nav-pill{
@@ -161,12 +161,14 @@ export default function Sidebar({ active }: Props) {
         @media(max-width:379px){.nav-lbl{display:none}}
         @media(min-width:480px){.nav-lbl{font-size:10px}}
 
-        /* ── Profile chip wrap — inline en nav-bar ── */
+        /* ── Profile chip wrap — pegado a la derecha del nav-bar ── */
         .nav-profile-wrap{
-          position:relative;
-          flex-shrink:0;
+          position:absolute;
+          right:12px;
+          bottom:max(env(safe-area-inset-bottom,0px),8px);
           pointer-events:all
         }
+        @media(min-width:480px){.nav-profile-wrap{right:20px;bottom:max(env(safe-area-inset-bottom,0px),16px)}}
 
         /* ── Profile chip — mobile: solo avatar ── */
         .profile-chip{
