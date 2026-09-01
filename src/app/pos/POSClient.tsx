@@ -241,10 +241,8 @@ export default function POSClient({
     .home-title{font-size:30px;font-weight:900;color:#0A0A0E;letter-spacing:-.8px;margin-bottom:4px;line-height:1.1}
     @media(min-width:768px){.home-title{font-size:38px}}
     .home-sub{font-size:14px;color:rgba(10,10,14,0.45);font-weight:500;margin-bottom:40px}
-    .home-cards{display:flex;flex-direction:column;gap:16px;flex:1}
-    @media(min-width:480px){.home-cards{flex-direction:row}}
-
-    .hcard{flex:1;border-radius:28px;padding:28px 24px;cursor:pointer;border:none;font-family:inherit;text-align:left;display:flex;flex-direction:column;gap:0;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
+    .home-cards{display:flex;flex-direction:row;gap:16px}
+    .hcard{flex:1;aspect-ratio:1/1;border-radius:28px;padding:28px 24px;cursor:pointer;border:none;font-family:inherit;text-align:left;display:flex;flex-direction:column;gap:0;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
     .hcard:active{transform:scale(.98)}
     .hcard-new{background:linear-gradient(145deg,#1D4ED8,#2563EB);box-shadow:0 12px 40px rgba(29,78,216,0.35)}
     .hcard-parked{background:var(--bg,#ECEEF2);box-shadow:8px 8px 20px rgba(0,0,0,0.09),-6px -6px 16px rgba(255,255,255,0.95);border:1.5px solid rgba(0,0,0,0.06)}
