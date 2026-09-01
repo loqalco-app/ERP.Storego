@@ -300,11 +300,6 @@ export default function FinanzasClient({
             </div>
           )}
 
-          {!hasCMV && (
-            <div className="no-cmv">
-              Los costos de adquisición son $0. Para ver la utilidad real, actualiza el costo de cada producto en Inventario y ejecuta la migración SQL en Supabase.
-            </div>
-          )}
 
           <div className="cascade-divider" />
 
