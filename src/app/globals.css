@@ -62,8 +62,12 @@ input, select, textarea {
     padding-top: max(env(safe-area-inset-top, 0px), 20px);
     padding-left: 40px;
     padding-bottom: 20px;
-    /* 196px = chip width (~160px) + right offset (24px) + gap (12px) */
-    padding-right: 196px;
+    padding-right: 40px;
+  }
+  /* El chip fixed (right:24px, ~160px ancho) termina ~184px del borde.
+     margin-right empuja el botón hacia la izquierda para no solaparse. */
+  .topbar .new-btn {
+    margin-right: 152px;
   }
 }
 
