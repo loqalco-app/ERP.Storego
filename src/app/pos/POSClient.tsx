@@ -233,7 +233,7 @@ export default function POSClient({
 
     /* ── HOME ── */
     .home-wrap{display:flex;flex-direction:column;min-height:100dvh;padding:max(env(safe-area-inset-top,0px),32px) 24px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
-    @media(min-width:768px){.home-wrap{padding-top:max(env(safe-area-inset-top,0px),48px);padding-left:48px;padding-right:48px;max-width:640px}}
+    @media(min-width:768px){.home-wrap{padding-top:max(env(safe-area-inset-top,0px),64px);max-width:600px;margin:0 auto;padding-left:0;padding-right:0}}
     .home-greeting{font-size:13px;font-weight:700;color:rgba(10,10,14,0.40);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
     .home-title{font-size:30px;font-weight:900;color:#0A0A0E;letter-spacing:-.8px;margin-bottom:4px;line-height:1.1}
     @media(min-width:768px){.home-title{font-size:38px}}
@@ -267,7 +267,7 @@ export default function POSClient({
 
     /* ── PARKED VIEW ── */
     .parked-view{min-height:100dvh;padding:max(env(safe-area-inset-top,0px),20px) 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
-    @media(min-width:768px){.parked-view{padding:max(env(safe-area-inset-top,0px),28px) 40px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}}
+    @media(min-width:768px){.parked-view{max-width:960px;margin:0 auto;padding:max(env(safe-area-inset-top,0px),28px) 0 calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}}
     .pv-topbar{display:flex;align-items:center;gap:14px;margin-bottom:28px}
     .pv-back{width:38px;height:38px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pv-back:hover{background:rgba(0,0,0,0.10)}
@@ -298,17 +298,27 @@ export default function POSClient({
     .pk-empty-sub{font-size:13px;color:rgba(10,10,14,0.30);font-weight:500}
 
     /* ── SELLING ── */
+    /* ── SELLING — desktop centrado y compacto ── */
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--bg,#ECEEF2);padding-top:env(safe-area-inset-top,0px)}
     .pos-topbar{display:flex;align-items:center;gap:10px;padding:12px 16px 8px;flex-shrink:0;position:relative;z-index:50}
-    @media(min-width:768px){.pos-topbar{padding:16px 20px 10px}}
+    @media(min-width:768px){.pos-topbar{padding:16px 0 10px;max-width:960px;margin:0 auto;width:100%;padding-left:0;padding-right:0}}
     .pos-back-btn{width:34px;height:34px;border-radius:10px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pos-topbar-title{font-size:15px;font-weight:800;color:#0A0A0E}
     .pos-body{display:flex;flex:1;overflow:hidden;min-height:0}
+    /* mobile: stack vertical */
     .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 10px 12px 12px}
     @media(max-width:767px){.pos-left{padding-bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 96px)}}
-    .pos-right{display:none}
-    @media(min-width:768px){.pos-right{width:300px;display:flex;flex-direction:column;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);flex-shrink:0}}
-    @media(min-width:1024px){.pos-right{width:320px}}
+    /* desktop: centrado en max-width con dos columnas */
+    @media(min-width:768px){
+      .pos-body{justify-content:center}
+      .pos-body-inner{display:flex;width:100%;max-width:960px;height:100%;margin:0 auto}
+      .pos-left{padding:0 16px 16px 0}
+      .pos-right{width:280px;flex-shrink:0;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);display:flex;flex-direction:column}
+    }
+    @media(min-width:1280px){
+      .pos-body-inner{max-width:1100px}
+      .pos-right{width:300px}
+    }
     .cart-fab{display:none}
     @media(max-width:767px){
       .cart-fab{display:flex;align-items:center;gap:10px;position:fixed;left:16px;right:16px;bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px);background:linear-gradient(145deg,#1D4ED8,#2563EB);border-radius:20px;padding:14px 18px;box-shadow:0 8px 24px rgba(29,78,216,0.38);cursor:pointer;z-index:200;border:none;font-family:inherit}
@@ -570,6 +580,7 @@ export default function POSClient({
         </div>
 
         <div className="pos-body">
+          <div className="pos-body-inner">
           {/* LEFT: Customer + Products */}
           <div className="pos-left">
             <div ref={custRef}>
@@ -704,6 +715,7 @@ export default function POSClient({
               </div>
             )}
           </div>
+          </div>{/* /pos-body-inner */}
         </div>
       </div>
 
