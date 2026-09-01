@@ -37,6 +37,10 @@ export default function SetupPasswordPage() {
     const supabase = createClient()
     const { error: err } = await supabase.auth.updateUser({ password: newPass })
     if (err) { setSaving(false); setError(err.message); return }
+    // Mark invitation as accepted
+    await supabase.from('organization_invitations')
+      .update({ status: 'accepted' })
+      .eq('email', userEmail.toLowerCase())
     router.replace('/dashboard')
   }
 

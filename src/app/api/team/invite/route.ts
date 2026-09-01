@@ -76,7 +76,16 @@ export async function POST(request: Request) {
   })
 
   if (linkErr || !linkData?.properties?.action_link) {
-    return NextResponse.json({ error: linkErr?.message ?? 'No se pudo generar el enlace.' }, { status: 400 })
+    const msg = linkErr?.message ?? ''
+    if (regenerate && msg.toLowerCase().includes('already been registered')) {
+      // User already accepted the invite — mark invitation as accepted and return friendly message
+      await supabase.from('organization_invitations')
+        .update({ status: 'accepted' })
+        .eq('organization_id', orgId)
+        .eq('email', email.toLowerCase())
+      return NextResponse.json({ error: 'Este usuario ya creó su cuenta. La invitación se marcó como aceptada.' }, { status: 409 })
+    }
+    return NextResponse.json({ error: msg || 'No se pudo generar el enlace.' }, { status: 400 })
   }
 
   // Solo insertar registro nuevo si no es regeneración
