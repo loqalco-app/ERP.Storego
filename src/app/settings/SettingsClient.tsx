@@ -146,14 +146,17 @@ export default function SettingsClient({
 
   async function cancelInvitation(invId: string) {
     setUpdatingId(invId)
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('organization_invitations')
-      .update({ status: 'cancelled' })
-      .eq('id', invId)
-      .eq('organization_id', orgId)
-    if (!error) {
+    // Intentar cancelar vía API (usa adminClient server-side, bypasea RLS)
+    const res = await fetch('/api/team/invite', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invitationId: invId, orgId }),
+    })
+    if (res.ok) {
       setInvList(prev => prev.filter(i => i.id !== invId))
+    } else {
+      const body = await res.json().catch(() => ({}))
+      alert('Error al cancelar: ' + (body.error ?? res.status))
     }
     setUpdatingId(null)
   }

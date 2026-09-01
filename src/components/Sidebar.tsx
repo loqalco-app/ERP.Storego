@@ -114,14 +114,17 @@ export default function Sidebar({ active }: Props) {
 
         .profile-chip{
           display:flex;align-items:center;gap:8px;
-          background:var(--bg,#ECEEF2) !important;
+          background:var(--bg,#ECEEF2);
+          border:none;
           border-radius:var(--r-pill,50px);
           padding:5px 12px 5px 5px;
           box-shadow:var(--shadow-sm,4px 4px 12px rgba(0,0,0,0.07),-3px -3px 8px rgba(255,255,255,0.92));
           text-decoration:none;
           -webkit-tap-highlight-color:transparent;
           transition:opacity 0.12s;
-          outline:none
+          outline:none;
+          cursor:pointer;
+          font-family:inherit
         }
         .profile-chip:active{opacity:0.75}
 
@@ -246,7 +249,6 @@ export default function Sidebar({ active }: Props) {
           className="profile-chip"
           aria-label="Menú de perfil"
           onClick={() => setMenuOpen(v => !v)}
-          style={{ background:'none', border:'none', cursor:'pointer', padding:0 }}
         >
           <div className="pc-av">{initials}</div>
           {displayName && (
