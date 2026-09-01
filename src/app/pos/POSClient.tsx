@@ -361,11 +361,11 @@ export default function POSClient({
     .search-input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none;transition:border-color .15s}
     .search-input:focus{border-color:#2563EB}
     .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;overflow-y:auto;flex:1;padding-right:4px;align-content:start}
-    .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s}
+    .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s;aspect-ratio:1;display:flex;flex-direction:column}
     .prod-card:active{transform:scale(.97)}
     .prod-card-name{font-size:12px;font-weight:700;color:var(--text,#0A0A0E);margin-bottom:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .prod-card-var{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .prod-card-footer{display:flex;align-items:center;justify-content:space-between}
+    .prod-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
     .prod-card-price{font-size:13px;font-weight:800;color:#1D4ED8}
     .prod-card-stock{font-size:10px;color:rgba(10,10,14,0.40)}
     .prod-var-sel{width:100%;padding:3px 6px;border-radius:7px;border:1.5px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:11px;font-family:inherit;margin-bottom:6px;outline:none;color:var(--text,#0A0A0E)}
