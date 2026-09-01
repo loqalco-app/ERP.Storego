@@ -104,6 +104,7 @@ export default function POSClient({
   // ── Parked sales ────────────────────────────────────────────────────────────
   const PARK_KEY = `pos_parked_${orgId}`
   const [parkedSales, setParkedSales] = useState<ParkedSale[]>([])
+  const [parkedSearch, setParkedSearch] = useState('')
 
   useEffect(() => {
     try { const s = localStorage.getItem(PARK_KEY); if (s) setParkedSales(JSON.parse(s)) } catch {}
@@ -274,9 +275,18 @@ export default function POSClient({
     .pv-back:hover{background:rgba(0,0,0,0.10)}
     .pv-title{font-size:22px;font-weight:900;color:#0A0A0E;letter-spacing:-.4px}
     .pv-count{font-size:12px;font-weight:700;color:rgba(10,10,14,0.38);margin-left:auto}
-    .pv-grid{display:grid;grid-template-columns:1fr;gap:14px}
-    @media(min-width:640px){.pv-grid{grid-template-columns:repeat(2,1fr)}}
+    .pv-search{width:100%;padding:10px 14px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-family:inherit;color:var(--text,#0A0A0E);outline:none;margin-bottom:16px;transition:border-color .15s}
+    .pv-search:focus{border-color:#2563EB}
+    .pv-grid{display:grid;grid-template-columns:1fr;gap:10px}
+    @media(min-width:640px){.pv-grid{grid-template-columns:repeat(2,1fr);gap:14px}}
     @media(min-width:1024px){.pv-grid{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:639px){
+      .pk-card{padding:14px 16px;border-radius:16px}
+      .pk-card-top{margin-bottom:8px}
+      .pk-avatar{width:36px;height:36px;font-size:14px;border-radius:10px}
+      .pk-items{margin-top:8px!important;padding:8px 10px}
+      .pk-total{font-size:18px}
+    }
 
     .pk-card{background:var(--bg,#ECEEF2);border-radius:22px;padding:20px;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9);cursor:pointer;border:1.5px solid rgba(0,0,0,0.04);transition:border-color .15s,transform .15s;position:relative}
     .pk-card:hover{border-color:rgba(37,99,235,0.25);transform:translateY(-2px)}
@@ -322,6 +332,7 @@ export default function POSClient({
       .pos-body-inner{max-width:1100px}
       .pos-right{width:300px}
     }
+    @media(max-width:767px){.pos-right{display:none}}
     .cart-fab{display:none}
     @media(max-width:767px){
       .cart-fab{display:flex;align-items:center;gap:10px;position:fixed;left:16px;right:16px;bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px);background:linear-gradient(145deg,#1D4ED8,#2563EB);border-radius:20px;padding:14px 18px;box-shadow:0 8px 24px rgba(29,78,216,0.38);cursor:pointer;z-index:200;border:none;font-family:inherit}
@@ -357,14 +368,15 @@ export default function POSClient({
     .cust-opt-sub{font-size:11px;color:rgba(10,10,14,0.45)}
     .cust-selected{display:flex;align-items:center;gap:8px;flex:1}
     .cust-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1D4ED8,#3B82F6);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0}
-    .cust-name{font-size:14px;font-weight:700;color:var(--text,#0A0A0E)}
-    .cust-info{font-size:11px;color:rgba(10,10,14,0.45)}
+    .cust-name{font-size:14px;font-weight:700;color:var(--text,#0A0A0E);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cust-info{font-size:11px;color:rgba(10,10,14,0.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .search-wrap{position:relative;margin-bottom:12px;flex-shrink:0}
     .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(10,10,14,0.35);pointer-events:none}
     .search-input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none;transition:border-color .15s}
     .search-input:focus{border-color:#2563EB}
     .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;overflow-y:auto;flex:1;padding-right:4px;align-content:start}
-    .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s;aspect-ratio:1/1;display:flex;flex-direction:column;overflow:hidden;min-height:0;align-self:start}
+    .prod-card-wrap{aspect-ratio:1/1;overflow:hidden;border-radius:14px;align-self:start;display:flex}
+    .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s;display:flex;flex-direction:column;overflow:hidden;min-height:0;flex:1}
     .prod-card:active{transform:scale(.97)}
     .prod-card-name{font-size:12px;font-weight:700;color:var(--text,#0A0A0E);margin-bottom:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .prod-card-var{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -497,7 +509,7 @@ export default function POSClient({
   if (posView === 'parked') return wrap(
     <div className="parked-view">
       <div className="pv-topbar">
-        <button className="pv-back" onClick={() => setPosView('home')}>
+        <button className="pv-back" onClick={() => { setPosView('home'); setParkedSearch('') }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
         </button>
         <div className="pv-title">Ventas guardadas</div>
@@ -516,8 +528,18 @@ export default function POSClient({
           </button>
         </div>
       ) : (
+        <>
+          <input
+            className="pv-search"
+            placeholder="Buscar por cliente…"
+            value={parkedSearch}
+            onChange={e => setParkedSearch(e.target.value)}
+          />
         <div className="pv-grid">
-          {parkedSales.slice().reverse().map(sale => {
+          {parkedSales.slice().reverse().filter(s =>
+            !parkedSearch.trim() ||
+            (s.customer?.full_name ?? 'Sin cliente').toLowerCase().includes(parkedSearch.toLowerCase())
+          ).map(sale => {
             const t       = new Date(sale.savedAt)
             const timeStr = t.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
             const dateStr = t.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
@@ -555,6 +577,7 @@ export default function POSClient({
             )
           })}
         </div>
+        </>
       )}
     </div>
   )
@@ -593,7 +616,7 @@ export default function POSClient({
                   <div className="cust-row">
                     <div className="cust-selected">
                       <div className="cust-av">{customer.full_name.charAt(0).toUpperCase()}</div>
-                      <div>
+                      <div style={{minWidth:0,overflow:'hidden'}}>
                         <div className="cust-name">{customer.full_name}</div>
                         <div className="cust-info">{customer.phone || customer.email || 'Sin contacto'}</div>
                       </div>
@@ -644,7 +667,7 @@ export default function POSClient({
                 const selVar   = p.variants.find(v => v.id === selVarId) ?? p.variants[0]
                 if (!selVar) return null
                 return (
-                  <div key={p.id} className="prod-card">
+                  <div key={p.id} className="prod-card-wrap"><div className="prod-card">
                     <div className="prod-card-name">{p.name}</div>
                     {p.variants.length > 1 ? (
                       <select className="prod-var-sel" value={selVarId} onChange={e => setSelectedVariants(prev => ({...prev, [p.id]: e.target.value}))} onClick={e => e.stopPropagation()}>
@@ -660,7 +683,7 @@ export default function POSClient({
                       </div>
                       <button style={{width:30,height:30,borderRadius:'50%',border:'none',background:'linear-gradient(145deg,#1D4ED8,#2563EB)',color:'white',cursor:'pointer',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 3px 10px rgba(29,78,216,0.28)',flexShrink:0}} onClick={() => addToCart(p, selVar)}>+</button>
                     </div>
-                  </div>
+                  </div></div>
                 )
               })}
               {filteredProducts.length === 0 && (
@@ -674,6 +697,11 @@ export default function POSClient({
             <div className="cart-header">
               <span>Carrito</span>
               <div style={{display:'flex',gap:6}}>
+                {parkedSales.length > 0 && (
+                  <button className="park-btn-sm" style={{borderColor:'rgba(217,119,6,0.25)',color:'#92400E',background:'rgba(217,119,6,0.07)'}} onClick={() => setPosView('parked')}>
+                    {parkedSales.length} guardada{parkedSales.length > 1 ? 's' : ''}
+                  </button>
+                )}
                 {cart.length > 0 && (
                   <button className="park-btn-sm" onClick={parkCurrentCart}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
