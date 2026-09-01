@@ -36,7 +36,7 @@ const NAV = [
     </svg>,
   },
   {
-    key: 'customers', href: '/customers', label: 'Clientes', desktopOnly: true,
+    key: 'customers', href: '/customers', label: 'Clientes',
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
       <circle cx="9" cy="7" r="4"/>
@@ -181,20 +181,25 @@ export default function Sidebar({ active }: Props) {
           background:var(--bg,#ECEEF2);
           border-radius:var(--r-2xl,28px);padding:7px;
           box-shadow:0 20px 60px rgba(0,0,0,0.14),0 6px 20px rgba(0,0,0,0.09),inset 0 1px 0 rgba(255,255,255,0.80);
-          pointer-events:all;width:100%;max-width:460px
+          pointer-events:all;width:100%;max-width:460px;
+          overflow-x:auto;overflow-y:hidden;
+          scrollbar-width:none;-webkit-overflow-scrolling:touch;
+          scroll-snap-type:x proximity
         }
-        @media(min-width:480px){.nav-pill{width:auto;min-width:360px}}
+        .nav-pill::-webkit-scrollbar{display:none}
+        @media(min-width:768px){.nav-pill{overflow:visible;width:auto}}
 
         /* ── Nav item ── */
         .nav-item{
-          flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-          padding:10px 4px 9px;border-radius:20px;text-decoration:none;
+          flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+          padding:10px 10px 9px;border-radius:20px;text-decoration:none;
           color:#0A0A0E;opacity:0.38;
           font-family:var(--font,'Inter',-apple-system,sans-serif);
           transition:color 0.14s,background 0.14s,opacity 0.14s;
-          cursor:pointer;min-width:0;-webkit-tap-highlight-color:transparent
+          cursor:pointer;min-width:56px;-webkit-tap-highlight-color:transparent;
+          scroll-snap-align:start
         }
-        @media(min-width:480px){.nav-item{padding:10px 12px 9px;min-width:68px}}
+        @media(min-width:480px){.nav-item{padding:10px 14px 9px;min-width:72px}}
         .nav-item.on{
           background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
           color:white;opacity:1;box-shadow:0 6px 18px rgba(29,78,216,0.30)
@@ -212,17 +217,17 @@ export default function Sidebar({ active }: Props) {
         @media(min-width:480px){.nav-lbl{font-size:10px}}
 
         /* ── Avatar en pill (mobile únicamente) ── */
-        .nav-av-wrap{flex:1;display:flex;position:relative}
+        .nav-av-wrap{flex-shrink:0;display:flex;position:relative;scroll-snap-align:end}
         @media(min-width:768px){.nav-av-wrap{display:none}}
         .nav-av-btn{
-          width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-          padding:10px 4px 9px;border-radius:20px;
+          display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+          padding:10px 10px 9px;border-radius:20px;
           border:none;background:none;color:#0A0A0E;opacity:0.38;
-          cursor:pointer;min-width:0;-webkit-tap-highlight-color:transparent;
+          cursor:pointer;min-width:56px;-webkit-tap-highlight-color:transparent;
           font-family:var(--font,'Inter',-apple-system,sans-serif);
           transition:color 0.14s,background 0.14s,opacity 0.14s
         }
-        @media(min-width:480px){.nav-av-btn{padding:10px 12px 9px;min-width:68px}}
+        @media(min-width:480px){.nav-av-btn{padding:10px 14px 9px;min-width:72px}}
         .nav-av-btn:not(.on):active{opacity:0.65;background:rgba(0,0,0,0.05)}
         .nav-av-btn.on{
           background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));

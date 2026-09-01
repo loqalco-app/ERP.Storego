@@ -289,7 +289,7 @@ export default function POSClient({
         .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:12px 10px 12px 12px}
         /* Mobile: space below for nav + floating bar */
         @media(max-width:767px){
-          .pos-left{padding-top:12px;padding-bottom:calc(var(--nav-h,88px) + 80px)}
+          .pos-left{padding-top:12px;padding-bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 96px)}
         }
         /* Desktop */
         @media(min-width:768px){.pos-left{padding-top:64px}}
@@ -302,7 +302,7 @@ export default function POSClient({
         /* FLOATING CART BAR — mobile only */
         .cart-fab{display:none}
         @media(max-width:767px){
-          .cart-fab{display:flex;align-items:center;gap:10px;position:fixed;left:16px;right:16px;bottom:calc(var(--nav-h,88px) + 10px);background:linear-gradient(145deg,#1D4ED8,#2563EB);border-radius:20px;padding:14px 18px;box-shadow:0 8px 24px rgba(29,78,216,0.38);cursor:pointer;z-index:200;border:none;font-family:inherit}
+          .cart-fab{display:flex;align-items:center;gap:10px;position:fixed;left:16px;right:16px;bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px);background:linear-gradient(145deg,#1D4ED8,#2563EB);border-radius:20px;padding:14px 18px;box-shadow:0 8px 24px rgba(29,78,216,0.38);cursor:pointer;z-index:200;border:none;font-family:inherit}
           .cart-fab-count{font-size:12px;font-weight:700;color:rgba(255,255,255,0.75)}
           .cart-fab-total{font-size:16px;font-weight:800;color:white;flex:1}
           .cart-fab-cta{font-size:13px;font-weight:700;color:rgba(255,255,255,0.85);white-space:nowrap}
