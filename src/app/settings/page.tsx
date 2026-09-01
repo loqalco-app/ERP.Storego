@@ -27,7 +27,7 @@ export default async function SettingsPage({
   const orgName = (profile.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'
   const myRole  = (profile as unknown as { role?: string }).role ?? 'owner'
 
-  const [{ data: members }, { data: invitations }] = await Promise.all([
+  const [membersResult, { data: invitations }] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('id, full_name, avatar_url, role, status, created_at, allowed_modules')
@@ -40,6 +40,17 @@ export default async function SettingsPage({
       .eq('status', 'pending')
       .order('created_at', { ascending: false }),
   ])
+
+  // Fallback: if allowed_modules column doesn't exist yet (migration 009 pending)
+  let rawMembers = membersResult.data
+  if (membersResult.error) {
+    const { data: fallback } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, avatar_url, role, status, created_at')
+      .eq('organization_id', orgId)
+      .order('created_at', { ascending: true })
+    rawMembers = (fallback ?? []).map(m => ({ ...m, allowed_modules: null }))
+  }
 
   const migrationNeeded = !invitations
 
@@ -55,7 +66,7 @@ export default async function SettingsPage({
       myUserId={user.id}
       myRole={myRole}
       myEmail={user.email ?? ''}
-      members={(members ?? []).map(m => ({ ...m, role: (m as { role?: string }).role ?? 'staff' }))}
+      members={(rawMembers ?? []).map(m => ({ ...m, role: (m as { role?: string }).role ?? 'staff', allowed_modules: (m as { allowed_modules?: string[] | null }).allowed_modules ?? null }))}
       invitations={invitations ?? []}
       migrationNeeded={migrationNeeded}
     />
