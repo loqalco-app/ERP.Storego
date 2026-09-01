@@ -156,33 +156,36 @@ export default function Sidebar({ active }: Props) {
         @media(max-width:379px){.nav-lbl{display:none}}
         @media(min-width:480px){.nav-lbl{font-size:10px}}
 
-        /* ── Avatar item — último en el pill ── */
+        /* ── Avatar item — mismo estilo exacto que .nav-item ── */
         .nav-av-btn{
-          flex-shrink:0;
+          flex:1;
           display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-          padding:7px 8px;
+          padding:10px 4px 9px;
           border-radius:20px;
-          border:none;background:none;
-          cursor:pointer;
+          border:none;background:none;color:#0A0A0E;opacity:0.38;
+          cursor:pointer;min-width:0;
           -webkit-tap-highlight-color:transparent;
           font-family:var(--font,'Inter',-apple-system,sans-serif);
-          transition:background 0.14s,opacity 0.14s;
+          transition:color 0.14s,background 0.14s,opacity 0.14s;
           position:relative
         }
-        .nav-av-btn:active{opacity:0.70}
-        .nav-av-btn.on{background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));box-shadow:0 6px 18px rgba(29,78,216,0.30)}
+        @media(min-width:480px){.nav-av-btn{padding:10px 12px 9px;min-width:68px}}
+        .nav-av-btn:not(.on):active{opacity:0.65;background:rgba(0,0,0,0.05)}
+        .nav-av-btn.on{
+          background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
+          color:white;opacity:1;
+          box-shadow:0 6px 18px rgba(29,78,216,0.30)
+        }
+        /* Círculo de avatar — 22x22, igual que los iconos SVG */
         .nav-av-circle{
-          width:26px;height:26px;border-radius:50%;
+          width:22px;height:22px;border-radius:50%;
           background:linear-gradient(135deg,#1D4ED8,#2563EB);
           display:flex;align-items:center;justify-content:center;
-          font-size:10px;font-weight:800;color:white;letter-spacing:0;
-          box-shadow:0 2px 6px rgba(29,78,216,0.35)
+          font-size:9px;font-weight:800;color:white;letter-spacing:0;
+          flex-shrink:0
         }
-        .nav-av-btn.on .nav-av-circle{background:rgba(255,255,255,0.25);box-shadow:none}
-        .nav-av-lbl{font-size:9px;font-weight:700;letter-spacing:0.04em;color:#0A0A0E;opacity:0.38;line-height:1}
-        .nav-av-btn.on .nav-av-lbl{color:white;opacity:1}
-        @media(max-width:379px){.nav-av-lbl{display:none}}
-        @media(min-width:480px){.nav-av-lbl{font-size:10px}}
+        .nav-av-btn.on .nav-av-circle{background:rgba(255,255,255,0.28)}
+        /* Etiqueta — usa exactamente .nav-lbl */
 
         /* ── Dropdown del avatar ── */
         .nav-profile-wrap{position:relative}
@@ -240,7 +243,7 @@ export default function Sidebar({ active }: Props) {
               onClick={() => setMenuOpen(v => !v)}
             >
               <div className="nav-av-circle">{initials}</div>
-              <span className="nav-av-lbl">Perfil</span>
+              <span className="nav-lbl">Perfil</span>
             </button>
 
             {menuOpen && (
