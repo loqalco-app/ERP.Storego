@@ -152,17 +152,15 @@ export default function CatalogClient({ products: initProducts, categories: init
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
         .topbar{justify-content:space-between}
-        /* Botón en topbar — solo desktop */
-        .new-btn{display:none;align-items:center;justify-content:center;gap:6px;height:auto;border-radius:50px;padding:10px 18px;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 6px 20px rgba(29,78,216,0.28);transition:opacity 0.15s,transform 0.12s;flex-shrink:0;font-size:13px;font-weight:700}
-        @media(min-width:768px){.new-btn{display:flex}}
+        /* Botón agregar — visible siempre, compacto */
+        .new-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 4px 14px rgba(29,78,216,0.30);transition:opacity 0.15s,transform 0.12s;flex-shrink:0}
         .new-btn:hover{opacity:.90}
-        .new-btn:active{transform:scale(0.93)}
-        .new-btn-lbl{font-size:13px;font-weight:700}
-
-        /* FAB — flotante encima del nav, solo mobile */
-        .fab{position:fixed;bottom:calc(var(--nav-h,80px) + 20px);right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(145deg,#1D4ED8,#2563EB);display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;color:white;text-decoration:none;box-shadow:0 8px 28px rgba(29,78,216,0.40),inset 0 1px 0 rgba(255,255,255,0.20);z-index:190;transition:transform 0.12s,box-shadow 0.12s;-webkit-tap-highlight-color:transparent}
-        .fab:active{transform:scale(0.90);box-shadow:0 4px 14px rgba(29,78,216,0.36)}
-        @media(min-width:768px){.fab{display:none}}
+        .new-btn:active{transform:scale(0.90)}
+        .new-btn-lbl{display:none}
+        @media(min-width:600px){
+          .new-btn{width:auto;height:auto;border-radius:50px;padding:8px 14px;gap:6px}
+          .new-btn-lbl{display:inline;font-size:12px;font-weight:700}
+        }
         .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
         @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px)}}
 
@@ -306,16 +304,11 @@ export default function CatalogClient({ products: initProducts, categories: init
 
       <Sidebar active="catalog" />
 
-      {/* FAB — mobile only, encima del nav */}
-      {tab === 'products'   && <Link href="/catalog/new" className="fab" aria-label="Agregar producto"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></Link>}
-      {tab === 'categories' && <button className="fab" onClick={() => openCat()} aria-label="Agregar categoría"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>}
-      {tab === 'brands'     && <button className="fab" onClick={() => openBrand()} aria-label="Agregar marca"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>}
-
       <div className="topbar">
         <div className="page-title">Inventario</div>
-        {tab === 'products'   && <Link href="/catalog/new" className="new-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Producto</span></Link>}
-        {tab === 'categories' && <button className="new-btn" onClick={() => openCat()}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Categoría</span></button>}
-        {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Marca</span></button>}
+        {tab === 'products'   && <Link href="/catalog/new" className="new-btn" aria-label="Agregar producto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Producto</span></Link>}
+        {tab === 'categories' && <button className="new-btn" onClick={() => openCat()} aria-label="Agregar categoría"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Categoría</span></button>}
+        {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()} aria-label="Agregar marca"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Marca</span></button>}
       </div>
 
           <div className="content">
