@@ -15,6 +15,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
   min-height: 100dvh;
 }
+@media (min-width: 768px) {
+  /* Compensa el .desk-header fixed de 60px para que el contenido no quede tapado */
+  body { padding-top: 60px; }
+}
 
 /* Previene el auto-zoom de iOS en todos los inputs (<16px dispara zoom en Safari/PWA) */
 input, select, textarea {

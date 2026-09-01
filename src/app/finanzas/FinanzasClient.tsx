@@ -147,7 +147,9 @@ export default function FinanzasClient({
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-        .fin-date{font-size:11px;font-weight:700;color:rgba(10,10,14,0.40)}
+        .periodo-select{appearance:none;-webkit-appearance:none;background:rgba(0,0,0,0.04) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(10,10,14,0.45)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E") no-repeat right 10px center;border:1.5px solid rgba(0,0,0,0.08);border-radius:50px;padding:7px 30px 7px 14px;font-size:12px;font-weight:700;color:rgba(10,10,14,0.65);font-family:inherit;cursor:pointer;outline:none;min-width:0;flex-shrink:0;transition:border-color .15s}
+        .periodo-select:focus{border-color:#2563EB}
+        .fin-date{font-size:11px;font-weight:600;color:rgba(10,10,14,0.35);white-space:nowrap;flex-shrink:0}
         .fin-content{padding:16px 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}
         @media(min-width:768px){.fin-content{padding:16px 40px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}}
 
@@ -235,12 +237,13 @@ export default function FinanzasClient({
       <div className="topbar">
         <div className="topbar-row">
           <div className="page-title">Finanzas</div>
-          <div className="fin-date">{desde === hasta ? desde : `${desde} → ${hasta}`}</div>
-        </div>
-        <div className="topbar-chips">
-          {PERIODOS.map(p => (
-            <button key={p.key} className={`topbar-chip${periodo===p.key?' on':''}`} onClick={() => changePeriodo(p.key)}>{p.label}</button>
-          ))}
+          <select
+            className="periodo-select"
+            value={periodo}
+            onChange={e => changePeriodo(e.target.value)}
+          >
+            {PERIODOS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+          </select>
         </div>
         <div className="topbar-tabs">
           {([['resumen','Resumen'],['productos','Productos'],['gastos','Gastos'],['cobros','Cobros']] as const).map(([k,l]) => (

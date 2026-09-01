@@ -26,17 +26,11 @@ const AVATAR_COLORS = ['linear-gradient(135deg,#2563EB,#60A5FA)','linear-gradien
 const fmt = (n: number) => n.toLocaleString('es-MX', { style:'currency', currency:'MXN' })
 
 export default function DashboardClient({ userName, orgName, stats, recentOrders, recentCustomers }: Props) {
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Buenos días' : hour < 18 ? 'Buenas tardes' : 'Buenas noches'
-
   return (
     <>
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .greeting-txt{font-size:var(--text-sm,13px);color:var(--text-3,rgba(10,10,14,0.45));font-weight:500;margin-bottom:2px}
-        .username-txt{font-size:28px;font-weight:800;color:var(--text-1,#0A0A0E);letter-spacing:-0.8px;line-height:1.1}
-        @media(min-width:768px){.username-txt{font-size:34px}}
         .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
         @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px)}}
         .hero{background:var(--grad-brand-hero,linear-gradient(145deg,#1D4ED8,#2563EB,#3B82F6));border-radius:var(--r-2xl,28px);padding:28px 24px;margin-bottom:16px;box-shadow:var(--shadow-brand),inset 0 1px 0 rgba(255,255,255,0.20);position:relative;overflow:hidden}
@@ -70,9 +64,8 @@ export default function DashboardClient({ userName, orgName, stats, recentOrders
       <Sidebar active="dashboard" />
 
       <div className="topbar">
-        <div className="topbar-row" style={{flexDirection:'column',alignItems:'flex-start',gap:2}}>
-          <div className="greeting-txt">{greeting}</div>
-          <div className="username-txt">{userName.split(' ')[0]}</div>
+        <div className="topbar-row">
+          <div className="page-title">Inicio</div>
         </div>
       </div>
 
