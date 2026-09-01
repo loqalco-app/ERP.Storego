@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
 import BottomNav from '@/components/BottomNav'
 import { createClient } from '@/lib/supabase/client'
@@ -21,6 +21,12 @@ export default function BrandsClient({ brands: initial, orgId, userName, orgName
   const [saving, setSaving]     = useState(false)
   const [err, setErr]           = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') closeForm() }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [])
 
   function openCreate() { setEditing(null); setName(''); setDesc(''); setErr(null); setShowForm(true) }
   function openEdit(b: Brand) { setEditing(b); setName(b.name); setDesc(b.description ?? ''); setErr(null); setShowForm(true) }

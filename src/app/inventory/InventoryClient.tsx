@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import BottomNav from '@/components/BottomNav'
@@ -13,6 +13,12 @@ interface Props { variants: Variant[]; orgId: string; userName: string; orgName:
 export default function InventoryClient({ variants: initial, orgId, userName, orgName }: Props) {
   const router = useRouter()
   const [variants, setVariants] = useState(initial)
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') setAdjusting(null) }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [])
   const [q, setQ]               = useState('')
   const [adjusting, setAdjusting] = useState<Variant | null>(null)
   const [adjQty, setAdjQty]     = useState('')

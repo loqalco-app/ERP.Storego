@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Sidebar from '@/components/Sidebar'
 import { createClient } from '@/lib/supabase/client'
@@ -46,6 +46,17 @@ export default function CatalogClient({ products: initProducts, categories: init
 
   // Product detail modal
   const [viewProduct, setViewProduct] = useState<Product|null>(null)
+
+  // Escape cierra cualquier modal abierto
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return
+      setViewProduct(null)
+      setModal(null)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   function openCat(item?: Category, forceParent?: string) {
     setEditItem(item ?? null)

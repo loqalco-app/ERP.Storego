@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -76,6 +76,15 @@ export default function SettingsClient({
   const [invMsg,   setInvMsg]   = useState<{ type:'ok'|'err'; text:string }|null>(null)
 
   const canManage = ['owner','admin'].includes(myRole)
+
+  // Escape cierra cualquier modal abierto
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setShowInvite(false)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -186,7 +195,8 @@ export default function SettingsClient({
         .strength{height:4px;border-radius:2px;margin-top:8px;background:rgba(0,0,0,0.06);overflow:hidden}
         .strength-bar{height:100%;border-radius:2px;transition:width 0.3s,background 0.3s}
         .section-hd{display:flex;align-items:center;justify-content:space-between;margin:20px 0 10px}
-        .section-title{font-size:13px;font-weight:700;color:var(--text-3,rgba(26,26,32,0.40));text-transform:uppercase;letter-spacing:0.07em}
+        /* sec-title ya viene de globals.css — aquí solo ajustamos el layout de la fila */
+        .section-hd .sec-title{margin:0}
         .invite-btn{display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:var(--grad-brand-btn,linear-gradient(145deg,#1D4ED8,#2563EB));color:white;border:none;border-radius:50%;cursor:pointer;font-family:inherit;box-shadow:var(--shadow-brand-sm);transition:opacity 0.15s,transform 0.12s;flex-shrink:0}
         .invite-btn:hover{opacity:.90}
         .invite-btn:active{transform:scale(0.93)}
@@ -332,7 +342,7 @@ export default function SettingsClient({
               </div>
             )}
             <div className="section-hd">
-              <div className="section-title">{memberList.length} miembro{memberList.length !== 1 ? 's' : ''}</div>
+              <div className="sec-title">{memberList.length} miembro{memberList.length !== 1 ? 's' : ''}</div>
               {canManage && (
                 <button className="invite-btn" onClick={() => { setShowInvite(true); setInvMsg(null) }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -368,7 +378,7 @@ export default function SettingsClient({
             {invList.length > 0 && (
               <>
                 <div className="section-hd" style={{ marginTop:8 }}>
-                  <div className="section-title">Invitaciones pendientes ({invList.length})</div>
+                  <div className="sec-title">Invitaciones pendientes ({invList.length})</div>
                 </div>
                 <div className="card">
                   {invList.map(inv => {
@@ -394,7 +404,7 @@ export default function SettingsClient({
               </>
             )}
             <div className="section-hd" style={{ marginTop:8 }}>
-              <div className="section-title">Roles y accesos</div>
+              <div className="sec-title">Roles y accesos</div>
             </div>
             <div className="card">
               {Object.entries(ROLE_META).map(([key, rm]) => (

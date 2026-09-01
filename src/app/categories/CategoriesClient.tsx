@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import BottomNav from '@/components/BottomNav'
@@ -23,6 +23,12 @@ export default function CategoriesClient({ categories: initial, orgId, userName,
   const [saving, setSaving]     = useState(false)
   const [err, setErr]           = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') closeForm() }
+    document.addEventListener('keydown', h)
+    return () => document.removeEventListener('keydown', h)
+  }, [])
 
   function openCreate() { setEditing(null); setName(''); setDesc(''); setErr(null); setShowForm(true) }
   function openEdit(c: Category) { setEditing(c); setName(c.name); setDesc(c.description ?? ''); setErr(null); setShowForm(true) }
