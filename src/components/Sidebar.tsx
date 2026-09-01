@@ -82,7 +82,6 @@ export default function Sidebar({ active }: Props) {
   const [mobileOpen,   setMobileOpen]   = useState(false)
   const [desktopOpen,  setDesktopOpen]  = useState(false)
 
-  const mobileWrapRef  = useRef<HTMLDivElement>(null)
   const desktopWrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -107,17 +106,7 @@ export default function Sidebar({ active }: Props) {
     })
   }, [])
 
-  // Cierra menú mobile al clic fuera
-  useEffect(() => {
-    if (!mobileOpen) return
-    function handler(e: MouseEvent) {
-      if (mobileWrapRef.current && !mobileWrapRef.current.contains(e.target as Node)) {
-        setMobileOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [mobileOpen])
+  // El cierre del menú móvil lo maneja el scrim overlay
 
   // Cierra menú desktop al clic fuera
   useEffect(() => {
@@ -167,17 +156,15 @@ export default function Sidebar({ active }: Props) {
         .nav-fade{
           position:fixed;bottom:0;left:0;right:0;height:96px;
           background:linear-gradient(to top,var(--bg,#ECEEF2) 60%,transparent);
-          pointer-events:none;z-index:198;
-          -webkit-transform:translateZ(0);transform:translateZ(0)
+          pointer-events:none;z-index:198
         }
 
         /* ── Nav bar ── */
         .nav-bar{
           position:fixed;bottom:0;left:0;right:0;z-index:199;
-          display:flex;align-items:center;justify-content:center;
+          display:flex;align-items:flex-end;justify-content:center;
           padding:0 16px max(env(safe-area-inset-bottom,0px),10px);
-          pointer-events:none;
-          -webkit-transform:translateZ(0);transform:translateZ(0)
+          pointer-events:none
         }
         @media(min-width:480px){.nav-bar{padding:0 20px max(env(safe-area-inset-bottom,0px),16px)}}
 
@@ -245,14 +232,17 @@ export default function Sidebar({ active }: Props) {
         }
         .nav-av-btn.on .nav-av-circle{background:rgba(255,255,255,0.28)}
 
-        /* Dropdown mobile — fixed para escapar overflow del pill */
+        /* Dropdown mobile — fuera del nav, como overlay global */
+        .mobile-dd-scrim{
+          position:fixed;inset:0;z-index:700;background:transparent
+        }
         .pc-dropdown{
           position:fixed;
-          bottom:calc(max(env(safe-area-inset-bottom,0px),10px) + 82px);
+          bottom:calc(max(env(safe-area-inset-bottom,0px),10px) + 84px);
           right:16px;
           background:var(--bg,#ECEEF2);border-radius:var(--r-lg,20px);
           box-shadow:0 -8px 32px rgba(0,0,0,0.14),0 4px 16px rgba(0,0,0,0.08);
-          min-width:210px;overflow:hidden;z-index:600
+          min-width:210px;overflow:hidden;z-index:701
         }
 
         /* ── Header desktop full-width ── */
@@ -356,7 +346,7 @@ export default function Sidebar({ active }: Props) {
           })}
 
           {/* Avatar — solo mobile (<768px) */}
-          <div className="nav-av-wrap" ref={mobileWrapRef}>
+          <div className="nav-av-wrap">
             <button
               className={`nav-av-btn${pathname?.startsWith('/settings') ? ' on' : ''}`}
               aria-label="Mi perfil"
@@ -365,14 +355,19 @@ export default function Sidebar({ active }: Props) {
               <div className="nav-av-circle">{initials}</div>
               <span className="nav-lbl">Perfil</span>
             </button>
-            {mobileOpen && (
-              <div className="pc-dropdown">
-                {menuLinks(() => setMobileOpen(false))}
-              </div>
-            )}
           </div>
         </div>
       </nav>
+
+      {/* Dropdown móvil — FUERA del nav para evitar transform containing block */}
+      {mobileOpen && (
+        <>
+          <div className="mobile-dd-scrim" onClick={() => setMobileOpen(false)} />
+          <div className="pc-dropdown">
+            {menuLinks(() => setMobileOpen(false))}
+          </div>
+        </>
+      )}
     </>
   )
 }
