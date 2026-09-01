@@ -5,8 +5,25 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
 
-interface Member     { id: string; full_name: string; avatar_url: string | null; role: string; status: string; created_at: string }
+interface Member     { id: string; full_name: string; avatar_url: string | null; role: string; status: string; created_at: string; allowed_modules: string[] | null }
 interface Invitation { id: string; email: string; role: string; status: string; created_at: string; expires_at: string }
+
+// Nav keys → display labels (single source of truth, used in Sidebar + here)
+const MODULE_LIST = [
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'pos',       label: 'POS' },
+  { key: 'finanzas',  label: 'Finanzas' },
+  { key: 'orders',    label: 'Órdenes' },
+  { key: 'catalog',   label: 'Inventario' },
+  { key: 'customers', label: 'Clientes' },
+] as const
+
+const DEFAULT_MODULES: Record<string, string[]> = {
+  owner:  ['dashboard','pos','finanzas','orders','catalog','customers'],
+  admin:  ['dashboard','pos','finanzas','orders','catalog','customers'],
+  staff:  ['dashboard','pos','orders','catalog','customers'],
+  viewer: ['dashboard'],
+}
 
 interface Props {
   initialTab: 'profile' | 'team'
@@ -20,12 +37,6 @@ const ROLE_META: Record<string, { label: string; color: string; bg: string; desc
   admin:  { label: 'Admin',       color: '#1D4ED8', bg: 'rgba(29,78,216,0.10)',  desc: 'Todo el sistema + invitar usuarios' },
   staff:  { label: 'Staff',       color: '#059669', bg: 'rgba(5,150,105,0.10)',  desc: 'POS, inventario, clientes' },
   viewer: { label: 'Lector',      color: '#D97706', bg: 'rgba(217,119,6,0.10)',  desc: 'Solo lectura del dashboard' },
-}
-const MODULES: Record<string, string[]> = {
-  owner:  ['Dashboard','POS','Inventario','Clientes','Equipo','Configuración'],
-  admin:  ['Dashboard','POS','Inventario','Clientes','Equipo','Configuración'],
-  staff:  ['Dashboard','POS','Inventario','Clientes'],
-  viewer: ['Dashboard'],
 }
 
 function initials(name: string) { return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase() || '?' }
@@ -98,6 +109,7 @@ export default function SettingsClient({
   const [editMember,  setEditMember]  = useState<Member|null>(null)
   const [editName,    setEditName]    = useState('')
   const [editRole,    setEditRole]    = useState('staff')
+  const [editModules, setEditModules] = useState<string[]>([])
   const [editSaving,  setEditSaving]  = useState(false)
   const [editMsg,     setEditMsg]     = useState<{ type:'ok'|'err'; text:string }|null>(null)
 
@@ -181,9 +193,9 @@ export default function SettingsClient({
     const data = await res.json()
     setSending(false)
     if (!res.ok) { setInvMsg({ type:'err', text: data.error ?? 'Error al crear usuario' }); return }
-    setMemberList(prev => [{ id: Date.now().toString(), full_name: fullName2, avatar_url: null, role: invRole, status:'active', created_at: new Date().toISOString() }, ...prev])
+    setMemberList(prev => [{ id: Date.now().toString(), full_name: fullName2, avatar_url: null, role: invRole, status:'active', created_at: new Date().toISOString(), allowed_modules: null }, ...prev])
     setInvMsg({ type:'ok', text: `Usuario creado. ${fullName2} puede entrar con su correo y la contraseña temporal.` })
-    setTimeout(closeInviteModal, 2200)
+    setTimeout(() => { closeInviteModal(); router.refresh() }, 2200)
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -249,23 +261,46 @@ export default function SettingsClient({
   }
 
   function openEdit(m: Member) {
-    setEditMember(m); setEditName(m.full_name); setEditRole(m.role); setEditMsg(null)
+    setEditMember(m)
+    setEditName(m.full_name)
+    setEditRole(m.role)
+    setEditModules(m.allowed_modules ?? DEFAULT_MODULES[m.role] ?? ['dashboard'])
+    setEditMsg(null)
   }
   function closeEdit() { setEditMember(null); setEditMsg(null) }
+
+  function toggleModule(key: string) {
+    setEditModules(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    )
+  }
+
+  // When role changes in edit modal, reset modules to role defaults
+  function handleEditRoleChange(r: string) {
+    setEditRole(r)
+    setEditModules(DEFAULT_MODULES[r] ?? ['dashboard'])
+  }
 
   async function handleEditSave(e: React.FormEvent) {
     e.preventDefault()
     if (!editMember || !editName.trim()) return
     setEditSaving(true); setEditMsg(null)
+    // Send null if modules match role defaults (no override needed)
+    const defaults = DEFAULT_MODULES[editRole] ?? ['dashboard']
+    const isDefault = editModules.length === defaults.length && defaults.every(k => editModules.includes(k))
+    const allowedModules = isDefault ? null : editModules
     const res = await fetch('/api/team/member', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memberId: editMember.id, fullName: editName.trim(), role: editRole, orgId }),
+      body: JSON.stringify({ memberId: editMember.id, fullName: editName.trim(), role: editRole, allowedModules, orgId }),
     })
     const data = await res.json()
     setEditSaving(false)
     if (!res.ok) { setEditMsg({ type:'err', text: data.error ?? 'Error al guardar.' }); return }
-    setMemberList(prev => prev.map(m => m.id === editMember.id ? { ...m, full_name: editName.trim(), role: editRole } : m))
+    setMemberList(prev => prev.map(m => m.id === editMember.id
+      ? { ...m, full_name: editName.trim(), role: editRole, allowed_modules: allowedModules }
+      : m
+    ))
     closeEdit()
   }
 
@@ -525,7 +560,12 @@ export default function SettingsClient({
                         <div className="member-name">{m.full_name}{isMe ? ' (tú)' : ''}</div>
                         <span className="badge" style={{ background:rm.bg, color:rm.color }}>{rm.label}</span>
                       </div>
-                      <div className="modules-chip" style={{ marginTop:6 }}>{MODULES[m.role]?.map(mod => <span key={mod} className="mod">{mod}</span>)}</div>
+                      <div className="modules-chip" style={{ marginTop:6 }}>
+                        {MODULE_LIST
+                          .filter(mod => (m.allowed_modules ?? DEFAULT_MODULES[m.role] ?? []).includes(mod.key))
+                          .map(mod => <span key={mod.key} className="mod">{mod.label}</span>)
+                        }
+                      </div>
                     </div>
                     {canAct && (
                       <div className="member-actions">
@@ -615,7 +655,12 @@ export default function SettingsClient({
                   <span className="badge" style={{ background:rm.bg, color:rm.color, marginTop:2 }}>{rm.label}</span>
                   <div>
                     <div style={{ fontSize:12, fontWeight:600, color:'var(--text-2,#1A1A20)' }}>{rm.desc}</div>
-                    <div className="modules-chip" style={{ marginTop:5 }}>{MODULES[key]?.map(mod => <span key={mod} className="mod">{mod}</span>)}</div>
+                    <div className="modules-chip" style={{ marginTop:5 }}>
+                    {MODULE_LIST
+                      .filter(mod => (DEFAULT_MODULES[key] ?? []).includes(mod.key))
+                      .map(mod => <span key={mod.key} className="mod">{mod.label}</span>)
+                    }
+                  </div>
                   </div>
                 </div>
               ))}
@@ -635,17 +680,46 @@ export default function SettingsClient({
               <div className="fl">Nombre completo *</div>
               <input className="mfi" type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nombre completo" required />
               <div className="fl">Rol</div>
-              <div className="role-pills" style={{ marginBottom:20 }}>
+              <div className="role-pills" style={{ marginBottom:16 }}>
                 {(['admin','staff','viewer'] as const).map(r => (
-                  <button key={r} type="button" className={`rpill${editRole===r?' on':''}`} onClick={() => setEditRole(r)}>
+                  <button key={r} type="button" className={`rpill${editRole===r?' on':''}`} onClick={() => handleEditRoleChange(r)}>
                     {ROLE_META[r].label}
                     <span className="rpill-desc">{ROLE_META[r].desc}</span>
                   </button>
                 ))}
               </div>
+              <div className="fl" style={{ marginBottom:10 }}>Secciones con acceso</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:20 }}>
+                {MODULE_LIST.map(mod => {
+                  const checked = editModules.includes(mod.key)
+                  return (
+                    <button
+                      key={mod.key}
+                      type="button"
+                      onClick={() => toggleModule(mod.key)}
+                      style={{
+                        display:'flex', alignItems:'center', gap:8,
+                        padding:'10px 12px', borderRadius:12,
+                        border: checked ? '1.5px solid #1D4ED8' : '1.5px solid rgba(0,0,0,0.08)',
+                        background: checked ? 'rgba(29,78,216,0.08)' : 'rgba(0,0,0,0.025)',
+                        cursor:'pointer', fontFamily:'inherit', textAlign:'left', transition:'all .12s',
+                      }}
+                    >
+                      <div style={{
+                        width:18, height:18, borderRadius:5, border: checked ? '2px solid #1D4ED8' : '2px solid rgba(0,0,0,0.20)',
+                        background: checked ? '#1D4ED8' : 'transparent',
+                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .12s',
+                      }}>
+                        {checked && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><polyline points="2,6 5,9 10,3" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>}
+                      </div>
+                      <span style={{ fontSize:13, fontWeight:700, color: checked ? '#1D4ED8' : 'var(--text-2,#374151)' }}>{mod.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={closeEdit}>Cancelar</button>
-                <button type="submit" className="btn-send" disabled={editSaving || !editName.trim()}>
+                <button type="submit" className="btn-send" disabled={editSaving || !editName.trim() || editModules.length === 0}>
                   {editSaving ? 'Guardando...' : 'Guardar cambios'}
                 </button>
               </div>
@@ -782,7 +856,9 @@ export default function SettingsClient({
                   </div>
                   <div className="modules-preview">
                     <div className="modules-preview-title">Módulos con acceso</div>
-                    <div className="mod-list">{MODULES[invRole]?.map(mod => <span key={mod} className="mod">{mod}</span>)}</div>
+                    <div className="mod-list">
+                      {MODULE_LIST.filter(mod => (DEFAULT_MODULES[invRole] ?? []).includes(mod.key)).map(mod => <span key={mod.key} className="mod">{mod.label}</span>)}
+                    </div>
                   </div>
                   <div className="modal-actions">
                     <button type="button" className="btn-cancel" onClick={closeInviteModal}>Cancelar</button>

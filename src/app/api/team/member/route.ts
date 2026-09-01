@@ -35,12 +35,19 @@ async function getCallerAndAdmin(orgId: string) {
   return { caller: { id: user.id, role: profile.role }, adminClient, supabase }
 }
 
-// PATCH /api/team/member — edit name and/or role
+const VALID_MODULES = ['dashboard', 'pos', 'finanzas', 'orders', 'catalog', 'customers']
+
+// PATCH /api/team/member — edit name, role, and/or allowed_modules
 export async function PATCH(request: Request) {
-  const { memberId, fullName, role, orgId } = await request.json()
+  const { memberId, fullName, role, orgId, allowedModules } = await request.json()
   if (!memberId || !orgId) return NextResponse.json({ error: 'Faltan campos.' }, { status: 400 })
   if (role && !['admin', 'staff', 'viewer'].includes(role)) {
     return NextResponse.json({ error: 'Rol inválido.' }, { status: 400 })
+  }
+  if (allowedModules !== undefined && allowedModules !== null) {
+    if (!Array.isArray(allowedModules) || allowedModules.some((m: string) => !VALID_MODULES.includes(m))) {
+      return NextResponse.json({ error: 'Módulos inválidos.' }, { status: 400 })
+    }
   }
 
   const ctx = await getCallerAndAdmin(orgId)
@@ -64,9 +71,10 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'No puedes editarte a ti mismo aquí.' }, { status: 400 })
   }
 
-  const updates: Record<string, string> = {}
+  const updates: Record<string, unknown> = {}
   if (fullName?.trim()) updates.full_name = fullName.trim()
   if (role) updates.role = role
+  if (allowedModules !== undefined) updates.allowed_modules = allowedModules
 
   const { error } = await adminClient
     .from('user_profiles')

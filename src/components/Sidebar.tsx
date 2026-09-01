@@ -59,6 +59,14 @@ const NAV = [
   },
 ]
 
+// Default modules per role — must match SettingsClient.tsx DEFAULT_MODULES
+const DEFAULT_NAV_MODULES: Record<string, string[]> = {
+  owner:  ['dashboard','pos','finanzas','orders','catalog','customers','settings'],
+  admin:  ['dashboard','pos','finanzas','orders','catalog','customers','settings'],
+  staff:  ['dashboard','pos','orders','catalog','customers'],
+  viewer: ['dashboard'],
+}
+
 function nameInitials(name: string) {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
 }
@@ -77,6 +85,9 @@ export default function Sidebar({ active }: Props) {
   const pathname = usePathname()
 
   // Inicializa desde caché — sin flash al navegar
+  const [visibleKeys,  setVisibleKeys]  = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('_erp_nav') || 'null') || Object.keys(DEFAULT_NAV_MODULES).flatMap(k => DEFAULT_NAV_MODULES[k]) } catch { return [] }
+  })
   const [initials,     setInitials]     = useState(() => readCache('_erp_ini', '?'))
   const [displayName,  setDisplayName]  = useState(() => readCache('_erp_dn', ''))
   const [mobileOpen,   setMobileOpen]   = useState(false)
@@ -90,7 +101,7 @@ export default function Sidebar({ active }: Props) {
       if (!data.user) return
       const { data: profile } = await sb
         .from('user_profiles')
-        .select('full_name')
+        .select('full_name, role, allowed_modules')
         .eq('id', data.user.id)
         .single()
       const name = profile?.full_name
@@ -98,11 +109,20 @@ export default function Sidebar({ active }: Props) {
         || data.user.user_metadata?.name
         || data.user.email?.split('@')[0]
         || ''
+      const role = (profile as { role?: string } | null)?.role ?? 'staff'
+      const allowedModules = (profile as { allowed_modules?: string[] | null } | null)?.allowed_modules
+      // Effective nav keys: custom override OR role defaults. Always include 'settings'.
+      const keys = [...new Set([...(allowedModules ?? DEFAULT_NAV_MODULES[role] ?? ['dashboard']), 'settings'])]
+      setVisibleKeys(keys)
       const ini = nameInitials(name)
       const dn  = getFirstName(name)
       setInitials(ini)
       setDisplayName(dn)
-      try { localStorage.setItem('_erp_ini', ini); localStorage.setItem('_erp_dn', dn) } catch { /* ignore */ }
+      try {
+        localStorage.setItem('_erp_ini', ini)
+        localStorage.setItem('_erp_dn', dn)
+        localStorage.setItem('_erp_nav', JSON.stringify(keys))
+      } catch { /* ignore */ }
     })
   }, [])
 
@@ -329,7 +349,7 @@ export default function Sidebar({ active }: Props) {
       {/* Nav bar */}
       <nav className="nav-bar" aria-label="Navegación principal">
         <div className="nav-pill">
-          {NAV.map(item => {
+          {NAV.filter(item => visibleKeys.length === 0 || visibleKeys.includes(item.key)).map(item => {
             const isActive = currentKey === item.key
             const extra = (item as { desktopOnly?: boolean }).desktopOnly ? ' desk-only' : ''
             return (
