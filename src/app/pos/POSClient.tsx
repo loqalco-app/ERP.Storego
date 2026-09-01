@@ -56,7 +56,6 @@ export default function POSClient({
   // Cart
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartDiscount, setCartDiscount] = useState('')
-  const [mobileTab, setMobileTab] = useState<'productos'|'carrito'>('productos')
 
   // Payment modal
   const [showPayment, setShowPayment] = useState(false)
@@ -68,6 +67,35 @@ export default function POSClient({
   const [shipType, setShipType] = useState<'pickup'|'envio'>('pickup')
   const [shipAddr, setShipAddr] = useState({ line1:'', line2:'', city:'', state:'', zip:'' })
   const [skipAddr, setSkipAddr] = useState(false)
+
+  // Mobile cart sheet + swipe
+  const [showCartSheet, setShowCartSheet] = useState(false)
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const dragStartY = useRef(0)
+  const dragCurrentY = useRef(0)
+
+  function onSheetTouchStart(e: React.TouchEvent) {
+    dragStartY.current = e.touches[0].clientY
+    dragCurrentY.current = 0
+  }
+  function onSheetTouchMove(e: React.TouchEvent) {
+    const delta = e.touches[0].clientY - dragStartY.current
+    if (delta > 0 && sheetRef.current) {
+      dragCurrentY.current = delta
+      sheetRef.current.style.transform = `translateY(${delta}px)`
+      sheetRef.current.style.transition = 'none'
+    }
+  }
+  function onSheetTouchEnd() {
+    if (dragCurrentY.current > 90) {
+      setShowCartSheet(false)
+    }
+    if (sheetRef.current) {
+      sheetRef.current.style.transform = ''
+      sheetRef.current.style.transition = ''
+    }
+    dragCurrentY.current = 0
+  }
 
   // Result
   const [saving, setSaving] = useState(false)
@@ -123,7 +151,6 @@ export default function POSClient({
         quantity: 1, discount: 0,
       }]
     })
-    setMobileTab('carrito')
   }
 
   function updateQty(key: string, qty: number) {
@@ -241,7 +268,7 @@ export default function POSClient({
     setCart([]); setCustomer(null); setCustSearch(''); setCartDiscount('')
     setPayments([{ method:'efectivo', amount:'' }]); setIsApartado(false)
     setShipType('pickup'); setShipAddr({ line1:'', line2:'', city:'', state:'', zip:'' })
-    setSkipAddr(false); setSavedFolio(''); setMobileTab('productos')
+    setSkipAddr(false); setSavedFolio(''); setShowCartSheet(false)
   }
 
   if (savedFolio) return (
@@ -256,19 +283,37 @@ export default function POSClient({
       <Sidebar active="pos" />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        .pos-wrap{display:flex;flex-direction:column;height:calc(100dvh - var(--nav-h,88px));overflow:hidden;background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif}
-        @media(min-width:768px){.pos-wrap{height:100dvh}}
-        .pos-header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg,#ECEEF2);border-bottom:1px solid rgba(0,0,0,0.07);flex-shrink:0}
-        .pos-title{font-size:16px;font-weight:800;color:var(--text,#0A0A0E);letter-spacing:-0.3px}
-        .pos-body{display:flex;flex:1;overflow:hidden}
+        .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;padding-top:env(safe-area-inset-top,0px)}
+        .pos-body{display:flex;flex:1;overflow:hidden;min-height:0}
         /* LEFT */
         .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:12px 10px 12px 12px}
-        /* RIGHT */
-        .pos-right{width:300px;display:flex;flex-direction:column;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);flex-shrink:0}
-        @media(min-width:768px){.pos-right{padding-top:64px}}
-        @media(min-width:1024px){.pos-right{width:320px}}
-        /* LEFT also needs top offset on desktop for the nav pill area */
+        /* Mobile: space below for nav + floating bar */
+        @media(max-width:767px){
+          .pos-left{padding-top:12px;padding-bottom:calc(var(--nav-h,88px) + 80px)}
+        }
+        /* Desktop */
         @media(min-width:768px){.pos-left{padding-top:64px}}
+        /* RIGHT — desktop only */
+        .pos-right{display:none}
+        @media(min-width:768px){
+          .pos-right{width:300px;display:flex;flex-direction:column;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);flex-shrink:0;padding-top:64px}
+        }
+        @media(min-width:1024px){.pos-right{width:320px}}
+        /* FLOATING CART BAR — mobile only */
+        .cart-fab{display:none}
+        @media(max-width:767px){
+          .cart-fab{display:flex;align-items:center;gap:10px;position:fixed;left:16px;right:16px;bottom:calc(var(--nav-h,88px) + 10px);background:linear-gradient(145deg,#1D4ED8,#2563EB);border-radius:20px;padding:14px 18px;box-shadow:0 8px 24px rgba(29,78,216,0.38);cursor:pointer;z-index:200;border:none;font-family:inherit}
+          .cart-fab-count{font-size:12px;font-weight:700;color:rgba(255,255,255,0.75)}
+          .cart-fab-total{font-size:16px;font-weight:800;color:white;flex:1}
+          .cart-fab-cta{font-size:13px;font-weight:700;color:rgba(255,255,255,0.85);white-space:nowrap}
+        }
+        /* CART SHEET — mobile full-screen */
+        .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:flex;flex-direction:column;justify-content:flex-end}
+        .cart-sheet{background:var(--bg,#ECEEF2);border-radius:28px 28px 0 0;display:flex;flex-direction:column;max-height:92dvh;padding-bottom:env(safe-area-inset-bottom,0px)}
+        .sheet-drag{width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,0.15);margin:12px auto 0}
+        .sheet-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;flex-shrink:0}
+        .sheet-title{font-size:17px;font-weight:800;color:var(--text,#0A0A0E)}
+        .sheet-close{background:rgba(0,0,0,0.06);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:rgba(10,10,14,0.5)}
         /* CUSTOMER */
         .cust-panel{background:rgba(0,0,0,0.03);border:1.5px solid rgba(0,0,0,0.07);border-radius:16px;padding:12px 14px;margin-bottom:12px;flex-shrink:0;position:relative}
         .cust-label{font-size:10px;font-weight:700;color:rgba(10,10,14,0.38);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
@@ -360,16 +405,6 @@ export default function POSClient({
         .btn-ghost{width:100%;padding:13px;border:1.5px solid rgba(0,0,0,0.12);border-radius:18px;background:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55);margin-top:8px}
         .btn-ghost:hover{background:rgba(0,0,0,0.04)}
         .rm-pay{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.30);padding:4px;font-size:16px}
-        /* Mobile tab */
-        .mob-tabs{display:none}
-        @media(max-width:767px){
-          .pos-right{display:none}
-          .mob-tabs{display:flex;border-bottom:1px solid rgba(0,0,0,0.07);flex-shrink:0}
-          .mob-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:700;color:rgba(10,10,14,0.45);border:none;background:none;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s}
-          .mob-tab.active{color:#1D4ED8;border-bottom-color:#1D4ED8}
-          .mob-cart-show{display:flex;flex-direction:column;height:100%}
-        }
-        @media(max-width:767px){.pos-left.hidden{display:none}}
         /* New customer form */
         .new-cust-form{margin-top:8px;padding:12px;background:rgba(0,0,0,0.025);border-radius:14px;border:1.5px solid rgba(0,0,0,0.07)}
         .new-cust-title{font-size:12px;font-weight:700;color:var(--text,#0A0A0E);margin-bottom:8px}
@@ -387,17 +422,9 @@ export default function POSClient({
       `}</style>
 
       <div className="pos-wrap">
-        {/* Mobile tabs */}
-        <div className="mob-tabs">
-          <button className={`mob-tab ${mobileTab==='productos'?'active':''}`} onClick={() => setMobileTab('productos')}>Productos</button>
-          <button className={`mob-tab ${mobileTab==='carrito'?'active':''}`} onClick={() => setMobileTab('carrito')}>
-            Carrito {cart.length > 0 && `(${cart.length})`}
-          </button>
-        </div>
-
         <div className="pos-body">
-          {/* LEFT: Customer + Products */}
-          <div className={`pos-left ${mobileTab==='carrito'?'hidden':''}`}>
+          {/* LEFT: Customer + Products — always visible */}
+          <div className="pos-left">
             {/* Customer selector */}
             <div ref={custRef}>
               <div className="cust-panel">
@@ -506,8 +533,8 @@ export default function POSClient({
             </div>
           </div>
 
-          {/* RIGHT: Cart (desktop always visible, mobile on tab) */}
-          <div className={`pos-right ${mobileTab==='carrito'?'mob-cart-show':''}`} style={mobileTab==='carrito'?{display:'flex',flex:1,flexDirection:'column'}:{}}>
+          {/* RIGHT: Cart — desktop only */}
+          <div className="pos-right">
             <div className="cart-header">
               <span>Carrito</span>
               {cart.length > 0 && <button className="btn-sm" style={{color:'#DC2626',borderColor:'rgba(220,38,38,0.2)'}} onClick={() => setCart([])}>Vaciar</button>}
@@ -566,6 +593,84 @@ export default function POSClient({
           </div>
         </div>
       </div>
+
+      {/* MOBILE FLOATING CART BAR */}
+      {cart.length > 0 && (
+        <button className="cart-fab" onClick={() => setShowCartSheet(true)}>
+          <span className="cart-fab-count">{cart.length} {cart.length === 1 ? 'art.' : 'arts.'}</span>
+          <span className="cart-fab-total">{fmt(cartTotal)}</span>
+          <span className="cart-fab-cta">Ver carrito →</span>
+        </button>
+      )}
+
+      {/* MOBILE CART SHEET */}
+      {showCartSheet && (
+        <div className="sheet-overlay" onClick={e => { if (e.target === e.currentTarget) setShowCartSheet(false) }}>
+          <div
+            className="cart-sheet"
+            ref={sheetRef}
+            onTouchStart={onSheetTouchStart}
+            onTouchMove={onSheetTouchMove}
+            onTouchEnd={onSheetTouchEnd}
+            style={{ transition: 'transform 0.3s cubic-bezier(0.32,0.72,0,1)' }}
+          >
+            <div className="sheet-drag" />
+            <div className="sheet-hd">
+              <span className="sheet-title">Carrito ({cart.length})</span>
+              <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                {cart.length > 0 && <button className="btn-sm" style={{color:'#DC2626',borderColor:'rgba(220,38,38,0.2)'}} onClick={() => setCart([])}>Vaciar</button>}
+                <button className="sheet-close" onClick={() => setShowCartSheet(false)}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="cart-body" style={{flex:1,overflowY:'auto',padding:'4px 16px'}}>
+              {cart.map(item => (
+                <div key={item.key} className="cart-item">
+                  <div className="cart-item-name">{item.productName}</div>
+                  <div className="cart-item-sub">{item.variantName} · {item.sku}</div>
+                  <div className="cart-item-row">
+                    <div className="qty-ctrl">
+                      <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity - 1)}>−</button>
+                      <span className="qty-num">{item.quantity}</span>
+                      <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
+                    </div>
+                    <input
+                      className="disc-input"
+                      type="number" min="0" placeholder="Desc."
+                      value={item.discount || ''}
+                      onChange={e => updateItemDiscount(item.key, e.target.value)}
+                      title="Descuento"
+                    />
+                    <span className="item-price">{fmt(item.unitPrice * item.quantity - item.discount)}</span>
+                    <button className="rm-btn" onClick={() => removeItem(item.key)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="cart-footer" style={{flexShrink:0}}>
+              <div className="total-row"><span>Subtotal</span><span>{fmt(cartSubtotal)}</span></div>
+              <div className="cart-disc-row">
+                <span className="cart-disc-label">Descuento general</span>
+                <input className="cart-disc-input" type="number" min="0" placeholder="$0.00" value={cartDiscount} onChange={e => setCartDiscount(e.target.value)} />
+              </div>
+              {cartDiscountNum > 0 && <div className="total-row" style={{color:'#059669'}}><span>Ahorro</span><span>−{fmt(cartDiscountNum)}</span></div>}
+              <div className="total-row big"><span>Total</span><span>{fmt(cartTotal)}</span></div>
+              <button
+                className="btn-primary"
+                disabled={!customer || cart.length === 0}
+                onClick={() => { setShowCartSheet(false); setShowPayment(true) }}
+              >
+                {!customer ? 'Primero elige un cliente' : 'Continuar con el pago →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PAYMENT MODAL */}
       {showPayment && (
