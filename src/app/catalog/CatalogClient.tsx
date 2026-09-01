@@ -159,8 +159,6 @@ export default function CatalogClient({ products: initProducts, categories: init
           .new-btn{width:auto;height:auto;border-radius:50px;padding:8px 14px;gap:6px}
           .new-btn-lbl{display:inline;font-size:12px;font-weight:700}
         }
-        .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px)}}
 
         .search-wrap{margin-bottom:14px;position:relative}
         .search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none}
@@ -298,23 +296,20 @@ export default function CatalogClient({ products: initProducts, categories: init
 
       <Sidebar active="catalog" />
 
-      <div className="topbar">
-        <div className="topbar-row">
-          <div className="page-title">Inventario</div>
-          {tab === 'products'   && <Link href="/catalog/new" className="new-btn" aria-label="Agregar producto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Producto</span></Link>}
-          {tab === 'categories' && <button className="new-btn" onClick={() => openCat()} aria-label="Agregar categoría"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Categoría</span></button>}
-          {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()} aria-label="Agregar marca"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Marca</span></button>}
-        </div>
-        <div className="topbar-tabs">
-          {(['products','categories','brands'] as const).map(t => (
-            <button key={t} className={`topbar-tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>
-              {t === 'products' ? 'Productos' : t === 'categories' ? 'Categorías' : 'Marcas'}
-            </button>
-          ))}
-        </div>
-      </div>
-
           <div className="content">
+            <div className="page-hd-row">
+              <div className="page-title">Inventario</div>
+              {tab === 'products'   && <Link href="/catalog/new" className="new-btn" aria-label="Agregar producto"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Producto</span></Link>}
+              {tab === 'categories' && <button className="new-btn" onClick={() => openCat()} aria-label="Agregar categoría"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Categoría</span></button>}
+              {tab === 'brands'     && <button className="new-btn" onClick={() => openBrand()} aria-label="Agregar marca"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span className="new-btn-lbl">+ Marca</span></button>}
+            </div>
+            <div className="page-hd-tabs">
+              {(['products','categories','brands'] as const).map(t => (
+                <button key={t} className={`page-hd-tab${tab === t ? ' on' : ''}`} onClick={() => setTab(t)}>
+                  {t === 'products' ? 'Productos' : t === 'categories' ? 'Categorías' : 'Marcas'}
+                </button>
+              ))}
+            </div>
 
             {/* ── PRODUCTOS ── */}
             {tab === 'products' && (

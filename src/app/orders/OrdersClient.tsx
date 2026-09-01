@@ -114,8 +114,6 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
         .ord-count{font-size:12px;font-weight:700;color:rgba(10,10,14,0.40)}
-        .ord-content{padding:16px 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}
-        @media(min-width:768px){.ord-content{padding:16px 40px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}}
         .ord-list{background:var(--bg,#ECEEF2);border-radius:24px;overflow:hidden;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9)}
         .ord-row{display:flex;align-items:center;gap:12px;padding:14px 18px;border-top:1px solid rgba(0,0,0,0.04);cursor:pointer;transition:background .12s}
         .ord-row:first-child{border-top:none}
@@ -166,21 +164,18 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
 
       <Sidebar active="orders" />
 
-      <div className="topbar">
-        <div className="topbar-row">
+      <div className="content">
+        <div className="page-hd-row">
           <div className="page-title">Órdenes</div>
           <div className="ord-count">{filtered.length} {filtered.length === 1 ? 'orden' : 'órdenes'}</div>
         </div>
-        <div className="topbar-chips">
+        <div className="page-hd-chips">
           {['todos','pagado','apartado','en_preparacion','enviado','entregado','cancelado'].map(s => (
-            <button key={s} className={`topbar-chip${statusFilter===s?' on':''}`} onClick={() => setStatusFilter(s)}>
+            <button key={s} className={`page-hd-chip${statusFilter===s?' on':''}`} onClick={() => setStatusFilter(s)}>
               {s === 'todos' ? 'Todos' : STATUS[s]?.label ?? s}
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="ord-content">
 
         <div className="ord-list">
           {filtered.length === 0 ? (

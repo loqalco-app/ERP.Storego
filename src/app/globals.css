@@ -37,74 +37,45 @@ input, select, textarea {
 }
 
 /*
- * ── Global .topbar ───────────────────────────────────────────
- * Mobile: sticky frosted-glass (único header en móvil).
- * Desktop: bloque normal — el único bar anclado en desktop
- * es el .desk-header global (el que tiene el chip).
+ * ── Global .page-hd ──────────────────────────────────────────
+ * Cabecera de página: vive DENTRO de .content (no sticky).
+ * El único bar anclado es .desk-header (el chip de perfil).
  * ─────────────────────────────────────────────────────────────
  */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  background: rgba(236, 238, 242, 0.92);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
-  backdrop-filter: blur(20px) saturate(160%);
-  border-bottom: 1px solid rgba(0,0,0,0.07);
-  display: flex;
-  flex-direction: column;
-  padding-top: max(env(safe-area-inset-top, 0px), 16px);
-}
-@media (min-width: 768px) {
-  /* En desktop no es sticky — solo es cabecera visual de la sección */
-  .topbar {
-    position: static;
-    background: transparent;
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    border-bottom: none;
-    padding-top: 0;
-  }
-}
 
 /* Fila horizontal: título flex-1 + botón de acción a la derecha */
-.topbar-row { display: flex; align-items: center; gap: 12px; padding: 0 20px 14px; }
-@media (min-width: 768px) { .topbar-row { padding: 20px 40px 14px; } }
+.page-hd-row { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; }
 
 /* Tabs con underline */
-.topbar-tabs { display: flex; overflow-x: auto; scrollbar-width: none; border-top: 1px solid rgba(0,0,0,0.06); padding: 0 20px; }
-.topbar-tabs::-webkit-scrollbar { display: none; }
-@media (min-width: 768px) { .topbar-tabs { padding: 0 40px; } }
-.topbar-tab { padding: 10px 16px; border: none; border-bottom: 2.5px solid transparent; background: none; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; color: rgba(10,10,14,0.42); white-space: nowrap; flex-shrink: 0; transition: color .15s; }
-.topbar-tab.on { color: #1D4ED8; border-bottom-color: #1D4ED8; }
+.page-hd-tabs { display: flex; overflow-x: auto; scrollbar-width: none; border-bottom: 1.5px solid rgba(0,0,0,0.07); margin-bottom: 20px; }
+.page-hd-tabs::-webkit-scrollbar { display: none; }
+.page-hd-tab { padding: 10px 16px; border: none; border-bottom: 2.5px solid transparent; background: none; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; color: rgba(10,10,14,0.42); white-space: nowrap; flex-shrink: 0; transition: color .15s; margin-bottom: -1.5px; }
+.page-hd-tab.on { color: #1D4ED8; border-bottom-color: #1D4ED8; }
 
-/* Chips pill (filtros de estado, periodos, etc.) */
-.topbar-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 0 20px 12px; }
-.topbar-chips::-webkit-scrollbar { display: none; }
-@media (min-width: 768px) { .topbar-chips { padding: 0 40px 12px; } }
-.topbar-chip { padding: 7px 16px; border-radius: 50px; border: 1.5px solid rgba(0,0,0,0.10); background: none; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; color: rgba(10,10,14,0.55); white-space: nowrap; flex-shrink: 0; transition: all .15s; }
-.topbar-chip.on { border-color: #2563EB; background: rgba(37,99,235,0.08); color: #1D4ED8; }
+/* Chips pill */
+.page-hd-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 16px; }
+.page-hd-chips::-webkit-scrollbar { display: none; }
+.page-hd-chip { padding: 7px 16px; border-radius: 50px; border: 1.5px solid rgba(0,0,0,0.10); background: none; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; color: rgba(10,10,14,0.55); white-space: nowrap; flex-shrink: 0; transition: all .15s; }
+.page-hd-chip.on { border-color: #2563EB; background: rgba(37,99,235,0.08); color: #1D4ED8; }
 
 /*
  * ── Global .content ──────────────────────────────────────────
- * Zona verde: con topbar sticky ya no hace falta min-height
- * forzado — el contenido ocupa el espacio natural restante.
- * El padding-bottom deja espacio libre sobre el nav flotante.
+ * Arranca justo debajo del .desk-header en desktop.
+ * En mobile incluye el safe-area del notch como padding-top.
  * ─────────────────────────────────────────────────────────────
  */
 .content {
-  min-height: calc(
-    100dvh
-    - var(--topbar-h, 104px)
-    - var(--nav-h, 80px)
-    - 16px
-  );
-  padding-top: 4px;
+  padding-top: max(env(safe-area-inset-top, 0px), 20px);
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: calc(var(--nav-h, 88px) + env(safe-area-inset-bottom, 0px) + 16px);
 }
 
 @media (min-width: 768px) {
   .content {
     padding-top: 24px;
+    padding-left: 40px;
+    padding-right: 40px;
   }
 }
 

@@ -56,8 +56,6 @@ export default function CustomersClient({ customers: initCustomers }: Props) {
           .new-btn{width:auto;height:auto;border-radius:50px;padding:8px 14px;gap:6px}
           .new-btn-lbl{display:inline;font-size:12px;font-weight:700}
         }
-        .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px)}}
         .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
         @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}}
         .stat{background:var(--bg,#ECEEF2);border-radius:var(--r-lg,20px);padding:14px 16px;box-shadow:var(--shadow-md);cursor:pointer;border:2px solid transparent;transition:all 0.15s}
@@ -122,17 +120,14 @@ export default function CustomersClient({ customers: initCustomers }: Props) {
 
       <Sidebar active="customers" />
 
-      <div className="topbar">
-        <div className="topbar-row">
+      <div className="content">
+        <div className="page-hd-row">
           <div className="page-title">Clientes</div>
           <Link href="/customers/new" className="new-btn" aria-label="Agregar cliente">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             <span className="new-btn-lbl">+ Cliente</span>
           </Link>
         </div>
-      </div>
-
-      <div className="content">
         <div className="stats">
           {([['all','Todos'],['active','Activos'],['inactive','Inactivos'],['blocked','Bloqueados']] as const).map(([k,l]) => (
             <div key={k} className={`stat${filter===k?' on':''}`} onClick={() => setFilter(k)}>

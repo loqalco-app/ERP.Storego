@@ -63,13 +63,10 @@ export default function DashboardClient({ userName, orgName, stats, recentOrders
 
       <Sidebar active="dashboard" />
 
-      <div className="topbar">
-        <div className="topbar-row">
+      <div className="content">
+        <div className="page-hd-row">
           <div className="page-title">Inicio</div>
         </div>
-      </div>
-
-      <div className="content">
         <div className="hero">
           <div className="hero-label">Ingresos del mes</div>
           <div className="hero-value">{fmt(stats.monthRevenue)}</div>
