@@ -103,14 +103,14 @@ export default function Sidebar({ active }: Props) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-        /* ── Profile chip — fixed top right ── */
+        /* ── Profile chip — fixed bottom right ── */
         .nav-profile-wrap{
           position:fixed;
-          top:max(env(safe-area-inset-top,0px),12px);
+          bottom:calc(var(--nav-h,80px) + max(env(safe-area-inset-bottom,0px),8px) + 12px);
           right:16px;
           z-index:300
         }
-        @media(min-width:768px){.nav-profile-wrap{top:max(env(safe-area-inset-top,0px),20px);right:24px}}
+        @media(min-width:768px){.nav-profile-wrap{bottom:calc(var(--nav-h,80px) + max(env(safe-area-inset-bottom,0px),16px) + 12px);right:24px}}
 
         .profile-chip{
           display:flex;align-items:center;gap:8px;
@@ -154,10 +154,10 @@ export default function Sidebar({ active }: Props) {
 
         /* ── Profile dropdown menu ── */
         .pc-dropdown{
-          position:absolute;top:calc(100% + 8px);right:0;
+          position:absolute;bottom:calc(100% + 8px);right:0;top:auto;
           background:var(--bg,#ECEEF2);
           border-radius:var(--r-lg,20px);
-          box-shadow:0 16px 48px rgba(0,0,0,0.13),0 4px 16px rgba(0,0,0,0.08);
+          box-shadow:0 -8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
           min-width:200px;
           overflow:hidden;
           z-index:400

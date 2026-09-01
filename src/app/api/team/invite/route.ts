@@ -248,9 +248,10 @@ export async function DELETE(request: Request) {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
+  // DELETE directo — evita conflicto de unique constraint (org_id, email, status)
   const { error } = await adminClient
     .from('organization_invitations')
-    .update({ status: 'cancelled' })
+    .delete()
     .eq('id', invitationId)
     .eq('organization_id', orgId)
 
