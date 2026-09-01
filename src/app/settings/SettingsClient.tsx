@@ -94,6 +94,25 @@ export default function SettingsClient({
   const [regenCopied, setRegenCopied] = useState(false)
   const [regenError, setRegenError] = useState('')
 
+  /* Editar miembro */
+  const [editMember,  setEditMember]  = useState<Member|null>(null)
+  const [editName,    setEditName]    = useState('')
+  const [editRole,    setEditRole]    = useState('staff')
+  const [editSaving,  setEditSaving]  = useState(false)
+  const [editMsg,     setEditMsg]     = useState<{ type:'ok'|'err'; text:string }|null>(null)
+
+  /* Eliminar miembro */
+  const [deleteMember,   setDeleteMember]   = useState<Member|null>(null)
+  const [deleteLoading,  setDeleteLoading]  = useState(false)
+  const [deleteError,    setDeleteError]    = useState('')
+
+  /* Restablecer contraseña */
+  const [resetMember,  setResetMember]  = useState<Member|null>(null)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetLink,    setResetLink]    = useState('')
+  const [resetCopied,  setResetCopied]  = useState(false)
+  const [resetError,   setResetError]   = useState('')
+
   const canManage = ['owner','admin'].includes(myRole)
 
   function openInviteModal() { setShowInvite(true); setInvStep('form'); setInvMsg(null); setGeneratedLink(''); setCopied(false); setInvPassword('') }
@@ -108,11 +127,15 @@ export default function SettingsClient({
   // Escape cierra cualquier modal abierto
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeInviteModal()
+      if (e.key !== 'Escape') return
+      if (editMember)   { closeEdit(); return }
+      if (deleteMember) { setDeleteMember(null); setDeleteError(''); return }
+      if (resetMember)  { closeReset(); return }
+      closeInviteModal()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
+  }, [editMember, deleteMember, resetMember])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -225,6 +248,57 @@ export default function SettingsClient({
     setUpdatingId(null)
   }
 
+  function openEdit(m: Member) {
+    setEditMember(m); setEditName(m.full_name); setEditRole(m.role); setEditMsg(null)
+  }
+  function closeEdit() { setEditMember(null); setEditMsg(null) }
+
+  async function handleEditSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editMember || !editName.trim()) return
+    setEditSaving(true); setEditMsg(null)
+    const res = await fetch('/api/team/member', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberId: editMember.id, fullName: editName.trim(), role: editRole, orgId }),
+    })
+    const data = await res.json()
+    setEditSaving(false)
+    if (!res.ok) { setEditMsg({ type:'err', text: data.error ?? 'Error al guardar.' }); return }
+    setMemberList(prev => prev.map(m => m.id === editMember.id ? { ...m, full_name: editName.trim(), role: editRole } : m))
+    closeEdit()
+  }
+
+  async function handleDelete() {
+    if (!deleteMember) return
+    setDeleteLoading(true); setDeleteError('')
+    const res = await fetch('/api/team/member', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberId: deleteMember.id, orgId }),
+    })
+    const data = await res.json()
+    setDeleteLoading(false)
+    if (!res.ok) { setDeleteError(data.error ?? 'Error al eliminar.'); return }
+    setMemberList(prev => prev.filter(m => m.id !== deleteMember.id))
+    setDeleteMember(null)
+  }
+
+  async function handleResetPassword(m: Member) {
+    setResetMember(m); setResetLink(''); setResetCopied(false); setResetError('')
+    setResetLoading(true)
+    const res = await fetch('/api/team/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ memberId: m.id, orgId }),
+    })
+    const data = await res.json()
+    setResetLoading(false)
+    if (!res.ok) { setResetError(data.error ?? 'Error al generar el link.'); return }
+    setResetLink(data.link)
+  }
+  function closeReset() { setResetMember(null); setResetLink(''); setResetError('') }
+
   const EyeIcon = ({ show }: { show: boolean }) => show
     ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
     : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -319,6 +393,23 @@ export default function SettingsClient({
         .mode-tab.on{background:var(--bg,#ECEEF2);color:var(--text-1,#1A1A20);box-shadow:0 1px 4px rgba(0,0,0,0.10)}
         .pw-wrap{position:relative;margin-bottom:14px}
         .pw-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.38);padding:4px;display:flex;align-items:center}
+        .member-actions{display:flex;align-items:center;gap:6px;margin-left:8px}
+        .mem-act-btn{width:30px;height:30px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.12s;flex-shrink:0}
+        .mem-act-btn:disabled{opacity:0.4;cursor:default}
+        .mem-act-edit{background:rgba(0,0,0,0.06);color:var(--text-2,#374151)}
+        .mem-act-edit:hover{background:rgba(0,0,0,0.12)}
+        .mem-act-key{background:rgba(217,119,6,0.10);color:#D97706}
+        .mem-act-key:hover{background:rgba(217,119,6,0.18)}
+        .mem-act-del{background:rgba(220,38,38,0.08);color:#DC2626}
+        .mem-act-del:hover{background:rgba(220,38,38,0.15)}
+        .confirm-modal{background:var(--bg,#ECEEF2);border-radius:var(--r-2xl,28px);padding:28px 24px;width:100%;max-width:400px;box-shadow:var(--shadow-float);margin:0 8px 8px}
+        .confirm-title{font-size:18px;font-weight:800;color:var(--text-1);margin-bottom:8px;letter-spacing:-0.3px}
+        .confirm-sub{font-size:14px;color:var(--text-3);margin-bottom:24px;line-height:1.5}
+        .confirm-actions{display:flex;gap:10px}
+        .btn-danger{flex:2;padding:14px;border-radius:var(--r-xl,24px);border:none;background:linear-gradient(145deg,#DC2626,#EF4444);font-size:15px;font-weight:700;color:white;cursor:pointer;font-family:inherit;transition:opacity 0.15s}
+        .btn-danger:hover{opacity:.90}
+        .btn-danger:disabled{opacity:.5;cursor:not-allowed}
+        .reset-modal{background:var(--bg,#ECEEF2);border-radius:var(--r-2xl,28px);padding:28px 24px;width:100%;max-width:480px;box-shadow:var(--shadow-float);margin:0 8px 8px}
       `}</style>
 
       <Sidebar active="settings" />
@@ -425,7 +516,7 @@ export default function SettingsClient({
               {memberList.map(m => {
                 const rm = ROLE_META[m.role] ?? ROLE_META.staff
                 const isMe = m.id === myUserId
-                const canEdit = canManage && !isMe && m.role !== 'owner'
+                const canAct = canManage && !isMe && m.role !== 'owner'
                 return (
                   <div key={m.id} className="member-row">
                     <div className="av-sm">{initials(m.full_name)}</div>
@@ -434,12 +525,32 @@ export default function SettingsClient({
                       <div className="modules-chip">{MODULES[m.role]?.map(mod => <span key={mod} className="mod">{mod}</span>)}</div>
                     </div>
                     <div className="member-right">
-                      {canEdit
-                        ? <select className="role-select badge" style={{ background:rm.bg, color:rm.color }} value={m.role} disabled={updatingId === m.id} onChange={e => changeRole(m.id, e.target.value)}>
-                            {Object.entries(ROLE_META).filter(([k]) => k !== 'owner').map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
-                          </select>
-                        : <span className="badge" style={{ background:rm.bg, color:rm.color }}>{rm.label}</span>
-                      }
+                      <span className="badge" style={{ background:rm.bg, color:rm.color }}>{rm.label}</span>
+                      {canAct && (
+                        <div className="member-actions">
+                          <button
+                            className="mem-act-btn mem-act-edit"
+                            title="Editar"
+                            onClick={() => openEdit(m)}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button
+                            className="mem-act-btn mem-act-key"
+                            title="Restablecer contraseña"
+                            onClick={() => handleResetPassword(m)}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          </button>
+                          <button
+                            className="mem-act-btn mem-act-del"
+                            title="Eliminar usuario"
+                            onClick={() => { setDeleteMember(m); setDeleteError('') }}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )
@@ -524,6 +635,110 @@ export default function SettingsClient({
           </>
         )}
       </div>
+
+      {/* ── Edit member modal ── */}
+      {editMember && (
+        <div className="modal-scrim" onClick={e => { if (e.target === e.currentTarget) closeEdit() }}>
+          <div className="modal">
+            <div className="modal-title">Editar miembro</div>
+            <div className="modal-sub" style={{ marginBottom:20 }}>Cambia el nombre o el rol de {editMember.full_name}.</div>
+            {editMsg && <div className={editMsg.type === 'ok' ? 'alert-ok' : 'alert-err'} style={{ marginBottom:14 }}>{editMsg.text}</div>}
+            <form onSubmit={handleEditSave}>
+              <div className="fl">Nombre completo *</div>
+              <input className="mfi" type="text" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nombre completo" required />
+              <div className="fl">Rol</div>
+              <div className="role-pills" style={{ marginBottom:20 }}>
+                {(['admin','staff','viewer'] as const).map(r => (
+                  <button key={r} type="button" className={`rpill${editRole===r?' on':''}`} onClick={() => setEditRole(r)}>
+                    {ROLE_META[r].label}
+                    <span className="rpill-desc">{ROLE_META[r].desc}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="btn-cancel" onClick={closeEdit}>Cancelar</button>
+                <button type="submit" className="btn-send" disabled={editSaving || !editName.trim()}>
+                  {editSaving ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete confirmation modal ── */}
+      {deleteMember && (
+        <div className="modal-scrim" onClick={e => { if (e.target === e.currentTarget) { setDeleteMember(null); setDeleteError('') } }}>
+          <div className="confirm-modal">
+            <div style={{ width:44, height:44, borderRadius:'50%', background:'rgba(220,38,38,0.10)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:16 }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </div>
+            <div className="confirm-title">Eliminar usuario</div>
+            <div className="confirm-sub">
+              ¿Estás seguro de eliminar a <strong>{deleteMember.full_name}</strong>? Perderá acceso inmediatamente y no podrá recuperar su cuenta.
+            </div>
+            {deleteError && <div className="alert-err" style={{ marginBottom:16 }}>{deleteError}</div>}
+            <div className="confirm-actions">
+              <button type="button" className="btn-cancel" style={{ flex:1 }} onClick={() => { setDeleteMember(null); setDeleteError('') }}>Cancelar</button>
+              <button type="button" className="btn-danger" disabled={deleteLoading} onClick={handleDelete}>
+                {deleteLoading ? 'Eliminando...' : 'Sí, eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Reset password modal ── */}
+      {resetMember && (
+        <div className="modal-scrim" onClick={e => { if (e.target === e.currentTarget) closeReset() }}>
+          <div className="reset-modal">
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
+              <div style={{ width:44, height:44, borderRadius:'50%', background:'rgba(217,119,6,0.12)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div>
+                <div className="modal-title" style={{ margin:0 }}>Restablecer contraseña</div>
+                <div style={{ fontSize:13, color:'var(--text-3)', marginTop:2 }}>{resetMember.full_name}</div>
+              </div>
+            </div>
+
+            {resetLoading && (
+              <div style={{ textAlign:'center', padding:'20px 0', fontSize:14, color:'var(--text-3)', fontWeight:600 }}>Generando link seguro...</div>
+            )}
+
+            {!resetLoading && resetError && (
+              <div className="alert-err" style={{ marginBottom:16 }}>{resetError}</div>
+            )}
+
+            {!resetLoading && resetLink && (
+              <>
+                <div style={{ fontSize:13, color:'var(--text-3)', marginBottom:12, lineHeight:1.5 }}>
+                  Copia este link y mándalo por WhatsApp a <strong>{resetMember.full_name}</strong>. Solo funciona una vez y expira en 24 horas.
+                </div>
+                <div style={{ background:'rgba(0,0,0,0.04)', border:'1.5px solid rgba(0,0,0,0.08)', borderRadius:14, padding:'12px 14px', marginBottom:12, wordBreak:'break-all', fontSize:11, fontWeight:500, color:'var(--text-2)', lineHeight:1.5, fontFamily:'monospace', maxHeight:80, overflowY:'auto' }}>
+                  {resetLink}
+                </div>
+                <button
+                  onClick={async () => {
+                    try { await navigator.clipboard.writeText(resetLink); setResetCopied(true); setTimeout(() => setResetCopied(false), 2500) } catch { /* ignore */ }
+                  }}
+                  style={{ width:'100%', padding:'13px', borderRadius:14, border:'none', marginBottom:10, cursor:'pointer', fontFamily:'inherit', fontSize:14, fontWeight:700, transition:'all 0.15s',
+                    background: resetCopied ? 'rgba(5,150,105,0.12)' : 'linear-gradient(145deg,#1D4ED8,#2563EB)',
+                    color: resetCopied ? '#065f46' : 'white',
+                    boxShadow: resetCopied ? 'none' : '0 4px 14px rgba(29,78,216,0.28)',
+                  }}
+                >
+                  {resetCopied ? '✓ ¡Copiado!' : 'Copiar link'}
+                </button>
+              </>
+            )}
+
+            <button className="btn-cancel" style={{ width:'100%', padding:'13px', borderRadius:14 }} onClick={closeReset}>
+              {resetLink ? 'Listo' : 'Cancelar'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {showInvite && (
         <div className="modal-scrim" onClick={e => { if (e.target === e.currentTarget) closeInviteModal() }}>
