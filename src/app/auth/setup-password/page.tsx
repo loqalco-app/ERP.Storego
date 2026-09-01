@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 export default function SetupPasswordPage() {
   const router = useRouter()
   const [userName, setUserName] = useState('')
+  const [userEmail, setUserEmail] = useState('')
   const [newPass, setNewPass]   = useState('')
   const [confPass, setConfPass] = useState('')
   const [loading, setLoading]   = useState(true)
@@ -23,6 +24,7 @@ export default function SetupPasswordPage() {
         || data.user.email?.split('@')[0]
         || ''
       setUserName(name)
+      setUserEmail(data.user.email ?? '')
       setLoading(false)
     })
   }, [router])
@@ -70,6 +72,11 @@ export default function SetupPasswordPage() {
         .submit-btn:hover{opacity:.92}
         .submit-btn:active{transform:scale(0.98)}
         .submit-btn:disabled{opacity:.5;cursor:not-allowed}
+        .info-block{background:rgba(0,0,0,0.03);border:1.5px solid rgba(0,0,0,0.06);border-radius:16px;padding:14px 16px;margin-bottom:24px}
+        .info-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+        .info-row+.info-row{margin-top:8px;padding-top:8px;border-top:1px solid rgba(0,0,0,0.05)}
+        .info-lbl{font-size:11px;font-weight:700;color:rgba(10,10,14,0.38);text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap}
+        .info-val{font-size:14px;font-weight:600;color:#0A0A0E;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
 
@@ -77,7 +84,20 @@ export default function SetupPasswordPage() {
         <div className="card">
           <div className="logo">S</div>
           <div className="greeting">¡Hola, {firstName}!</div>
-          <div className="sub">Te han invitado a Store ERP.<br />Crea tu contraseña para continuar.</div>
+          <div className="sub" style={{marginBottom:20}}>Crea tu contraseña para entrar a Store ERP.</div>
+
+          <div className="info-block">
+            <div className="info-row">
+              <span className="info-lbl">Nombre</span>
+              <span className="info-val">{userName}</span>
+            </div>
+            {userEmail && (
+              <div className="info-row">
+                <span className="info-lbl">Correo</span>
+                <span className="info-val">{userEmail}</span>
+              </div>
+            )}
+          </div>
 
           {error && <div className="alert-err">{error}</div>}
 

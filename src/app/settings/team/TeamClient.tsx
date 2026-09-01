@@ -41,34 +41,48 @@ function timeAgo(dateStr: string) {
 
 export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, members, invitations, migrationNeeded }: Props) {
   const [showInvite, setShowInvite]     = useState(false)
+  const [invStep, setInvStep]           = useState<'form'|'link'>('form')
   const [invFirstName, setInvFirstName] = useState('')
   const [invLastName, setInvLastName]   = useState('')
   const [invEmail, setInvEmail]         = useState('')
   const [invRole, setInvRole]           = useState('staff')
   const [sending, setSending]           = useState(false)
   const [invMsg, setInvMsg]             = useState<{ type: 'ok'|'err'; text: string } | null>(null)
+  const [generatedLink, setGeneratedLink] = useState('')
+  const [copied, setCopied]             = useState(false)
   const [memberList, setMemberList]   = useState<Member[]>(members)
   const [invList, setInvList]         = useState<Invitation[]>(invitations)
   const [updatingId, setUpdatingId]   = useState<string|null>(null)
 
   const canManage = ['owner','admin'].includes(myRole)
 
+  function openInviteModal() { setShowInvite(true); setInvStep('form'); setInvMsg(null); setGeneratedLink(''); setCopied(false) }
+  function closeInviteModal() {
+    setShowInvite(false); setInvStep('form'); setGeneratedLink(''); setCopied(false)
+    setInvMsg(null); setInvFirstName(''); setInvLastName(''); setInvEmail(''); setInvRole('staff')
+  }
+
+  async function copyLink() {
+    try { await navigator.clipboard.writeText(generatedLink); setCopied(true); setTimeout(() => setCopied(false), 2500) } catch { /* ignore */ }
+  }
+
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault()
     if (!invEmail.trim() || !invFirstName.trim()) return
     setSending(true); setInvMsg(null)
     const fullName = `${invFirstName.trim()} ${invLastName.trim()}`.trim()
+    const emailVal = invEmail.trim()
     const res = await fetch('/api/team/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: invEmail.trim(), role: invRole, orgId, fullName }),
+      body: JSON.stringify({ email: emailVal, role: invRole, orgId, fullName }),
     })
     const data = await res.json()
-    if (!res.ok) { setInvMsg({ type: 'err', text: data.error ?? 'Error al enviar invitación' }); setSending(false); return }
-    setInvMsg({ type: 'ok', text: data.method === 'resend' ? `Invitación enviada a ${invEmail}` : `Invitación creada. Agrega RESEND_API_KEY en Vercel para emails personalizados.` })
-    setInvFirstName(''); setInvLastName(''); setInvEmail(''); setInvRole('staff'); setSending(false)
-    setInvList(prev => [{ id: Date.now().toString(), email: invEmail.trim(), role: invRole, status: 'pending', created_at: new Date().toISOString(), expires_at: new Date(Date.now()+7*86400000).toISOString() }, ...prev])
-    setTimeout(() => { setShowInvite(false); setInvMsg(null) }, 2500)
+    setSending(false)
+    if (!res.ok) { setInvMsg({ type: 'err', text: data.error ?? 'Error al generar acceso' }); return }
+    setGeneratedLink(data.link)
+    setInvList(prev => [{ id: Date.now().toString(), email: emailVal, role: invRole, status: 'pending', created_at: new Date().toISOString(), expires_at: new Date(Date.now()+7*86400000).toISOString() }, ...prev])
+    setInvStep('link')
   }
 
   async function cancelInvitation(invId: string) {
@@ -180,9 +194,9 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
         <div className="section-hd">
           <div className="section-title">{memberList.length} miembro{memberList.length !== 1 ? 's' : ''}</div>
           {canManage && (
-            <button className="invite-btn" onClick={() => { setShowInvite(true); setInvMsg(null) }}>
+            <button className="invite-btn" onClick={openInviteModal}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              <span className="invite-btn-lbl">Invitar</span>
+              <span className="invite-btn-lbl">Agregar</span>
             </button>
           )}
         </div>
@@ -276,50 +290,90 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
 
       {/* Invite Modal */}
       {showInvite && (
-        <div className="modal-scrim" onClick={e => { if (e.target === e.currentTarget) setShowInvite(false) }}>
+        <div className="modal-scrim" onClick={e => { if (e.target === e.currentTarget) closeInviteModal() }}>
           <div className="modal">
-            <div className="modal-title">Invitar al equipo</div>
-            <div className="modal-sub">El usuario recibirá un correo para unirse a {orgName}.</div>
 
-            {invMsg && <div className={invMsg.type === 'ok' ? 'alert-ok' : 'alert-err'}>{invMsg.text}</div>}
+            {invStep === 'form' ? (
+              <>
+                <div className="modal-title">Agregar al equipo</div>
+                <div className="modal-sub">Llena los datos y genera el link de acceso para mandar por WhatsApp.</div>
 
-            <form onSubmit={handleInvite}>
-              <div className="name-row">
-                <div>
-                  <div className="fl">Nombre *</div>
-                  <input className="fi" type="text" placeholder="Juan" value={invFirstName} onChange={e => setInvFirstName(e.target.value)} autoFocus required style={{marginBottom:0}} />
+                {invMsg && <div className={invMsg.type === 'ok' ? 'alert-ok' : 'alert-err'}>{invMsg.text}</div>}
+
+                <form onSubmit={handleInvite}>
+                  <div className="name-row">
+                    <div>
+                      <div className="fl">Nombre *</div>
+                      <input className="fi" type="text" placeholder="Juan" value={invFirstName} onChange={e => setInvFirstName(e.target.value)} autoFocus required style={{marginBottom:0}} />
+                    </div>
+                    <div>
+                      <div className="fl">Apellido</div>
+                      <input className="fi" type="text" placeholder="García" value={invLastName} onChange={e => setInvLastName(e.target.value)} style={{marginBottom:0}} />
+                    </div>
+                  </div>
+
+                  <div className="fl">Correo electrónico *</div>
+                  <input className="fi" type="email" placeholder="nombre@ejemplo.com" value={invEmail} onChange={e => setInvEmail(e.target.value)} required />
+
+                  <div className="fl">Rol</div>
+                  <div className="role-pills">
+                    {(['admin','staff','viewer'] as const).map(r => (
+                      <button key={r} type="button" className={`rpill${invRole===r?' on':''}`} onClick={() => setInvRole(r)}>
+                        {ROLE_META[r].label}
+                        <span className="rpill-desc">{ROLE_META[r].desc}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="modules-preview">
+                    <div className="modules-preview-title">Módulos con acceso</div>
+                    <div className="mod-list">
+                      {MODULES[invRole]?.map(mod => <span key={mod} className="mod">{mod}</span>)}
+                    </div>
+                  </div>
+
+                  <div className="modal-actions">
+                    <button type="button" className="btn-cancel" onClick={closeInviteModal}>Cancelar</button>
+                    <button type="submit" className="btn-send" disabled={sending}>{sending ? 'Generando...' : 'Generar acceso'}</button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <>
+                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                  <div style={{width:36,height:36,borderRadius:'50%',background:'rgba(5,150,105,0.12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <div className="modal-title" style={{margin:0}}>Acceso generado</div>
                 </div>
-                <div>
-                  <div className="fl">Apellido</div>
-                  <input className="fi" type="text" placeholder="García" value={invLastName} onChange={e => setInvLastName(e.target.value)} style={{marginBottom:0}} />
+                <div className="modal-sub" style={{marginBottom:20}}>
+                  Copia este link y mándalo por WhatsApp a <strong>{invEmail}</strong>. Solo funciona una vez — al usarlo queda inválido.
                 </div>
-              </div>
 
-              <div className="fl">Correo electrónico *</div>
-              <input className="fi" type="email" placeholder="nombre@ejemplo.com" value={invEmail} onChange={e => setInvEmail(e.target.value)} required />
-
-              <div className="fl">Rol</div>
-              <div className="role-pills">
-                {(['admin','staff','viewer'] as const).map(r => (
-                  <button key={r} type="button" className={`rpill${invRole===r?' on':''}`} onClick={() => setInvRole(r)}>
-                    {ROLE_META[r].label}
-                    <span className="rpill-desc">{ROLE_META[r].desc}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="modules-preview">
-                <div className="modules-preview-title">Módulos con acceso</div>
-                <div className="mod-list">
-                  {MODULES[invRole]?.map(mod => <span key={mod} className="mod">{mod}</span>)}
+                <div style={{background:'rgba(0,0,0,0.04)',border:'1.5px solid rgba(0,0,0,0.08)',borderRadius:14,padding:'12px 14px',marginBottom:12,wordBreak:'break-all',fontSize:12,fontWeight:500,color:'var(--text-2,#374151)',lineHeight:1.5,fontFamily:'monospace',maxHeight:80,overflowY:'auto'}}>
+                  {generatedLink}
                 </div>
-              </div>
 
-              <div className="modal-actions">
-                <button type="button" className="btn-cancel" onClick={() => setShowInvite(false)}>Cancelar</button>
-                <button type="submit" className="btn-send" disabled={sending}>{sending ? 'Enviando...' : 'Enviar invitación'}</button>
-              </div>
-            </form>
+                <button
+                  onClick={copyLink}
+                  style={{width:'100%',padding:'13px',borderRadius:14,border:'none',marginBottom:10,cursor:'pointer',fontFamily:'inherit',fontSize:14,fontWeight:700,transition:'all 0.15s',
+                    background: copied ? 'rgba(5,150,105,0.12)' : 'linear-gradient(145deg,#1D4ED8,#2563EB)',
+                    color: copied ? '#065f46' : 'white',
+                    boxShadow: copied ? 'none' : '0 4px 14px rgba(29,78,216,0.28)',
+                  }}
+                >
+                  {copied
+                    ? '✓ ¡Copiado!'
+                    : <span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        Copiar link
+                      </span>
+                  }
+                </button>
+
+                <button className="btn-cancel" style={{width:'100%',padding:'13px',borderRadius:14}} onClick={closeInviteModal}>Listo</button>
+              </>
+            )}
           </div>
         </div>
       )}
