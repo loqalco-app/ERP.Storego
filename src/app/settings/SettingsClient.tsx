@@ -137,8 +137,10 @@ export default function SettingsClient({
 
   async function cancelInvitation(invId: string) {
     setUpdatingId(invId)
-    await fetch('/api/team/invite', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ invitationId: invId, orgId }) })
-    setInvList(prev => prev.filter(i => i.id !== invId))
+    const res = await fetch('/api/team/invite', { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ invitationId: invId, orgId }) })
+    if (res.ok) {
+      setInvList(prev => prev.filter(i => i.id !== invId))
+    }
     setUpdatingId(null)
   }
 
