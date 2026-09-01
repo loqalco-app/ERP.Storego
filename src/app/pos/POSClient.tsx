@@ -3,6 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import Sidebar from '@/components/Sidebar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Variant = { id: string; name: string; sku: string; sale_price: number; stock: number }
@@ -236,24 +237,35 @@ export default function POSClient({
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  if (savedFolio) return <SuccessScreen folio={savedFolio} onNew={() => {
+  function resetPOS() {
     setCart([]); setCustomer(null); setCustSearch(''); setCartDiscount('')
     setPayments([{ method:'efectivo', amount:'' }]); setIsApartado(false)
     setShipType('pickup'); setShipAddr({ line1:'', line2:'', city:'', state:'', zip:'' })
     setSkipAddr(false); setSavedFolio(''); setMobileTab('productos')
-  }} onView={() => router.push('/orders')} />
+  }
+
+  if (savedFolio) return (
+    <>
+      <Sidebar active="pos" />
+      <SuccessScreen folio={savedFolio} onNew={resetPOS} onView={() => router.push('/orders')} />
+    </>
+  )
 
   return (
     <>
+      <Sidebar active="pos" />
       <style>{`
-        .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif}
-        .pos-header{display:flex;align-items:center;gap:12px;padding:14px 20px;background:var(--bg,#ECEEF2);border-bottom:1px solid rgba(0,0,0,0.07);flex-shrink:0}
-        .pos-title{font-size:17px;font-weight:800;color:var(--text,#0A0A0E);letter-spacing:-0.3px}
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        .pos-wrap{display:flex;flex-direction:column;height:calc(100dvh - var(--nav-h,88px));overflow:hidden;background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif}
+        @media(min-width:768px){.pos-wrap{height:100dvh}}
+        .pos-header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg,#ECEEF2);border-bottom:1px solid rgba(0,0,0,0.07);flex-shrink:0}
+        .pos-title{font-size:16px;font-weight:800;color:var(--text,#0A0A0E);letter-spacing:-0.3px}
         .pos-body{display:flex;flex:1;overflow:hidden}
         /* LEFT */
-        .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:16px 12px 16px 16px}
+        .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:12px 10px 12px 12px}
         /* RIGHT */
-        .pos-right{width:340px;display:flex;flex-direction:column;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);flex-shrink:0}
+        .pos-right{width:300px;display:flex;flex-direction:column;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);flex-shrink:0}
+        @media(min-width:1024px){.pos-right{width:320px}}
         /* CUSTOMER */
         .cust-panel{background:rgba(0,0,0,0.03);border:1.5px solid rgba(0,0,0,0.07);border-radius:16px;padding:12px 14px;margin-bottom:12px;flex-shrink:0;position:relative}
         .cust-label{font-size:10px;font-weight:700;color:rgba(10,10,14,0.38);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
@@ -276,15 +288,15 @@ export default function POSClient({
         .search-input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none;transition:border-color .15s}
         .search-input:focus{border-color:#2563EB}
         /* PRODUCT GRID */
-        .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;overflow-y:auto;flex:1;padding-right:4px}
-        .prod-card{background:var(--bg,#ECEEF2);border-radius:16px;padding:14px;cursor:pointer;border:1.5px solid rgba(0,0,0,0.07);box-shadow:4px 4px 12px rgba(0,0,0,0.06),-3px -3px 8px rgba(255,255,255,0.9);transition:transform .12s,box-shadow .12s}
+        .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;overflow-y:auto;flex:1;padding-right:4px;align-content:start}
+        .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s}
         .prod-card:active{transform:scale(.97)}
-        .prod-card-name{font-size:13px;font-weight:700;color:var(--text,#0A0A0E);margin-bottom:4px;line-height:1.3}
-        .prod-card-var{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:8px}
+        .prod-card-name{font-size:12px;font-weight:700;color:var(--text,#0A0A0E);margin-bottom:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .prod-card-var{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .prod-card-footer{display:flex;align-items:center;justify-content:space-between}
-        .prod-card-price{font-size:14px;font-weight:800;color:#1D4ED8}
-        .prod-card-stock{font-size:11px;color:rgba(10,10,14,0.40)}
-        .prod-var-sel{width:100%;padding:4px 8px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:12px;font-family:inherit;margin-bottom:8px;outline:none;color:var(--text,#0A0A0E)}
+        .prod-card-price{font-size:13px;font-weight:800;color:#1D4ED8}
+        .prod-card-stock{font-size:10px;color:rgba(10,10,14,0.40)}
+        .prod-var-sel{width:100%;padding:3px 6px;border-radius:7px;border:1.5px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:11px;font-family:inherit;margin-bottom:6px;outline:none;color:var(--text,#0A0A0E)}
         /* CART */
         .cart-header{padding:14px 16px 10px;font-size:13px;font-weight:800;color:var(--text,#0A0A0E);border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
         .cart-body{flex:1;overflow-y:auto;padding:8px 12px}
@@ -372,19 +384,6 @@ export default function POSClient({
       `}</style>
 
       <div className="pos-wrap">
-        {/* Header */}
-        <div className="pos-header">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{color:'rgba(10,10,14,0.4)'}}>
-            <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-          </svg>
-          <span className="pos-title">Punto de venta</span>
-          {cart.length > 0 && (
-            <span style={{marginLeft:'auto',background:'#1D4ED8',color:'white',borderRadius:'50px',padding:'2px 10px',fontSize:12,fontWeight:700}}>
-              {cart.length} {cart.length === 1 ? 'producto' : 'productos'}
-            </span>
-          )}
-        </div>
-
         {/* Mobile tabs */}
         <div className="mob-tabs">
           <button className={`mob-tab ${mobileTab==='productos'?'active':''}`} onClick={() => setMobileTab('productos')}>Productos</button>
