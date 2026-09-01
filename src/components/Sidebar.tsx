@@ -57,12 +57,12 @@ export default function Sidebar({ active }: Props) {
   const pathname = usePathname()
   const [initials, setInitials] = useState('?')
   const [displayName, setDisplayName] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     const sb = createClient()
     sb.auth.getUser().then(async ({ data }) => {
       if (!data.user) return
-      // Try user_profiles first, fall back to auth metadata
       const { data: profile } = await sb
         .from('user_profiles')
         .select('full_name')
@@ -77,6 +77,23 @@ export default function Sidebar({ active }: Props) {
       setDisplayName(firstName(name))
     })
   }, [])
+
+  async function signOut() {
+    const sb = createClient()
+    await sb.auth.signOut()
+    window.location.href = '/login'
+  }
+
+  // Cierra el menú al hacer clic fuera
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as HTMLElement
+      if (!target.closest('.nav-profile-wrap')) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpen])
 
   const currentKey = NAV.find(n => n.href !== '/dashboard' && pathname?.startsWith(n.href))?.key
     ?? (pathname === '/dashboard' ? 'dashboard' : active)
@@ -97,13 +114,14 @@ export default function Sidebar({ active }: Props) {
 
         .profile-chip{
           display:flex;align-items:center;gap:8px;
-          background:var(--bg,#ECEEF2);
+          background:var(--bg,#ECEEF2) !important;
           border-radius:var(--r-pill,50px);
           padding:5px 12px 5px 5px;
           box-shadow:var(--shadow-sm,4px 4px 12px rgba(0,0,0,0.07),-3px -3px 8px rgba(255,255,255,0.92));
           text-decoration:none;
           -webkit-tap-highlight-color:transparent;
-          transition:opacity 0.12s
+          transition:opacity 0.12s;
+          outline:none
         }
         .profile-chip:active{opacity:0.75}
 
@@ -130,6 +148,34 @@ export default function Sidebar({ active }: Props) {
           font-family:var(--font,'Inter',-apple-system,sans-serif);
           line-height:1
         }
+
+        /* ── Profile dropdown menu ── */
+        .pc-dropdown{
+          position:absolute;top:calc(100% + 8px);right:0;
+          background:var(--bg,#ECEEF2);
+          border-radius:var(--r-lg,20px);
+          box-shadow:0 16px 48px rgba(0,0,0,0.13),0 4px 16px rgba(0,0,0,0.08);
+          min-width:200px;
+          overflow:hidden;
+          z-index:400
+        }
+        .pc-menu-item{
+          display:flex;align-items:center;gap:10px;
+          width:100%;padding:13px 18px;
+          background:none;border:none;
+          font-size:14px;font-weight:600;
+          color:var(--text-1,#0A0A0E);
+          font-family:var(--font,'Inter',-apple-system,sans-serif);
+          cursor:pointer;text-decoration:none;
+          transition:background 0.12s;
+          text-align:left;
+          -webkit-tap-highlight-color:transparent
+        }
+        .pc-menu-item:hover{background:rgba(0,0,0,0.04)}
+        .pc-menu-item:active{background:rgba(0,0,0,0.07)}
+        .pc-menu-item.danger{color:#DC2626}
+        .pc-menu-item.danger:hover{background:rgba(220,38,38,0.06)}
+        .pc-divider{height:1px;background:rgba(0,0,0,0.06);margin:4px 0}
 
         /* ── Bottom fade ── */
         .nav-fade{
@@ -195,8 +241,13 @@ export default function Sidebar({ active }: Props) {
       `}</style>
 
       {/* Profile chip — top right */}
-      <div className="nav-profile-wrap">
-        <Link href="/settings" className="profile-chip" aria-label="Mi perfil">
+      <div className="nav-profile-wrap" style={{ position:'relative' }}>
+        <button
+          className="profile-chip"
+          aria-label="Menú de perfil"
+          onClick={() => setMenuOpen(v => !v)}
+          style={{ background:'none', border:'none', cursor:'pointer', padding:0 }}
+        >
           <div className="pc-av">{initials}</div>
           {displayName && (
             <div className="pc-text">
@@ -204,7 +255,25 @@ export default function Sidebar({ active }: Props) {
               <span className="pc-role">Mi perfil</span>
             </div>
           )}
-        </Link>
+        </button>
+
+        {menuOpen && (
+          <div className="pc-dropdown" onClick={() => setMenuOpen(false)}>
+            <Link href="/settings" className="pc-menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+              Mi perfil
+            </Link>
+            <Link href="/settings?tab=team" className="pc-menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
+              Equipo
+            </Link>
+            <div className="pc-divider" />
+            <button className="pc-menu-item danger" onClick={signOut}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Cerrar sesión
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Bottom fade */}
