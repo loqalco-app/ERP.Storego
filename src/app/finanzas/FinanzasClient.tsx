@@ -25,10 +25,13 @@ const PERIODOS = [
   { key: 'semana', label: 'Semana' },
   { key: 'mes', label: 'Este mes' },
   { key: 'año', label: 'Este año' },
+  { key: 'personalizado', label: 'Personalizado' },
 ]
 
 const fmt = (n: number) => Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
-const pct = (a: number, b: number) => b === 0 ? 0 : Math.round(a / b * 100 * 10) / 10
+const fmtPct = (a: number, b: number) => b === 0 ? '—' : (Math.round(a / b * 1000) / 10).toFixed(1) + '%'
+
+const METHOD_LABEL: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', otro: 'Otro' }
 
 export default function FinanzasClient({
   orgId, userId, orders, expenses: initialExpenses, apartados, periodo, desde, hasta,
@@ -46,23 +49,32 @@ export default function FinanzasClient({
   const [savingExp, setSavingExp] = useState(false)
   const [expError, setExpError] = useState('')
 
+  // Selector personalizado
+  const [customDesde, setCustomDesde] = useState(desde)
+  const [customHasta, setCustomHasta] = useState(hasta)
+
   // ── KPIs ─────────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
     const ventasNetas = orders.reduce((s, o) => s + Number(o.total), 0)
-    const cmv = orders.reduce((s, o) => s + (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0), 0)
+    const cmv = orders.reduce((s, o) =>
+      s + (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0), 0)
     const utilidadBruta = ventasNetas - cmv
-    const margen = pct(utilidadBruta, ventasNetas)
     const gastosTotales = expenses.reduce((s, e) => s + Number(e.amount), 0)
     const ingresosNetos = utilidadBruta - gastosTotales
 
-    // Pagos por método
     const byMethod: Record<string, number> = {}
     orders.forEach(o => (o.order_payments ?? []).forEach(p => {
       byMethod[p.method] = (byMethod[p.method] ?? 0) + Number(p.amount)
     }))
 
-    return { ventasNetas, cmv, utilidadBruta, margen, gastosTotales, ingresosNetos, byMethod }
+    return { ventasNetas, cmv, utilidadBruta, gastosTotales, ingresosNetos, byMethod }
   }, [orders, expenses])
+
+  // ── Barra de recuperación de inversión ───────────────────────────────────────
+  const recoveryPct = kpis.ventasNetas === 0 ? 0
+    : Math.min(100, Math.round(kpis.cmv / kpis.ventasNetas * 100))
+  const profitPct = kpis.ventasNetas === 0 ? 0
+    : Math.min(100, Math.round(kpis.utilidadBruta / kpis.ventasNetas * 100))
 
   // ── Cuentas por cobrar ────────────────────────────────────────────────────────
   const cxc = useMemo(() => apartados.map(a => {
@@ -76,7 +88,7 @@ export default function FinanzasClient({
   const topProductos = useMemo(() => {
     const map: Record<string, { name: string; qty: number; revenue: number; cost: number }> = {}
     orders.forEach(o => (o.order_items ?? []).forEach(i => {
-      const k = i.product_name + ' · ' + i.variant_name
+      const k = i.product_name + (i.variant_name ? ' · ' + i.variant_name : '')
       if (!map[k]) map[k] = { name: k, qty: 0, revenue: 0, cost: 0 }
       map[k].qty += i.quantity
       map[k].revenue += i.unit_price * i.quantity
@@ -85,7 +97,7 @@ export default function FinanzasClient({
     return Object.values(map)
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 10)
-      .map(p => ({ ...p, utilidad: p.revenue - p.cost, margen: pct(p.revenue - p.cost, p.revenue) }))
+      .map(p => ({ ...p, utilidad: p.revenue - p.cost, margenPct: fmtPct(p.revenue - p.cost, p.revenue) }))
   }, [orders])
 
   // ── Gastos por categoría ──────────────────────────────────────────────────────
@@ -106,7 +118,7 @@ export default function FinanzasClient({
       .select('id, date, category, description, amount, created_at')
       .single()
     setSavingExp(false)
-    if (error || !data) { setExpError('Error al guardar el gasto'); return }
+    if (error || !data) { setExpError('Error al guardar. ¿Ejecutaste el SQL de migración en Supabase?'); return }
     setExpenses(prev => [data as Expense, ...prev])
     setExpForm({ category: 'gasto_operativo', description: '', amount: '', date: desde })
     setShowExpForm(false)
@@ -118,10 +130,16 @@ export default function FinanzasClient({
   }
 
   function changePeriodo(p: string) {
+    if (p === 'personalizado') return  // solo abre el selector, no navega aún
     router.push(`/finanzas?periodo=${p}`)
   }
 
-  const metodoLabel: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', otro: 'Otro' }
+  function applyCustomRange() {
+    if (!customDesde || !customHasta) return
+    router.push(`/finanzas?periodo=personalizado&desde=${customDesde}&hasta=${customHasta}`)
+  }
+
+  const hasCMV = kpis.cmv > 0
 
   return (
     <>
@@ -136,33 +154,64 @@ export default function FinanzasClient({
         .fin-content{padding:16px 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}
         @media(min-width:768px){.fin-content{padding:16px 40px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}}
 
-        /* periodo chips */
-        .periodo-row{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none}
+        .periodo-row{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
         .periodo-row::-webkit-scrollbar{display:none}
-        .periodo-chip{padding:7px 18px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55);white-space:nowrap;transition:all .15s;flex-shrink:0}
+        .periodo-chip{padding:7px 16px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55);white-space:nowrap;transition:all .15s;flex-shrink:0}
         .periodo-chip.on{border-color:#2563EB;background:rgba(37,99,235,0.08);color:#1D4ED8}
 
-        /* KPI grid */
-        .kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
-        @media(min-width:640px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
-        @media(min-width:1024px){.kpi-grid{grid-template-columns:repeat(6,1fr)}}
-        .kpi-card{background:var(--bg,#ECEEF2);border-radius:20px;padding:16px 16px 14px;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9)}
-        .kpi-card.accent{background:linear-gradient(145deg,#1D4ED8,#2563EB);box-shadow:0 8px 24px rgba(29,78,216,0.28)}
-        .kpi-card.green{background:linear-gradient(145deg,#059669,#10B981);box-shadow:0 8px 24px rgba(5,150,105,0.25)}
-        .kpi-label{font-size:10px;font-weight:700;color:rgba(10,10,14,0.42);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;white-space:nowrap}
-        .kpi-card.accent .kpi-label,.kpi-card.green .kpi-label{color:rgba(255,255,255,0.65)}
-        .kpi-val{font-size:20px;font-weight:900;color:#0A0A0E;letter-spacing:-.5px;line-height:1}
-        @media(min-width:768px){.kpi-val{font-size:22px}}
-        .kpi-card.accent .kpi-val,.kpi-card.green .kpi-val{color:white}
-        .kpi-sub{font-size:11px;font-weight:600;margin-top:4px}
+        .custom-range{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+        .custom-input{padding:8px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;background:rgba(0,0,0,0.03);font-size:13px;font-family:inherit;color:#0A0A0E;outline:none;flex:1;min-width:120px}
+        .custom-input:focus{border-color:#2563EB}
+        .custom-sep{font-size:12px;font-weight:600;color:rgba(10,10,14,0.40);flex-shrink:0}
+        .custom-apply{padding:8px 18px;border-radius:50px;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+        .periodo-lbl{font-size:11px;color:rgba(10,10,14,0.38);font-weight:600;margin-bottom:20px}
+
+        /* ── CASCADA FINANCIERA ── */
+        .cascade{background:var(--bg,#ECEEF2);border-radius:24px;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9);padding:20px;margin-bottom:24px}
+        .cascade-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+        .cascade-label{font-size:11px;font-weight:700;color:rgba(10,10,14,0.38);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+        .cascade-val{font-size:28px;font-weight:900;color:#0A0A0E;letter-spacing:-.8px;line-height:1}
+        @media(min-width:768px){.cascade-val{font-size:34px}}
+        .cascade-sub{font-size:12px;font-weight:600;color:rgba(10,10,14,0.40);margin-top:4px}
+        .cascade-badge{padding:6px 14px;border-radius:50px;font-size:13px;font-weight:800}
+        .cascade-divider{height:1px;background:rgba(0,0,0,0.07);margin:16px 0}
+
+        /* barra de inversión */
+        .inv-bar-wrap{margin:12px 0}
+        .inv-bar-track{height:12px;border-radius:6px;background:rgba(0,0,0,0.07);overflow:hidden;display:flex;margin-bottom:8px}
+        .inv-bar-cost{height:100%;border-radius:6px 0 0 6px;background:linear-gradient(90deg,#F59E0B,#D97706);transition:width .6s cubic-bezier(0.34,1.56,0.64,1)}
+        .inv-bar-profit{height:100%;border-radius:0 6px 6px 0;background:linear-gradient(90deg,#10B981,#059669);transition:width .6s}
+        .inv-bar-labels{display:flex;justify-content:space-between;align-items:center}
+        .inv-legend{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700}
+        .inv-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+        /* líneas de desglose */
+        .breakdown{display:flex;flex-direction:column;gap:0}
+        .bk-line{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)}
+        .bk-line:last-child{border-bottom:none}
+        .bk-left{display:flex;align-items:center;gap:8px}
+        .bk-sign{width:20px;height:20px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+        .bk-name{font-size:13px;font-weight:600;color:#0A0A0E}
+        .bk-desc{font-size:11px;color:rgba(10,10,14,0.40);margin-top:1px}
+        .bk-val{font-size:14px;font-weight:800;text-align:right}
+        .bk-pct{font-size:10px;font-weight:700;color:rgba(10,10,14,0.38);margin-top:1px;text-align:right}
+        .result-line{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:16px;margin-top:12px}
+
+        /* small KPI row */
+        .kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+        @media(min-width:640px){.kpi-row{grid-template-columns:repeat(4,1fr)}}
+        .kpi-card{background:var(--bg,#ECEEF2);border-radius:18px;padding:14px;box-shadow:4px 4px 12px rgba(0,0,0,0.06),-3px -3px 8px rgba(255,255,255,0.90)}
+        .kpi-lbl{font-size:10px;font-weight:700;color:rgba(10,10,14,0.38);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+        .kpi-v{font-size:16px;font-weight:900;color:#0A0A0E;letter-spacing:-.3px}
+        .kpi-s{font-size:10px;font-weight:600;color:rgba(10,10,14,0.38);margin-top:3px}
 
         /* section header */
         .sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-        .sec-title{font-size:13px;font-weight:800;color:#0A0A0E;text-transform:uppercase;letter-spacing:.05em}
-        .sec-btn{padding:6px 14px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#1D4ED8;border-color:rgba(37,99,235,0.25);background:rgba(37,99,235,0.06)}
+        .sec-title{font-size:11px;font-weight:800;color:rgba(10,10,14,0.40);text-transform:uppercase;letter-spacing:.07em}
+        .sec-btn{padding:6px 14px;border-radius:50px;border:1.5px solid rgba(37,99,235,0.25);background:rgba(37,99,235,0.06);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#1D4ED8}
 
-        /* table */
-        .fin-table{background:var(--bg,#ECEEF2);border-radius:20px;overflow:hidden;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9);margin-bottom:24px}
+        /* tables */
+        .fin-table{background:var(--bg,#ECEEF2);border-radius:20px;overflow:hidden;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9);margin-bottom:20px}
         .fin-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid rgba(0,0,0,0.04)}
         .fin-row:first-child{border-top:none}
         .fin-row-name{font-size:12px;font-weight:700;color:#0A0A0E;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -170,8 +219,6 @@ export default function FinanzasClient({
         .fin-right{display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0}
         .fin-amt{font-size:13px;font-weight:800;color:#0A0A0E}
         .fin-pct{font-size:10px;font-weight:700;color:rgba(10,10,14,0.40)}
-        .fin-green{color:#059669}
-        .fin-red{color:#DC2626}
         .fin-empty{padding:24px;text-align:center;color:rgba(10,10,14,0.35);font-size:13px;font-weight:600}
 
         /* expense form */
@@ -187,19 +234,7 @@ export default function FinanzasClient({
         .del-btn{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.25);padding:4px;line-height:1;flex-shrink:0}
         .del-btn:hover{color:#DC2626}
 
-        /* periodo label */
-        .periodo-lbl{font-size:11px;color:rgba(10,10,14,0.40);font-weight:600;margin-bottom:20px}
-
-        /* métodos pago */
-        .method-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px}
-        @media(min-width:640px){.method-grid{grid-template-columns:repeat(4,1fr)}}
-        .method-card{background:var(--bg,#ECEEF2);border-radius:16px;padding:14px;box-shadow:4px 4px 12px rgba(0,0,0,0.06),-3px -3px 8px rgba(255,255,255,0.90)}
-        .method-lbl{font-size:10px;font-weight:700;color:rgba(10,10,14,0.42);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-        .method-val{font-size:16px;font-weight:800;color:#0A0A0E}
-
-        /* cxc */
-        .cxc-total{font-size:13px;font-weight:600;color:rgba(10,10,14,0.55);margin-bottom:10px}
-        .cxc-total span{color:#D97706;font-weight:800}
+        .no-cmv{background:rgba(217,119,6,0.06);border:1.5px solid rgba(217,119,6,0.18);border-radius:16px;padding:12px 16px;font-size:12px;font-weight:600;color:#92400E;margin-bottom:16px;line-height:1.5}
       `}</style>
 
       <Sidebar active="finanzas" />
@@ -212,69 +247,171 @@ export default function FinanzasClient({
       </div>
 
       <div className="fin-content">
+
         {/* Selector de periodo */}
         <div className="periodo-row">
           {PERIODOS.map(p => (
-            <button key={p.key} className={`periodo-chip${periodo===p.key?' on':''}`} onClick={() => changePeriodo(p.key)}>
-              {p.label}
-            </button>
+            <button
+              key={p.key}
+              className={`periodo-chip${periodo===p.key?' on':''}`}
+              onClick={() => changePeriodo(p.key)}
+            >{p.label}</button>
           ))}
         </div>
 
-        {/* KPI cards */}
-        <div className="kpi-grid">
-          <div className="kpi-card accent">
-            <div className="kpi-label">Ventas netas</div>
-            <div className="kpi-val">{fmt(kpis.ventasNetas)}</div>
-            <div className="kpi-sub" style={{color:'rgba(255,255,255,0.65)'}}>{orders.length} órdenes</div>
+        {/* Rango personalizado */}
+        {periodo === 'personalizado' && (
+          <div className="custom-range">
+            <input className="custom-input" type="date" value={customDesde} onChange={e => setCustomDesde(e.target.value)} />
+            <span className="custom-sep">al</span>
+            <input className="custom-input" type="date" value={customHasta} onChange={e => setCustomHasta(e.target.value)} />
+            <button className="custom-apply" onClick={applyCustomRange}>Aplicar</button>
           </div>
-          <div className="kpi-card">
-            <div className="kpi-label">Costo merc. vendida</div>
-            <div className="kpi-val">{fmt(kpis.cmv)}</div>
-            <div className="kpi-sub" style={{color:'rgba(10,10,14,0.38)'}}>CMV</div>
-          </div>
-          <div className={`kpi-card${kpis.utilidadBruta >= 0 ? ' green' : ''}`}>
-            <div className="kpi-label">Utilidad bruta</div>
-            <div className="kpi-val">{fmt(kpis.utilidadBruta)}</div>
-            <div className="kpi-sub" style={{color: kpis.utilidadBruta >= 0 ? 'rgba(255,255,255,0.65)' : '#DC2626'}}>
-              {kpis.margen}% margen
+        )}
+
+        {/* ── CASCADA: visión completa de dónde va cada peso ── */}
+        <div className="cascade">
+          <div className="cascade-top">
+            <div>
+              <div className="cascade-label">Ventas netas</div>
+              <div className="cascade-val">{fmt(kpis.ventasNetas)}</div>
+              <div className="cascade-sub">{orders.length} {orders.length === 1 ? 'orden' : 'órdenes'}</div>
+            </div>
+            <div className={`cascade-badge ${kpis.ingresosNetos >= 0 ? '' : ''}`}
+              style={{
+                background: kpis.ingresosNetos >= 0 ? 'rgba(5,150,105,0.10)' : 'rgba(220,38,38,0.10)',
+                color: kpis.ingresosNetos >= 0 ? '#059669' : '#DC2626',
+              }}
+            >
+              {kpis.ingresosNetos >= 0 ? '▲' : '▼'} {fmtPct(Math.abs(kpis.ingresosNetos), kpis.ventasNetas)} neto
             </div>
           </div>
-          <div className="kpi-card">
-            <div className="kpi-label">Gastos totales</div>
-            <div className="kpi-val fin-red">{fmt(kpis.gastosTotales)}</div>
-            <div className="kpi-sub" style={{color:'rgba(10,10,14,0.38)'}}>{expenses.length} registros</div>
-          </div>
-          <div className={`kpi-card${kpis.ingresosNetos >= 0 ? '' : ''}`}>
-            <div className="kpi-label">Ingresos netos</div>
-            <div className={`kpi-val ${kpis.ingresosNetos >= 0 ? 'fin-green' : 'fin-red'}`}>{fmt(kpis.ingresosNetos)}</div>
-            <div className="kpi-sub" style={{color:'rgba(10,10,14,0.38)'}}>Utilidad − Gastos</div>
-          </div>
-          <div className="kpi-card">
-            <div className="kpi-label">C×C · Apartados</div>
-            <div className="kpi-val" style={{color:'#D97706'}}>{fmt(totalCxC)}</div>
-            <div className="kpi-sub" style={{color:'rgba(10,10,14,0.38)'}}>{cxc.length} pendientes</div>
+
+          {/* Barra inversión vs ganancia */}
+          {hasCMV && kpis.ventasNetas > 0 && (
+            <div className="inv-bar-wrap">
+              <div className="inv-bar-track">
+                <div className="inv-bar-cost" style={{width:`${recoveryPct}%`}} />
+                <div className="inv-bar-profit" style={{width:`${Math.max(0, profitPct)}%`}} />
+              </div>
+              <div className="inv-bar-labels">
+                <div className="inv-legend">
+                  <div className="inv-dot" style={{background:'#D97706'}} />
+                  <span style={{fontSize:11,fontWeight:700,color:'rgba(10,10,14,0.55)'}}>Inversión {recoveryPct}%</span>
+                </div>
+                <div className="inv-legend">
+                  <div className="inv-dot" style={{background:'#059669'}} />
+                  <span style={{fontSize:11,fontWeight:700,color:'rgba(10,10,14,0.55)'}}>Ganancia {profitPct}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!hasCMV && (
+            <div className="no-cmv">
+              Los costos de adquisición son $0. Para ver la utilidad real, actualiza el costo de cada producto en Inventario y ejecuta la migración SQL en Supabase.
+            </div>
+          )}
+
+          <div className="cascade-divider" />
+
+          {/* Desglose línea por línea */}
+          <div className="breakdown">
+            <div className="bk-line">
+              <div className="bk-left">
+                <div className="bk-sign" style={{background:'rgba(5,150,105,0.10)',color:'#059669'}}>+</div>
+                <div>
+                  <div className="bk-name">Ventas netas</div>
+                  <div className="bk-desc">Lo que cobraste a tus clientes</div>
+                </div>
+              </div>
+              <div>
+                <div className="bk-val" style={{color:'#059669'}}>{fmt(kpis.ventasNetas)}</div>
+              </div>
+            </div>
+
+            <div className="bk-line">
+              <div className="bk-left">
+                <div className="bk-sign" style={{background:'rgba(217,119,6,0.10)',color:'#D97706'}}>−</div>
+                <div>
+                  <div className="bk-name">Costo de mercancía (CMV)</div>
+                  <div className="bk-desc">Lo que te costaron los productos vendidos</div>
+                </div>
+              </div>
+              <div>
+                <div className="bk-val" style={{color:'#D97706'}}>{fmt(kpis.cmv)}</div>
+                <div className="bk-pct">{fmtPct(kpis.cmv, kpis.ventasNetas)} de las ventas</div>
+              </div>
+            </div>
+
+            {/* Resultado intermedio: utilidad bruta */}
+            <div className="result-line" style={{background: kpis.utilidadBruta >= 0 ? 'rgba(5,150,105,0.06)' : 'rgba(220,38,38,0.06)'}}>
+              <div>
+                <div style={{fontSize:12,fontWeight:800,color:kpis.utilidadBruta >= 0 ? '#059669' : '#DC2626'}}>
+                  = Utilidad bruta
+                </div>
+                <div style={{fontSize:11,color:'rgba(10,10,14,0.40)',marginTop:2}}>
+                  Ganancia sobre el costo del producto · {fmtPct(kpis.utilidadBruta, kpis.ventasNetas)} margen
+                </div>
+              </div>
+              <div style={{fontSize:18,fontWeight:900,color:kpis.utilidadBruta >= 0 ? '#059669' : '#DC2626',letterSpacing:'-.4px'}}>
+                {fmt(kpis.utilidadBruta)}
+              </div>
+            </div>
+
+            <div className="bk-line">
+              <div className="bk-left">
+                <div className="bk-sign" style={{background:'rgba(220,38,38,0.10)',color:'#DC2626'}}>−</div>
+                <div>
+                  <div className="bk-name">Gastos operativos</div>
+                  <div className="bk-desc">Gastos, nómina, servicios registrados</div>
+                </div>
+              </div>
+              <div>
+                <div className="bk-val" style={{color:'#DC2626'}}>{fmt(kpis.gastosTotales)}</div>
+                <div className="bk-pct">{fmtPct(kpis.gastosTotales, kpis.ventasNetas)} de las ventas</div>
+              </div>
+            </div>
+
+            {/* Resultado final: ingresos netos */}
+            <div className="result-line" style={{
+              background: kpis.ingresosNetos >= 0 ? 'rgba(29,78,216,0.07)' : 'rgba(220,38,38,0.08)',
+              marginTop: 8,
+            }}>
+              <div>
+                <div style={{fontSize:12,fontWeight:800,color:kpis.ingresosNetos >= 0 ? '#1D4ED8' : '#DC2626'}}>
+                  = Ingresos netos
+                </div>
+                <div style={{fontSize:11,color:'rgba(10,10,14,0.40)',marginTop:2}}>
+                  Lo que realmente ganaste · {fmtPct(kpis.ingresosNetos, kpis.ventasNetas)} sobre ventas
+                </div>
+              </div>
+              <div style={{fontSize:20,fontWeight:900,color:kpis.ingresosNetos >= 0 ? '#1D4ED8' : '#DC2626',letterSpacing:'-.5px'}}>
+                {fmt(kpis.ingresosNetos)}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Pagos por método */}
-        {Object.keys(kpis.byMethod).length > 0 && (
-          <>
-            <div className="sec-hd"><div className="sec-title">Ingresos por método de pago</div></div>
-            <div className="method-grid">
-              {Object.entries(kpis.byMethod).map(([m, v]) => (
-                <div key={m} className="method-card">
-                  <div className="method-lbl">{metodoLabel[m] ?? m}</div>
-                  <div className="method-val">{fmt(v)}</div>
-                </div>
-              ))}
+        {/* KPIs secundarios */}
+        <div className="kpi-row">
+          <div className="kpi-card">
+            <div className="kpi-lbl">C×C pendiente</div>
+            <div className="kpi-v" style={{color:'#D97706'}}>{fmt(totalCxC)}</div>
+            <div className="kpi-s">{cxc.length} apartados</div>
+          </div>
+          {Object.entries(kpis.byMethod).map(([m, v]) => (
+            <div key={m} className="kpi-card">
+              <div className="kpi-lbl">{METHOD_LABEL[m] ?? m}</div>
+              <div className="kpi-v">{fmt(v)}</div>
+              <div className="kpi-s">ingresos</div>
             </div>
-          </>
-        )}
+          ))}
+        </div>
 
         {/* Top productos */}
         <div className="sec-hd"><div className="sec-title">Productos más vendidos</div></div>
-        <div className="fin-table" style={{marginBottom:24}}>
+        <div className="fin-table">
           {topProductos.length === 0 ? (
             <div className="fin-empty">Sin ventas en este periodo</div>
           ) : topProductos.map((p, i) => (
@@ -284,11 +421,11 @@ export default function FinanzasClient({
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div className="fin-row-name">{p.name}</div>
-                <div className="fin-row-sub">{p.qty} unidades · {p.margen}% margen</div>
+                <div className="fin-row-sub">{p.qty} uds · {p.margenPct} margen</div>
               </div>
               <div className="fin-right">
                 <div className="fin-amt">{fmt(p.revenue)}</div>
-                {p.cost > 0 && <div className="fin-pct fin-green">+{fmt(p.utilidad)} utilidad</div>}
+                {p.cost > 0 && <div className="fin-pct" style={{color:'#059669'}}>+{fmt(p.utilidad)}</div>}
               </div>
             </div>
           ))}
@@ -297,11 +434,11 @@ export default function FinanzasClient({
         {/* Cuentas por cobrar */}
         {cxc.length > 0 && (
           <>
-            <div className="sec-hd">
+            <div className="sec-hd" style={{marginTop:8}}>
               <div className="sec-title">Cuentas por cobrar</div>
+              <div style={{fontSize:12,fontWeight:800,color:'#D97706'}}>{fmt(totalCxC)}</div>
             </div>
-            <div className="cxc-total">Total pendiente: <span>{fmt(totalCxC)}</span></div>
-            <div className="fin-table" style={{marginBottom:24}}>
+            <div className="fin-table">
               {cxc.map(a => (
                 <div key={a.id} className="fin-row">
                   <div style={{width:60,fontSize:11,fontWeight:800,color:'#D97706',background:'rgba(217,119,6,0.08)',borderRadius:8,padding:'4px 7px',textAlign:'center',flexShrink:0}}>
@@ -309,7 +446,7 @@ export default function FinanzasClient({
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div className="fin-row-name">{a.customers?.full_name ?? 'Sin cliente'}</div>
-                    <div className="fin-row-sub">Pagado: {fmt(a.pagado)} de {fmt(a.total)}</div>
+                    <div className="fin-row-sub">Pagado {fmt(a.pagado)} de {fmt(a.total)}</div>
                   </div>
                   <div className="fin-right">
                     <div className="fin-amt" style={{color:'#D97706'}}>{fmt(a.pendiente)}</div>
@@ -322,7 +459,7 @@ export default function FinanzasClient({
         )}
 
         {/* Gastos */}
-        <div className="sec-hd">
+        <div className="sec-hd" style={{marginTop:8}}>
           <div className="sec-title">Gastos y egresos</div>
           <button className="sec-btn" onClick={() => setShowExpForm(v => !v)}>
             {showExpForm ? 'Cancelar' : '+ Agregar gasto'}
@@ -349,7 +486,6 @@ export default function FinanzasClient({
           </div>
         )}
 
-        {/* Gastos por categoría */}
         {gastosPorCat.length > 0 && (
           <div className="fin-table" style={{marginBottom:12}}>
             {gastosPorCat.map(([cat, total]) => (
@@ -357,13 +493,12 @@ export default function FinanzasClient({
                 <div style={{flex:1}}>
                   <div className="fin-row-name">{CATS[cat] ?? cat}</div>
                 </div>
-                <div className="fin-amt fin-red">{fmt(total)}</div>
+                <div className="fin-amt" style={{color:'#DC2626'}}>{fmt(total)}</div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Lista de gastos */}
         <div className="fin-table">
           {expenses.length === 0 ? (
             <div className="fin-empty">Sin gastos registrados en este periodo</div>
@@ -373,13 +508,14 @@ export default function FinanzasClient({
                 <div className="fin-row-name">{e.description}</div>
                 <div className="fin-row-sub">{CATS[e.category] ?? e.category} · {e.date}</div>
               </div>
-              <div className="fin-amt fin-red" style={{marginRight:8}}>{fmt(e.amount)}</div>
-              <button className="del-btn" onClick={() => deleteExpense(e.id)} title="Eliminar">
+              <div className="fin-amt" style={{color:'#DC2626',marginRight:8}}>{fmt(e.amount)}</div>
+              <button className="del-btn" onClick={() => deleteExpense(e.id)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
           ))}
         </div>
+
       </div>
     </>
   )
