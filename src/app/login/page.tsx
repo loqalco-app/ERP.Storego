@@ -16,11 +16,22 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError('Correo o contraseña incorrectos')
       setLoading(false)
       return
+    }
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('must_change_password')
+        .eq('id', data.user.id)
+        .single()
+      if (profile?.must_change_password) {
+        router.push('/change-password')
+        return
+      }
     }
     router.push('/dashboard')
     router.refresh()

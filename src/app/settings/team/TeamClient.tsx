@@ -41,11 +41,14 @@ function timeAgo(dateStr: string) {
 
 export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, members, invitations, migrationNeeded }: Props) {
   const [showInvite, setShowInvite]     = useState(false)
+  const [invMode, setInvMode]           = useState<'direct'|'link'>('direct')
   const [invStep, setInvStep]           = useState<'form'|'link'>('form')
   const [invFirstName, setInvFirstName] = useState('')
   const [invLastName, setInvLastName]   = useState('')
   const [invEmail, setInvEmail]         = useState('')
   const [invRole, setInvRole]           = useState('staff')
+  const [invPassword, setInvPassword]   = useState('')
+  const [showInvPw, setShowInvPw]       = useState(false)
   const [sending, setSending]           = useState(false)
   const [invMsg, setInvMsg]             = useState<{ type: 'ok'|'err'; text: string } | null>(null)
   const [generatedLink, setGeneratedLink] = useState('')
@@ -56,14 +59,32 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
 
   const canManage = ['owner','admin'].includes(myRole)
 
-  function openInviteModal() { setShowInvite(true); setInvStep('form'); setInvMsg(null); setGeneratedLink(''); setCopied(false) }
+  function openInviteModal() { setShowInvite(true); setInvStep('form'); setInvMsg(null); setGeneratedLink(''); setCopied(false); setInvPassword('') }
   function closeInviteModal() {
     setShowInvite(false); setInvStep('form'); setGeneratedLink(''); setCopied(false)
-    setInvMsg(null); setInvFirstName(''); setInvLastName(''); setInvEmail(''); setInvRole('staff')
+    setInvMsg(null); setInvFirstName(''); setInvLastName(''); setInvEmail(''); setInvRole('staff'); setInvPassword('')
   }
 
   async function copyLink() {
     try { await navigator.clipboard.writeText(generatedLink); setCopied(true); setTimeout(() => setCopied(false), 2500) } catch { /* ignore */ }
+  }
+
+  async function handleDirectCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!invEmail.trim() || !invFirstName.trim() || !invPassword) return
+    setSending(true); setInvMsg(null)
+    const fullName = `${invFirstName.trim()} ${invLastName.trim()}`.trim()
+    const res = await fetch('/api/team/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: invEmail.trim(), role: invRole, orgId, fullName, password: invPassword }),
+    })
+    const data = await res.json()
+    setSending(false)
+    if (!res.ok) { setInvMsg({ type: 'err', text: data.error ?? 'Error al crear usuario' }); return }
+    setMemberList(prev => [{ id: Date.now().toString(), full_name: fullName, avatar_url: null, role: invRole, status: 'active', created_at: new Date().toISOString() }, ...prev])
+    setInvMsg({ type: 'ok', text: `Usuario creado. ${fullName} puede entrar con su correo y la contraseña temporal.` })
+    setTimeout(closeInviteModal, 2200)
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -166,6 +187,11 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
         .mod-list{display:flex;flex-wrap:wrap;gap:5px}
         .alert-ok{background:rgba(5,150,105,0.08);border:1px solid rgba(5,150,105,0.18);border-radius:var(--r-md,16px);padding:10px 14px;font-size:13px;font-weight:600;color:#065f46;margin-bottom:14px}
         .alert-err{background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.15);border-radius:var(--r-md,16px);padding:10px 14px;font-size:13px;font-weight:600;color:#991b1b;margin-bottom:14px}
+        .mode-tabs{display:flex;gap:6px;margin-bottom:20px;background:rgba(0,0,0,0.04);border-radius:14px;padding:4px}
+        .mode-tab{flex:1;padding:9px 8px;border-radius:10px;border:none;background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.50);transition:all .15s;text-align:center}
+        .mode-tab.on{background:var(--bg,#ECEEF2);color:var(--text-1,#1A1A20);box-shadow:0 1px 4px rgba(0,0,0,0.10)}
+        .pw-wrap{position:relative;margin-bottom:14px}
+        .pw-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.38);padding:4px;display:flex;align-items:center}
         .modal-actions{display:flex;gap:10px}
         .btn-cancel{flex:1;padding:14px;border-radius:var(--r-xl,24px);border:1.5px solid var(--border,rgba(0,0,0,0.10));background:transparent;font-size:15px;font-weight:700;color:var(--text-2);cursor:pointer;font-family:inherit;transition:background 0.12s}
         .btn-cancel:hover{background:rgba(0,0,0,0.04)}
@@ -295,11 +321,26 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
             {invStep === 'form' ? (
               <>
                 <div className="modal-title">Agregar al equipo</div>
-                <div className="modal-sub">Llena los datos y genera el link de acceso para mandar por WhatsApp.</div>
+
+                {/* Mode switcher */}
+                <div className="mode-tabs">
+                  <button type="button" className={`mode-tab${invMode==='direct'?' on':''}`} onClick={() => setInvMode('direct')}>
+                    Con contraseña
+                  </button>
+                  <button type="button" className={`mode-tab${invMode==='link'?' on':''}`} onClick={() => setInvMode('link')}>
+                    Enviar link
+                  </button>
+                </div>
+
+                <div className="modal-sub" style={{marginBottom:20}}>
+                  {invMode === 'direct'
+                    ? 'Crea el usuario con una contraseña temporal — al entrar por primera vez se le pedirá cambiarla.'
+                    : 'Genera un link de un solo uso para mandar por WhatsApp.'}
+                </div>
 
                 {invMsg && <div className={invMsg.type === 'ok' ? 'alert-ok' : 'alert-err'}>{invMsg.text}</div>}
 
-                <form onSubmit={handleInvite}>
+                <form onSubmit={invMode === 'direct' ? handleDirectCreate : handleInvite}>
                   <div className="name-row">
                     <div>
                       <div className="fl">Nombre *</div>
@@ -313,6 +354,21 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
 
                   <div className="fl">Correo electrónico *</div>
                   <input className="fi" type="email" placeholder="nombre@ejemplo.com" value={invEmail} onChange={e => setInvEmail(e.target.value)} required />
+
+                  {invMode === 'direct' && (
+                    <>
+                      <div className="fl">Contraseña temporal *</div>
+                      <div className="pw-wrap">
+                        <input className="fi" type={showInvPw ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" value={invPassword} onChange={e => setInvPassword(e.target.value)} required minLength={8} style={{marginBottom:0}} />
+                        <button type="button" className="pw-eye" onClick={() => setShowInvPw(v => !v)}>
+                          {showInvPw
+                            ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            : <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          }
+                        </button>
+                      </div>
+                    </>
+                  )}
 
                   <div className="fl">Rol</div>
                   <div className="role-pills">
@@ -333,7 +389,11 @@ export default function TeamClient({ orgId, orgName, myUserId, myRole, myEmail, 
 
                   <div className="modal-actions">
                     <button type="button" className="btn-cancel" onClick={closeInviteModal}>Cancelar</button>
-                    <button type="submit" className="btn-send" disabled={sending}>{sending ? 'Generando...' : 'Generar acceso'}</button>
+                    <button type="submit" className="btn-send" disabled={sending}>
+                      {sending
+                        ? (invMode === 'direct' ? 'Creando...' : 'Generando...')
+                        : (invMode === 'direct' ? 'Crear usuario' : 'Generar link')}
+                    </button>
                   </div>
                 </form>
               </>
