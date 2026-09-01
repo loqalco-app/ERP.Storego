@@ -111,7 +111,6 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
         .ord-topbar{position:sticky;top:0;z-index:100;background:rgba(236,238,242,0.82);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);padding:max(env(safe-area-inset-top,0px),20px) 20px 16px;display:flex;align-items:center;gap:12px}
