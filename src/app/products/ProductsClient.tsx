@@ -39,6 +39,7 @@ function totalStock(variants: Variant[]) {
 
 export default function ProductsClient({ products, userName, orgName }: Props) {
   const [q, setQ] = useState('')
+  const [viewProduct, setViewProduct] = useState<Product | null>(null)
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(q.toLowerCase()) ||
@@ -90,9 +91,27 @@ export default function ProductsClient({ products, userName, orgName }: Props) {
 
         .card { background: #ECEEF2; border-radius: 24px; overflow: hidden; box-shadow: 6px 6px 18px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.95), inset 0 1px 0 rgba(255,255,255,0.7); }
 
-        .prod-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-top: 1px solid rgba(0,0,0,0.05); text-decoration: none; transition: background 0.12s; cursor: pointer; }
+        .prod-row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-top: 1px solid rgba(0,0,0,0.05); text-decoration: none; transition: background 0.12s; cursor: pointer; width:100%;background:none;border-left:none;border-right:none;border-bottom:none;text-align:left;font-family:inherit; }
         .prod-row:first-child { border-top: none; }
         .prod-row:hover { background: rgba(37,99,235,0.04); }
+        /* View modal */
+        .vp-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:500;display:flex;align-items:flex-end;justify-content:center}
+        @media(min-width:600px){.vp-overlay{align-items:center}}
+        .vp-sheet{background:var(--bg,#ECEEF2);border-radius:28px 28px 0 0;padding:0 0 max(env(safe-area-inset-bottom,0px),20px);width:100%;max-width:560px;max-height:82vh;overflow-y:auto;box-shadow:0 -8px 40px rgba(0,0,0,0.18)}
+        @media(min-width:600px){.vp-sheet{border-radius:28px;max-height:80vh}}
+        .vp-header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 0}
+        .vp-title{font-size:18px;font-weight:800;color:#1A1A20;letter-spacing:-0.3px}
+        .vp-close{width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,0.07);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+        .vp-body{padding:16px 20px}
+        .vp-row{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)}
+        .vp-row:last-child{border-bottom:none}
+        .vp-lbl{font-size:12px;font-weight:600;color:rgba(26,26,32,0.40);text-transform:uppercase;letter-spacing:0.04em}
+        .vp-val{font-size:14px;font-weight:600;color:#1A1A20;text-align:right;max-width:60%}
+        .vp-variants{margin-top:8px}
+        .vp-var{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;background:rgba(0,0,0,0.03);border-radius:12px;margin-bottom:6px}
+        .vp-var-sku{font-size:12px;font-weight:700;color:rgba(26,26,32,0.55)}
+        .vp-var-price{font-size:13px;font-weight:700;color:#1A1A20}
+        .vp-edit-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 40px);margin:4px 20px 0;padding:14px;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;border-radius:16px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 6px 20px rgba(29,78,216,0.28)}
 
         .prod-icon { width: 44px; height: 44px; background: #ECEEF2; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 4px 4px 10px rgba(0,0,0,0.08), -3px -3px 7px rgba(255,255,255,0.90); }
         .prod-name { font-size: 14px; font-weight: 700; color: #1A1A20; margin-bottom: 3px; }
@@ -169,7 +188,7 @@ export default function ProductsClient({ products, userName, orgName }: Props) {
                   const firstSku = p.product_variants[0]?.sku ?? '—'
                   const cat = (p.categories as unknown as { name: string } | null)?.name
                   return (
-                    <Link key={p.id} href={`/products/${p.id}/edit`} className="prod-row">
+                    <button key={p.id} onClick={() => setViewProduct(p)} className="prod-row">
                       <div className="prod-icon">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.60)" strokeWidth="1.8" strokeLinecap="round">
                           <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -192,7 +211,7 @@ export default function ProductsClient({ products, userName, orgName }: Props) {
                           {totalStock(p.product_variants)} en stock · {firstSku}
                         </div>
                       </div>
-                    </Link>
+                    </button>
                   )
                 })
               )}
@@ -202,6 +221,59 @@ export default function ProductsClient({ products, userName, orgName }: Props) {
       </div>
 
       <BottomNav active="products" />
+
+      {viewProduct && (
+        <div className="vp-overlay" onClick={() => setViewProduct(null)}>
+          <div className="vp-sheet" onClick={e => e.stopPropagation()}>
+            <div className="vp-header">
+              <div className="vp-title">{viewProduct.name}</div>
+              <button className="vp-close" onClick={() => setViewProduct(null)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A20" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="vp-body">
+              <div className="vp-row">
+                <span className="vp-lbl">Estado</span>
+                <span className="vp-val"><span className="badge" style={{ cssText: STATUS_COLOR[viewProduct.status] } as React.CSSProperties}>{STATUS_LABEL[viewProduct.status]}</span></span>
+              </div>
+              {(viewProduct.categories as unknown as {name:string}|null)?.name && (
+                <div className="vp-row">
+                  <span className="vp-lbl">Categoría</span>
+                  <span className="vp-val">{(viewProduct.categories as unknown as {name:string}).name}</span>
+                </div>
+              )}
+              {(viewProduct.brands as unknown as {name:string}|null)?.name && (
+                <div className="vp-row">
+                  <span className="vp-lbl">Marca</span>
+                  <span className="vp-val">{(viewProduct.brands as unknown as {name:string}).name}</span>
+                </div>
+              )}
+              <div className="vp-row">
+                <span className="vp-lbl">Precio</span>
+                <span className="vp-val">{priceRange(viewProduct.product_variants)}</span>
+              </div>
+              <div className="vp-row">
+                <span className="vp-lbl">Stock total</span>
+                <span className="vp-val">{totalStock(viewProduct.product_variants)} unidades</span>
+              </div>
+              {viewProduct.product_variants.length > 0 && (
+                <div className="vp-variants">
+                  {viewProduct.product_variants.map(v => (
+                    <div key={v.id} className="vp-var">
+                      <span className="vp-var-sku">{v.sku}</span>
+                      <span className="vp-var-price">${v.sale_price.toLocaleString('es-MX',{minimumFractionDigits:2})} · {(v.stock_levels??[]).reduce((s,sl)=>s+(sl.quantity_available??0),0)} uds</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Link href={`/products/${viewProduct.id}/edit`} className="vp-edit-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Editar producto
+            </Link>
+          </div>
+        </div>
+      )}
     </>
   )
 }

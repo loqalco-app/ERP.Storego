@@ -250,7 +250,7 @@ export default function CatalogClient({ products: initProducts, categories: init
 
         /* Products inside expanded category/brand */
         .inner-products{background:rgba(0,0,0,0.025);border-top:1px solid rgba(0,0,0,0.06)}
-        .inner-prod{display:flex;align-items:center;gap:10px;padding:10px 18px 10px 54px;border-top:1px solid rgba(0,0,0,0.04);text-decoration:none;transition:background 0.1s}
+        .inner-prod{display:flex;align-items:center;gap:10px;padding:10px 18px 10px 54px;border-top:1px solid rgba(0,0,0,0.04);transition:background 0.1s;background:none;border-left:none;border-right:none;border-bottom:none;width:100%;text-align:left;cursor:pointer;font-family:inherit}
         .inner-prod:first-child{border-top:none}
         .inner-prod:hover{background:rgba(37,99,235,0.05)}
         .inner-prod-name{font-size:13px;font-weight:600;color:#1A1A20}
@@ -465,13 +465,13 @@ export default function CatalogClient({ products: initProducts, categories: init
                                 {childProds.length === 0 ? (
                                   <div className="inner-empty">Sin productos en esta subcategoría</div>
                                 ) : childProds.map(p => (
-                                  <Link key={p.id} href={`/catalog/${p.id}/edit`} className="inner-prod">
+                                  <button key={p.id} onClick={() => setViewProduct(p)} className="inner-prod">
                                     <div style={{flex:1,minWidth:0}}>
                                       <div className="inner-prod-name">{p.name}</div>
                                       <div className="inner-prod-meta">${minPrice(p.product_variants)?.toLocaleString('es-MX',{minimumFractionDigits:2}) ?? '—'} · {totalStock(p.product_variants)} en stock</div>
                                     </div>
                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.25)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                                  </Link>
+                                  </button>
                                 ))}
                               </div>
                             )}
@@ -485,7 +485,7 @@ export default function CatalogClient({ products: initProducts, categories: init
                           {rootProds.length === 0 ? (
                             <div className="inner-empty">Sin productos en esta categoría</div>
                           ) : rootProds.map(p => (
-                            <Link key={p.id} href={`/catalog/${p.id}/edit`} className="inner-prod">
+                            <button key={p.id} onClick={() => setViewProduct(p)} className="inner-prod">
                               <div style={{flex:1,minWidth:0}}>
                                 <div className="inner-prod-name">{p.name}</div>
                                 <div className="inner-prod-meta">
@@ -493,7 +493,7 @@ export default function CatalogClient({ products: initProducts, categories: init
                                 </div>
                               </div>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.25)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                            </Link>
+                            </button>
                           ))}
                         </div>
                       )}
@@ -542,7 +542,7 @@ export default function CatalogClient({ products: initProducts, categories: init
                           {bProds.length === 0 ? (
                             <div className="inner-empty">Sin productos de esta marca</div>
                           ) : bProds.map(p => (
-                            <Link key={p.id} href={`/catalog/${p.id}/edit`} className="inner-prod">
+                            <button key={p.id} onClick={() => setViewProduct(p)} className="inner-prod">
                               <div style={{flex:1,minWidth:0}}>
                                 <div className="inner-prod-name">{p.name}</div>
                                 <div className="inner-prod-meta">
@@ -550,7 +550,7 @@ export default function CatalogClient({ products: initProducts, categories: init
                                 </div>
                               </div>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.25)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                            </Link>
+                            </button>
                           ))}
                         </div>
                       )}
