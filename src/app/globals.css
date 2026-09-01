@@ -38,9 +38,9 @@ input, select, textarea {
 
 /*
  * ── Global .topbar ───────────────────────────────────────────
- * Header sticky universal: frosted-glass + flex-column.
- * Sub-elementos: .topbar-row (título+botón), .topbar-chips (filtros pill),
- * .topbar-tabs (tabs con underline activo).
+ * Mobile: sticky frosted-glass (único header en móvil).
+ * Desktop: bloque normal — el único bar anclado en desktop
+ * es el .desk-header global (el que tiene el chip).
  * ─────────────────────────────────────────────────────────────
  */
 .topbar {
@@ -56,12 +56,20 @@ input, select, textarea {
   padding-top: max(env(safe-area-inset-top, 0px), 16px);
 }
 @media (min-width: 768px) {
-  .topbar { top: 60px; padding-top: 12px; }
+  /* En desktop no es sticky — solo es cabecera visual de la sección */
+  .topbar {
+    position: static;
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-bottom: none;
+    padding-top: 0;
+  }
 }
 
 /* Fila horizontal: título flex-1 + botón de acción a la derecha */
 .topbar-row { display: flex; align-items: center; gap: 12px; padding: 0 20px 14px; }
-@media (min-width: 768px) { .topbar-row { padding: 4px 40px 14px; } }
+@media (min-width: 768px) { .topbar-row { padding: 20px 40px 14px; } }
 
 /* Tabs con underline */
 .topbar-tabs { display: flex; overflow-x: auto; scrollbar-width: none; border-top: 1px solid rgba(0,0,0,0.06); padding: 0 20px; }
