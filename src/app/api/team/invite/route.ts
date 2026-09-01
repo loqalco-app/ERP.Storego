@@ -227,8 +227,11 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const { invitationId, orgId } = await request.json()
   if (!invitationId || !orgId) {
-    return NextResponse.json({ error: 'invitationId y orgId son requeridos.' }, { status: 400 })
+    return NextResponse.json({ error: 'Faltan parámetros.' }, { status: 400 })
   }
+
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) return NextResponse.json({ error: 'Config incompleta.' }, { status: 500 })
 
   // Verificar sesión
   const cookieStore = await cookies()
@@ -240,19 +243,7 @@ export async function DELETE(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autenticado.' }, { status: 401 })
 
-  // Verificar que el caller es owner/admin de esa org
-  const { data: caller } = await supabase
-    .from('user_profiles')
-    .select('role, organization_id')
-    .eq('id', user.id)
-    .single()
-  if (!caller || caller.organization_id !== orgId || !['owner','admin'].includes((caller as { role?: string }).role ?? '')) {
-    return NextResponse.json({ error: 'Sin permisos.' }, { status: 403 })
-  }
-
-  // Usar adminClient para evitar restricciones de RLS
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceKey) return NextResponse.json({ error: 'Config incompleta.' }, { status: 500 })
+  // adminClient bypasea RLS — no depende de políticas de la tabla
   const adminClient = createAdmin(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })

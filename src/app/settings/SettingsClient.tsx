@@ -46,6 +46,15 @@ export default function SettingsClient({
   const router = useRouter()
   const [tab, setTab] = useState<'profile'|'team'>(initialTab)
 
+  function switchTab(t: 'profile'|'team') {
+    setTab(t)
+    // Actualiza URL sin navegar para que refresh mantenga el tab
+    const url = new URL(window.location.href)
+    if (t === 'team') url.searchParams.set('tab', 'team')
+    else url.searchParams.delete('tab')
+    window.history.replaceState(null, '', url.toString())
+  }
+
   /* Perfil */
   const [name, setName]         = useState(fullName)
   const [tel, setTel]           = useState(phone)
@@ -256,11 +265,11 @@ export default function SettingsClient({
 
       <div className="content">
         <div className="settings-nav">
-          <button className={`snav-btn${tab === 'profile' ? ' active' : ''}`} onClick={() => setTab('profile')}>
+          <button className={`snav-btn${tab === 'profile' ? ' active' : ''}`} onClick={() => switchTab('profile')}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
             Mi perfil
           </button>
-          <button className={`snav-btn${tab === 'team' ? ' active' : ''}`} onClick={() => setTab('team')}>
+          <button className={`snav-btn${tab === 'team' ? ' active' : ''}`} onClick={() => switchTab('team')}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
             Equipo
           </button>
