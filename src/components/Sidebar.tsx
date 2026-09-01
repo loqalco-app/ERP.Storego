@@ -169,7 +169,7 @@ export default function Sidebar({ active }: Props) {
         .nav-bar{
           position:fixed;bottom:0;left:0;right:0;z-index:199;
           display:flex;align-items:center;justify-content:center;
-          padding:0 12px max(env(safe-area-inset-bottom,0px),8px);
+          padding:0 16px max(env(safe-area-inset-bottom,0px),10px);
           pointer-events:none;
           -webkit-transform:translateZ(0);transform:translateZ(0)
         }
@@ -177,29 +177,27 @@ export default function Sidebar({ active }: Props) {
 
         /* ── Floating pill ── */
         .nav-pill{
-          display:flex;align-items:center;gap:2px;
+          display:flex;align-items:center;justify-content:center;gap:0;
           background:var(--bg,#ECEEF2);
-          border-radius:var(--r-2xl,28px);padding:7px;
+          border-radius:var(--r-2xl,28px);padding:6px;
           box-shadow:0 20px 60px rgba(0,0,0,0.14),0 6px 20px rgba(0,0,0,0.09),inset 0 1px 0 rgba(255,255,255,0.80);
-          pointer-events:all;width:100%;max-width:460px;
+          pointer-events:all;width:100%;max-width:440px;
           overflow-x:auto;overflow-y:hidden;
-          scrollbar-width:none;-webkit-overflow-scrolling:touch;
-          scroll-snap-type:x proximity
+          scrollbar-width:none;-webkit-overflow-scrolling:touch
         }
         .nav-pill::-webkit-scrollbar{display:none}
-        @media(min-width:768px){.nav-pill{overflow:visible;width:auto}}
+        @media(min-width:768px){.nav-pill{overflow:visible;width:auto;justify-content:flex-start}}
 
         /* ── Nav item ── */
         .nav-item{
-          flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-          padding:10px 10px 9px;border-radius:20px;text-decoration:none;
+          flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+          padding:9px 6px 8px;border-radius:20px;text-decoration:none;
           color:#0A0A0E;opacity:0.38;
           font-family:var(--font,'Inter',-apple-system,sans-serif);
           transition:color 0.14s,background 0.14s,opacity 0.14s;
-          cursor:pointer;min-width:56px;-webkit-tap-highlight-color:transparent;
-          scroll-snap-align:start
+          cursor:pointer;min-width:52px;max-width:80px;-webkit-tap-highlight-color:transparent
         }
-        @media(min-width:480px){.nav-item{padding:10px 14px 9px;min-width:72px}}
+        @media(min-width:480px){.nav-item{padding:10px 12px 9px}}
         .nav-item.on{
           background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
           color:white;opacity:1;box-shadow:0 6px 18px rgba(29,78,216,0.30)
@@ -221,13 +219,13 @@ export default function Sidebar({ active }: Props) {
         @media(min-width:768px){.nav-av-wrap{display:none}}
         .nav-av-btn{
           display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-          padding:10px 10px 9px;border-radius:20px;
+          padding:9px 6px 8px;border-radius:20px;
           border:none;background:none;color:#0A0A0E;opacity:0.38;
-          cursor:pointer;min-width:56px;-webkit-tap-highlight-color:transparent;
+          cursor:pointer;min-width:52px;max-width:80px;flex:1;-webkit-tap-highlight-color:transparent;
           font-family:var(--font,'Inter',-apple-system,sans-serif);
           transition:color 0.14s,background 0.14s,opacity 0.14s
         }
-        @media(min-width:480px){.nav-av-btn{padding:10px 14px 9px;min-width:72px}}
+        @media(min-width:480px){.nav-av-btn{padding:10px 12px 9px}}
         .nav-av-btn:not(.on):active{opacity:0.65;background:rgba(0,0,0,0.05)}
         .nav-av-btn.on{
           background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));

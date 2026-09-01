@@ -55,7 +55,6 @@ export default function POSClient({
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>([])
-  const [cartDiscount, setCartDiscount] = useState('')
 
   // Payment modal
   const [showPayment, setShowPayment] = useState(false)
@@ -68,34 +67,56 @@ export default function POSClient({
   const [shipAddr, setShipAddr] = useState({ line1:'', line2:'', city:'', state:'', zip:'' })
   const [skipAddr, setSkipAddr] = useState(false)
 
-  // Mobile cart sheet + swipe
+  // Mobile cart sheet — two states: peek (55dvh) and full (92dvh)
   const [showCartSheet, setShowCartSheet] = useState(false)
+  const [sheetState, setSheetState] = useState<'peek'|'full'>('peek')
+  // Customer search inside sheet
+  const [sheetCustSearch, setSheetCustSearch] = useState('')
+  const [showSheetCustDrop, setShowSheetCustDrop] = useState(false)
+  const sheetCustRef = useRef<HTMLDivElement>(null)
+
   const sheetRef = useRef<HTMLDivElement>(null)
   const dragStartY = useRef(0)
   const dragCurrentY = useRef(0)
 
-  function onSheetTouchStart(e: React.TouchEvent) {
+  // Only the drag handle triggers swipe (body scrolls freely)
+  function onHandleTouchStart(e: React.TouchEvent) {
     dragStartY.current = e.touches[0].clientY
     dragCurrentY.current = 0
   }
-  function onSheetTouchMove(e: React.TouchEvent) {
+  function onHandleTouchMove(e: React.TouchEvent) {
     const delta = e.touches[0].clientY - dragStartY.current
-    if (delta > 0 && sheetRef.current) {
-      dragCurrentY.current = delta
-      sheetRef.current.style.transform = `translateY(${delta}px)`
+    dragCurrentY.current = delta
+    if (sheetRef.current) {
+      sheetRef.current.style.transform = `translateY(${Math.max(0, delta)}px)`
       sheetRef.current.style.transition = 'none'
     }
   }
-  function onSheetTouchEnd() {
-    if (dragCurrentY.current > 90) {
-      setShowCartSheet(false)
-    }
+  function onHandleTouchEnd() {
+    const delta = dragCurrentY.current
     if (sheetRef.current) {
       sheetRef.current.style.transform = ''
-      sheetRef.current.style.transition = ''
+      sheetRef.current.style.transition = 'height 0.3s cubic-bezier(0.32,0.72,0,1),transform 0.3s cubic-bezier(0.32,0.72,0,1)'
+    }
+    if (delta > 70) {
+      if (sheetState === 'full') setSheetState('peek')
+      else setShowCartSheet(false)
+    } else if (delta < -70) {
+      setSheetState('full')
     }
     dragCurrentY.current = 0
   }
+
+  // Close sheet customer dropdown on outside click
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (sheetCustRef.current && !sheetCustRef.current.contains(e.target as Node)) {
+        setShowSheetCustDrop(false)
+      }
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
 
   // Result
   const [saving, setSaving] = useState(false)
@@ -132,11 +153,19 @@ export default function POSClient({
     ).slice(0, 8)
   }, [customers, custSearch])
 
-  const cartSubtotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity - i.discount, 0)
-  const cartDiscountNum = Math.max(0, parseFloat(cartDiscount) || 0)
-  const cartTotal = Math.max(0, cartSubtotal - cartDiscountNum)
+  const cartTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
   const totalPaid = payments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0)
   const remaining = Math.max(0, cartTotal - totalPaid)
+
+  const filteredSheetCustomers = useMemo(() => {
+    const q = sheetCustSearch.toLowerCase().trim()
+    if (!q) return customers.slice(0, 8)
+    return customers.filter(c =>
+      c.full_name.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.phone?.includes(q)
+    ).slice(0, 8)
+  }, [customers, sheetCustSearch])
 
   // ── Cart helpers ───────────────────────────────────────────────────────────
   function addToCart(product: Product, variant: Variant) {
@@ -148,7 +177,7 @@ export default function POSClient({
         key, productId: product.id, variantId: variant.id,
         productName: product.name, variantName: variant.name,
         sku: variant.sku, unitPrice: variant.sale_price,
-        quantity: 1, discount: 0,
+        quantity: 1, discount: 0, // discount reserved for future use
       }]
     })
   }
@@ -200,8 +229,8 @@ export default function POSClient({
         customer_id: customer.id,
         folio: '',
         status: isApartado ? 'apartado' : (remaining <= 0 ? 'pagado' : 'apartado'),
-        subtotal: cartSubtotal,
-        discount_amount: cartDiscountNum,
+        subtotal: cartTotal,
+        discount_amount: 0,
         total: cartTotal,
         created_by: userId,
       })
@@ -265,10 +294,10 @@ export default function POSClient({
 
   // ── Render ─────────────────────────────────────────────────────────────────
   function resetPOS() {
-    setCart([]); setCustomer(null); setCustSearch(''); setCartDiscount('')
+    setCart([]); setCustomer(null); setCustSearch('')
     setPayments([{ method:'efectivo', amount:'' }]); setIsApartado(false)
     setShipType('pickup'); setShipAddr({ line1:'', line2:'', city:'', state:'', zip:'' })
-    setSkipAddr(false); setSavedFolio(''); setShowCartSheet(false)
+    setSkipAddr(false); setSavedFolio(''); setShowCartSheet(false); setSheetState('peek')
   }
 
   if (savedFolio) return (
@@ -307,13 +336,25 @@ export default function POSClient({
           .cart-fab-total{font-size:16px;font-weight:800;color:white;flex:1}
           .cart-fab-cta{font-size:13px;font-weight:700;color:rgba(255,255,255,0.85);white-space:nowrap}
         }
-        /* CART SHEET — mobile full-screen */
+        /* CART SHEET — two-state bottom sheet */
         .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:flex;flex-direction:column;justify-content:flex-end}
-        .cart-sheet{background:var(--bg,#ECEEF2);border-radius:28px 28px 0 0;display:flex;flex-direction:column;max-height:92dvh;padding-bottom:env(safe-area-inset-bottom,0px)}
-        .sheet-drag{width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,0.15);margin:12px auto 0}
-        .sheet-hd{display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;flex-shrink:0}
+        .cart-sheet{background:var(--bg,#ECEEF2);border-radius:28px 28px 0 0;display:flex;flex-direction:column;padding-bottom:max(env(safe-area-inset-bottom,0px),8px);transition:height 0.3s cubic-bezier(0.32,0.72,0,1),transform 0.3s cubic-bezier(0.32,0.72,0,1)}
+        .cart-sheet.peek{height:58dvh}
+        .cart-sheet.full{height:92dvh}
+        .sheet-handle-area{padding:12px 0 4px;cursor:grab;touch-action:none;flex-shrink:0}
+        .sheet-drag{width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,0.15);margin:0 auto}
+        .sheet-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 18px 10px;flex-shrink:0}
         .sheet-title{font-size:17px;font-weight:800;color:var(--text,#0A0A0E)}
-        .sheet-close{background:rgba(0,0,0,0.06);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:rgba(10,10,14,0.5)}
+        .sheet-close{background:rgba(0,0,0,0.06);border:none;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(10,10,14,0.5)}
+        /* Customer in sheet */
+        .sheet-cust-wrap{padding:0 16px 10px;flex-shrink:0;position:relative}
+        .sheet-cust-box{background:rgba(37,99,235,0.06);border:1.5px solid rgba(37,99,235,0.15);border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+        .sheet-cust-selected{display:flex;align-items:center;gap:8px;flex:1}
+        .sheet-cust-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#1D4ED8,#3B82F6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:white;flex-shrink:0}
+        .sheet-cust-name{font-size:13px;font-weight:700;color:#1D4ED8}
+        .sheet-cust-search{flex:1;border:none;background:none;font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none}
+        .sheet-cust-search::placeholder{color:rgba(10,10,14,0.35)}
+        .sheet-cust-drop{position:absolute;top:calc(100% - 4px);left:16px;right:16px;background:var(--bg,#ECEEF2);border:1.5px solid rgba(0,0,0,0.10);border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:100;overflow:hidden}
         /* CUSTOMER */
         .cust-panel{background:rgba(0,0,0,0.03);border:1.5px solid rgba(0,0,0,0.07);border-radius:16px;padding:12px 14px;margin-bottom:12px;flex-shrink:0;position:relative}
         .cust-label{font-size:10px;font-weight:700;color:rgba(10,10,14,0.38);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
@@ -360,14 +401,10 @@ export default function POSClient({
         .item-price{margin-left:auto;font-size:13px;font-weight:700;color:var(--text,#0A0A0E)}
         .rm-btn{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.30);padding:2px;line-height:1}
         .rm-btn:hover{color:#DC2626}
-        .disc-input{width:80px;padding:3px 8px;border:1.5px solid rgba(0,0,0,0.10);border-radius:8px;font-size:12px;font-family:inherit;background:rgba(0,0,0,0.03);color:var(--text,#0A0A0E);outline:none}
         /* CART FOOTER */
         .cart-footer{border-top:1px solid rgba(0,0,0,0.07);padding:12px 16px;flex-shrink:0}
         .total-row{display:flex;justify-content:space-between;font-size:13px;color:rgba(10,10,14,0.55);margin-bottom:4px}
-        .total-row.big{font-size:18px;font-weight:800;color:var(--text,#0A0A0E);margin-top:6px}
-        .cart-disc-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-        .cart-disc-label{font-size:12px;color:rgba(10,10,14,0.50);flex:1}
-        .cart-disc-input{width:90px;padding:5px 10px;border:1.5px solid rgba(0,0,0,0.10);border-radius:10px;font-size:13px;font-family:inherit;background:rgba(0,0,0,0.03);color:var(--text,#0A0A0E);outline:none;text-align:right}
+        .total-row.big{font-size:20px;font-weight:800;color:var(--text,#0A0A0E);margin-top:4px;margin-bottom:0}
         .btn-primary{width:100%;padding:15px;border:none;border-radius:20px;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(29,78,216,0.28);transition:opacity .15s,transform .12s;margin-top:10px}
         .btn-primary:hover{opacity:.92}
         .btn-primary:active{transform:scale(.98)}
@@ -556,14 +593,7 @@ export default function POSClient({
                       <span className="qty-num">{item.quantity}</span>
                       <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
                     </div>
-                    <input
-                      className="disc-input"
-                      type="number" min="0" placeholder="Desc."
-                      value={item.discount || ''}
-                      onChange={e => updateItemDiscount(item.key, e.target.value)}
-                      title="Descuento"
-                    />
-                    <span className="item-price">{fmt(item.unitPrice * item.quantity - item.discount)}</span>
+                    <span className="item-price">{fmt(item.unitPrice * item.quantity)}</span>
                     <button className="rm-btn" onClick={() => removeItem(item.key)} title="Eliminar">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
@@ -574,19 +604,14 @@ export default function POSClient({
 
             {cart.length > 0 && (
               <div className="cart-footer">
-                <div className="total-row"><span>Subtotal</span><span>{fmt(cartSubtotal)}</span></div>
-                <div className="cart-disc-row">
-                  <span className="cart-disc-label">Descuento general</span>
-                  <input className="cart-disc-input" type="number" min="0" placeholder="$0.00" value={cartDiscount} onChange={e => setCartDiscount(e.target.value)} />
-                </div>
-                {cartDiscountNum > 0 && <div className="total-row" style={{color:'#059669'}}><span>Ahorro</span><span>−{fmt(cartDiscountNum)}</span></div>}
                 <div className="total-row big"><span>Total</span><span>{fmt(cartTotal)}</span></div>
                 <button
                   className="btn-primary"
                   disabled={!customer || cart.length === 0}
                   onClick={() => setShowPayment(true)}
+                  style={{marginTop:12}}
                 >
-                  {!customer ? 'Selecciona un cliente' : 'Continuar con el pago →'}
+                  {!customer ? 'Selecciona un cliente primero' : 'Continuar con el pago →'}
                 </button>
               </div>
             )}
@@ -596,7 +621,7 @@ export default function POSClient({
 
       {/* MOBILE FLOATING CART BAR */}
       {cart.length > 0 && (
-        <button className="cart-fab" onClick={() => setShowCartSheet(true)}>
+        <button className="cart-fab" onClick={() => { setSheetState('peek'); setShowCartSheet(true) }}>
           <span className="cart-fab-count">{cart.length} {cart.length === 1 ? 'art.' : 'arts.'}</span>
           <span className="cart-fab-total">{fmt(cartTotal)}</span>
           <span className="cart-fab-cta">Ver carrito →</span>
@@ -606,17 +631,20 @@ export default function POSClient({
       {/* MOBILE CART SHEET */}
       {showCartSheet && (
         <div className="sheet-overlay" onClick={e => { if (e.target === e.currentTarget) setShowCartSheet(false) }}>
-          <div
-            className="cart-sheet"
-            ref={sheetRef}
-            onTouchStart={onSheetTouchStart}
-            onTouchMove={onSheetTouchMove}
-            onTouchEnd={onSheetTouchEnd}
-            style={{ transition: 'transform 0.3s cubic-bezier(0.32,0.72,0,1)' }}
-          >
-            <div className="sheet-drag" />
+          <div className={`cart-sheet ${sheetState}`} ref={sheetRef}>
+
+            {/* Drag handle — only this area triggers swipe */}
+            <div
+              className="sheet-handle-area"
+              onTouchStart={onHandleTouchStart}
+              onTouchMove={onHandleTouchMove}
+              onTouchEnd={onHandleTouchEnd}
+            >
+              <div className="sheet-drag" />
+            </div>
+
             <div className="sheet-hd">
-              <span className="sheet-title">Carrito ({cart.length})</span>
+              <span className="sheet-title">Carrito · {cart.length} {cart.length === 1 ? 'art.' : 'arts.'}</span>
               <div style={{display:'flex',gap:8,alignItems:'center'}}>
                 {cart.length > 0 && <button className="btn-sm" style={{color:'#DC2626',borderColor:'rgba(220,38,38,0.2)'}} onClick={() => setCart([])}>Vaciar</button>}
                 <button className="sheet-close" onClick={() => setShowCartSheet(false)}>
@@ -625,6 +653,43 @@ export default function POSClient({
               </div>
             </div>
 
+            {/* Customer selector inline */}
+            <div className="sheet-cust-wrap" ref={sheetCustRef}>
+              {customer ? (
+                <div className="sheet-cust-box">
+                  <div className="sheet-cust-selected">
+                    <div className="sheet-cust-av">{customer.full_name.charAt(0).toUpperCase()}</div>
+                    <span className="sheet-cust-name">{customer.full_name}</span>
+                  </div>
+                  <button className="btn-sm" onClick={() => { setCustomer(null); setCustSearch('') }}>Cambiar</button>
+                </div>
+              ) : (
+                <div className="sheet-cust-box" style={{borderColor:'rgba(220,38,38,0.25)',background:'rgba(220,38,38,0.05)'}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" style={{flexShrink:0}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <input
+                    className="sheet-cust-search"
+                    placeholder="Buscar cliente…"
+                    value={sheetCustSearch}
+                    onChange={e => { setSheetCustSearch(e.target.value); setShowSheetCustDrop(true) }}
+                    onFocus={() => setShowSheetCustDrop(true)}
+                  />
+                  {showSheetCustDrop && filteredSheetCustomers.length > 0 && (
+                    <div className="sheet-cust-drop">
+                      {filteredSheetCustomers.map(c => (
+                        <div key={c.id} className="cust-opt" onClick={() => {
+                          setCustomer(c); setSheetCustSearch(''); setShowSheetCustDrop(false)
+                        }}>
+                          <span style={{fontWeight:700}}>{c.full_name}</span>
+                          <span className="cust-opt-sub">{[c.phone, c.email].filter(Boolean).join(' · ')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Items list */}
             <div className="cart-body" style={{flex:1,overflowY:'auto',padding:'4px 16px'}}>
               {cart.map(item => (
                 <div key={item.key} className="cart-item">
@@ -636,14 +701,7 @@ export default function POSClient({
                       <span className="qty-num">{item.quantity}</span>
                       <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
                     </div>
-                    <input
-                      className="disc-input"
-                      type="number" min="0" placeholder="Desc."
-                      value={item.discount || ''}
-                      onChange={e => updateItemDiscount(item.key, e.target.value)}
-                      title="Descuento"
-                    />
-                    <span className="item-price">{fmt(item.unitPrice * item.quantity - item.discount)}</span>
+                    <span className="item-price" style={{marginLeft:'auto'}}>{fmt(item.unitPrice * item.quantity)}</span>
                     <button className="rm-btn" onClick={() => removeItem(item.key)}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
@@ -653,19 +711,14 @@ export default function POSClient({
             </div>
 
             <div className="cart-footer" style={{flexShrink:0}}>
-              <div className="total-row"><span>Subtotal</span><span>{fmt(cartSubtotal)}</span></div>
-              <div className="cart-disc-row">
-                <span className="cart-disc-label">Descuento general</span>
-                <input className="cart-disc-input" type="number" min="0" placeholder="$0.00" value={cartDiscount} onChange={e => setCartDiscount(e.target.value)} />
-              </div>
-              {cartDiscountNum > 0 && <div className="total-row" style={{color:'#059669'}}><span>Ahorro</span><span>−{fmt(cartDiscountNum)}</span></div>}
               <div className="total-row big"><span>Total</span><span>{fmt(cartTotal)}</span></div>
               <button
                 className="btn-primary"
                 disabled={!customer || cart.length === 0}
                 onClick={() => { setShowCartSheet(false); setShowPayment(true) }}
+                style={{marginTop:12}}
               >
-                {!customer ? 'Primero elige un cliente' : 'Continuar con el pago →'}
+                {!customer ? 'Elige un cliente para continuar' : 'Ir al pago →'}
               </button>
             </div>
           </div>
@@ -681,7 +734,6 @@ export default function POSClient({
             <div className="summary-box">
               <div className="summary-row"><span>Cliente</span><span style={{fontWeight:600}}>{customer?.full_name}</span></div>
               <div className="summary-row"><span>Productos</span><span>{cart.length}</span></div>
-              {cartDiscountNum > 0 && <div className="summary-row" style={{color:'#059669'}}><span>Descuento</span><span>−{fmt(cartDiscountNum)}</span></div>}
               <div className="summary-row total"><span>Total</span><span>{fmt(cartTotal)}</span></div>
             </div>
 

@@ -51,8 +51,8 @@ export default function OrdersClient({ orders }: { orders: Order[] }) {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-        .ord-content{padding:0 20px calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.ord-content{padding:0 40px calc(var(--nav-h,88px) + 16px)}}
+        .ord-content{padding:max(env(safe-area-inset-top,0px),16px) 20px calc(var(--nav-h,88px) + 16px)}
+        @media(min-width:768px){.ord-content{padding:max(env(safe-area-inset-top,0px),16px) 40px calc(var(--nav-h,88px) + 16px)}}
         .ord-hero{background:linear-gradient(145deg,#1D4ED8,#2563EB,#3B82F6);border-radius:28px;padding:24px;margin-bottom:16px;box-shadow:0 8px 24px rgba(29,78,216,0.28);position:relative;overflow:hidden}
         .ord-hero::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(255,255,255,0.12),transparent 70%)}
         .ord-hero-lbl{font-size:12px;color:rgba(255,255,255,0.65);font-weight:600;margin-bottom:4px}

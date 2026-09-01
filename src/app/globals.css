@@ -23,6 +23,16 @@ input, select, textarea {
 }
 
 /*
+ * ── Global safe-area wrapper ──────────────────────────────────
+ * Para páginas que NO usan .topbar (como Orders).
+ * Aplica el inset del notch como padding-top al primer elemento.
+ * ─────────────────────────────────────────────────────────────
+ */
+.page-top {
+  padding-top: max(env(safe-area-inset-top, 0px), 16px);
+}
+
+/*
  * ── Global .topbar ───────────────────────────────────────────
  * Zona roja: sticky al tope + blur frosted-glass como iOS.
  * El contenido scroll pasa por debajo con el blur visible.
