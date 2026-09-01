@@ -16,14 +16,13 @@ export default async function OrdersPage() {
   if (!profile?.organization_id) redirect('/login')
   const orgId = profile.organization_id
 
+  // Slim query — items/shipping loaded on-demand when order is tapped
   const { data: orders } = await supabase
     .from('orders')
     .select(`
-      id, folio, status, subtotal, discount_amount, total, created_at,
-      customers(id, full_name, email, phone),
-      order_items(id, product_name, variant_name, sku, quantity, unit_price, discount_amount, subtotal),
-      order_payments(id, method, amount, created_at),
-      order_shipping(id, type, address_line1, address_line2, city, state, zip)
+      id, folio, status, total, created_at,
+      customers(id, full_name, phone, email),
+      order_payments(id, method, amount, created_at)
     `)
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })

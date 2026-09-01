@@ -29,7 +29,7 @@ export default async function POSPage() {
       .select(`
         id, name,
         product_variants(
-          id, name, sku, sale_price, status,
+          id, name, sku, sale_price, cost_price, status,
           stock_levels(quantity_available)
         )
       `)
@@ -55,6 +55,7 @@ export default async function POSPage() {
         name: v.name,
         sku: v.sku,
         sale_price: Number(v.sale_price),
+        cost_price: Number(v.cost_price ?? 0),
         stock: (v.stock_levels ?? []).reduce(
           (sum: number, sl: any) => sum + Number(sl.quantity_available ?? 0), 0
         ),

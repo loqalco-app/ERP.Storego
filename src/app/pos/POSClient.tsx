@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Variant = { id: string; name: string; sku: string; sale_price: number; stock: number }
+type Variant = { id: string; name: string; sku: string; sale_price: number; cost_price: number; stock: number }
 type Product  = { id: string; name: string; variants: Variant[] }
 type Customer = { id: string; full_name: string; email: string | null; phone: string | null }
 
@@ -14,7 +14,7 @@ type CartItem = {
   key: string
   productId: string; variantId: string
   productName: string; variantName: string; sku: string
-  unitPrice: number; quantity: number; discount: number
+  unitPrice: number; costPrice: number; quantity: number; discount: number
 }
 
 type PaymentEntry = { method: 'efectivo' | 'tarjeta' | 'transferencia' | 'otro'; amount: string }
@@ -176,8 +176,8 @@ export default function POSClient({
       return [...prev, {
         key, productId: product.id, variantId: variant.id,
         productName: product.name, variantName: variant.name,
-        sku: variant.sku, unitPrice: variant.sale_price,
-        quantity: 1, discount: 0, // discount reserved for future use
+        sku: variant.sku, unitPrice: variant.sale_price, costPrice: variant.cost_price,
+        quantity: 1, discount: 0,
       }]
     })
   }
@@ -245,7 +245,7 @@ export default function POSClient({
         order_id: order.id, organization_id: orgId,
         product_id: i.productId, variant_id: i.variantId,
         product_name: i.productName, variant_name: i.variantName, sku: i.sku,
-        quantity: i.quantity, unit_price: i.unitPrice,
+        quantity: i.quantity, unit_price: i.unitPrice, cost_price: i.costPrice,
         discount_amount: i.discount,
         subtotal: i.unitPrice * i.quantity - i.discount,
       }))
