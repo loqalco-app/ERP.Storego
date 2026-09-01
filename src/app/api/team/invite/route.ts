@@ -58,8 +58,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ya hay un acceso pendiente para ese correo.' }, { status: 409 })
   }
 
+  // Usar el origin del request — siempre es el dominio correcto en producción
   const appUrl = process.env.NEXT_PUBLIC_SITE_URL
-    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+    || request.headers.get('origin')
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
   // Generar link de invite (single-use, no envía correo)
   const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const NAV = [
   {
@@ -38,7 +38,8 @@ const NAV = [
   {
     key: 'settings', href: '/settings', label: 'Ajustes', desktopOnly: true,
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>,
   },
 ]
@@ -46,17 +47,28 @@ const NAV = [
 function nameInitials(name: string) {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'
 }
-function firstName(name: string) {
+function getFirstName(name: string) {
   return name.split(' ')[0] || name
+}
+
+// Lee de localStorage para no flashear al navegar
+function readCache(key: string, fallback: string) {
+  try { return localStorage.getItem(key) || fallback } catch { return fallback }
 }
 
 interface Props { active: string; orgName?: string; userName?: string }
 
 export default function Sidebar({ active }: Props) {
   const pathname = usePathname()
-  const [initials, setInitials] = useState('?')
-  const [displayName, setDisplayName] = useState('')
-  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Inicializa desde caché — sin flash al navegar
+  const [initials,     setInitials]     = useState(() => readCache('_erp_ini', '?'))
+  const [displayName,  setDisplayName]  = useState(() => readCache('_erp_dn', ''))
+  const [mobileOpen,   setMobileOpen]   = useState(false)
+  const [desktopOpen,  setDesktopOpen]  = useState(false)
+
+  const mobileWrapRef  = useRef<HTMLDivElement>(null)
+  const desktopWrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const sb = createClient()
@@ -72,30 +84,65 @@ export default function Sidebar({ active }: Props) {
         || data.user.user_metadata?.name
         || data.user.email?.split('@')[0]
         || ''
-      setInitials(nameInitials(name))
-      setDisplayName(firstName(name))
+      const ini = nameInitials(name)
+      const dn  = getFirstName(name)
+      setInitials(ini)
+      setDisplayName(dn)
+      try { localStorage.setItem('_erp_ini', ini); localStorage.setItem('_erp_dn', dn) } catch { /* ignore */ }
     })
   }, [])
+
+  // Cierra menú mobile al clic fuera
+  useEffect(() => {
+    if (!mobileOpen) return
+    function handler(e: MouseEvent) {
+      if (mobileWrapRef.current && !mobileWrapRef.current.contains(e.target as Node)) {
+        setMobileOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [mobileOpen])
+
+  // Cierra menú desktop al clic fuera
+  useEffect(() => {
+    if (!desktopOpen) return
+    function handler(e: MouseEvent) {
+      if (desktopWrapRef.current && !desktopWrapRef.current.contains(e.target as Node)) {
+        setDesktopOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [desktopOpen])
 
   async function signOut() {
     const sb = createClient()
     await sb.auth.signOut()
+    try { localStorage.removeItem('_erp_ini'); localStorage.removeItem('_erp_dn') } catch { /* ignore */ }
     window.location.href = '/login'
   }
 
-  // Cierra el menú al hacer clic fuera
-  useEffect(() => {
-    if (!menuOpen) return
-    function handleClickOutside(e: MouseEvent) {
-      const target = e.target as HTMLElement
-      if (!target.closest('.nav-profile-wrap') && !target.closest('.desk-chip') && !target.closest('.desk-dropdown')) setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [menuOpen])
-
   const currentKey = NAV.find(n => n.href !== '/dashboard' && pathname?.startsWith(n.href))?.key
     ?? (pathname === '/dashboard' ? 'dashboard' : active)
+
+  const menuLinks = (close: () => void) => (
+    <>
+      <Link href="/settings" className="pc-menu-item" onClick={close}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+        Mi perfil
+      </Link>
+      <Link href="/settings?tab=team" className="pc-menu-item" onClick={close}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
+        Equipo
+      </Link>
+      <div className="pc-divider" />
+      <button className="pc-menu-item danger" onClick={signOut}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Cerrar sesión
+      </button>
+    </>
+  )
 
   return (
     <>
@@ -104,14 +151,13 @@ export default function Sidebar({ active }: Props) {
 
         /* ── Bottom fade ── */
         .nav-fade{
-          position:fixed;bottom:0;left:0;right:0;
-          height:96px;
+          position:fixed;bottom:0;left:0;right:0;height:96px;
           background:linear-gradient(to top,var(--bg,#ECEEF2) 60%,transparent);
           pointer-events:none;z-index:198;
           -webkit-transform:translateZ(0);transform:translateZ(0)
         }
 
-        /* ── Nav bar — iOS PWA fix: translateZ fuerza capa GPU ── */
+        /* ── Nav bar ── */
         .nav-bar{
           position:fixed;bottom:0;left:0;right:0;z-index:199;
           display:flex;align-items:center;justify-content:center;
@@ -125,52 +171,84 @@ export default function Sidebar({ active }: Props) {
         .nav-pill{
           display:flex;align-items:center;gap:2px;
           background:var(--bg,#ECEEF2);
-          border-radius:var(--r-2xl,28px);
-          padding:7px;
+          border-radius:var(--r-2xl,28px);padding:7px;
           box-shadow:0 20px 60px rgba(0,0,0,0.14),0 6px 20px rgba(0,0,0,0.09),inset 0 1px 0 rgba(255,255,255,0.80);
-          pointer-events:all;
-          width:100%;max-width:460px
+          pointer-events:all;width:100%;max-width:460px
         }
         @media(min-width:480px){.nav-pill{width:auto;min-width:360px}}
 
         /* ── Nav item ── */
         .nav-item{
-          flex:1;
-          display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-          padding:10px 4px 9px;
-          border-radius:20px;
-          text-decoration:none;
-          color:#0A0A0E;
-          opacity:0.38;
+          flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+          padding:10px 4px 9px;border-radius:20px;text-decoration:none;
+          color:#0A0A0E;opacity:0.38;
           font-family:var(--font,'Inter',-apple-system,sans-serif);
           transition:color 0.14s,background 0.14s,opacity 0.14s;
-          cursor:pointer;min-width:0;
-          -webkit-tap-highlight-color:transparent
+          cursor:pointer;min-width:0;-webkit-tap-highlight-color:transparent
         }
         @media(min-width:480px){.nav-item{padding:10px 12px 9px;min-width:68px}}
-        /* Ajustes: solo desktop dentro del pill */
+        .nav-item.on{
+          background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
+          color:white;opacity:1;box-shadow:0 6px 18px rgba(29,78,216,0.30)
+        }
+        .nav-item:not(.on):active{opacity:0.65;background:rgba(0,0,0,0.05)}
+        .nav-item.on .nav-icon{transform:scale(1.08)}
+
+        /* Ajustes solo en desktop dentro del pill */
         .nav-item.desk-only{display:none}
         @media(min-width:768px){.nav-item.desk-only{display:flex}}
-        /* Avatar wrap: flex:1 para que ocupe igual que los otros items */
-        .nav-profile-wrap{flex:1;display:flex;position:relative}
-        .nav-profile-wrap .nav-av-btn{width:100%}
-        /* En desktop ocultar del pill, mostrar chip fijo */
-        @media(min-width:768px){.nav-profile-wrap{display:none}}
+
+        .nav-icon{display:flex;align-items:center;justify-content:center;transition:transform 0.12s}
+        .nav-lbl{font-size:9px;font-weight:700;letter-spacing:0.04em;white-space:nowrap;line-height:1}
+        @media(max-width:379px){.nav-lbl{display:none}}
+        @media(min-width:480px){.nav-lbl{font-size:10px}}
+
+        /* ── Avatar en pill (mobile únicamente) ── */
+        .nav-av-wrap{flex:1;display:flex;position:relative}
+        @media(min-width:768px){.nav-av-wrap{display:none}}
+        .nav-av-btn{
+          width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+          padding:10px 4px 9px;border-radius:20px;
+          border:none;background:none;color:#0A0A0E;opacity:0.38;
+          cursor:pointer;min-width:0;-webkit-tap-highlight-color:transparent;
+          font-family:var(--font,'Inter',-apple-system,sans-serif);
+          transition:color 0.14s,background 0.14s,opacity 0.14s
+        }
+        @media(min-width:480px){.nav-av-btn{padding:10px 12px 9px;min-width:68px}}
+        .nav-av-btn:not(.on):active{opacity:0.65;background:rgba(0,0,0,0.05)}
+        .nav-av-btn.on{
+          background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
+          color:white;opacity:1;box-shadow:0 6px 18px rgba(29,78,216,0.30)
+        }
+        .nav-av-circle{
+          width:22px;height:22px;border-radius:50%;
+          background:linear-gradient(135deg,#1D4ED8,#2563EB);
+          display:flex;align-items:center;justify-content:center;
+          font-size:9px;font-weight:800;color:white;flex-shrink:0
+        }
+        .nav-av-btn.on .nav-av-circle{background:rgba(255,255,255,0.28)}
+
+        /* Dropdown mobile — sube del pill */
+        .pc-dropdown{
+          position:absolute;bottom:calc(100% + 12px);right:-8px;
+          background:var(--bg,#ECEEF2);border-radius:var(--r-lg,20px);
+          box-shadow:0 -8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
+          min-width:200px;overflow:hidden;z-index:400
+        }
 
         /* ── Chip de perfil fijo — solo desktop ── */
+        .desk-chip-wrap{
+          display:none;position:fixed;top:20px;right:24px;z-index:300
+        }
+        @media(min-width:768px){.desk-chip-wrap{display:block}}
         .desk-chip{
-          display:none;
-          position:fixed;top:20px;right:24px;z-index:300;
-          align-items:center;gap:8px;
-          background:var(--bg,#ECEEF2);
-          border:none;border-radius:50px;
+          display:flex;align-items:center;gap:8px;
+          background:var(--bg,#ECEEF2);border:none;border-radius:50px;
           padding:6px 14px 6px 6px;
           box-shadow:4px 4px 12px rgba(0,0,0,0.10),-3px -3px 8px rgba(255,255,255,0.90),inset 0 1px 0 rgba(255,255,255,0.70);
           cursor:pointer;font-family:var(--font,'Inter',-apple-system,sans-serif);
-          -webkit-tap-highlight-color:transparent;
-          transition:opacity 0.14s
+          -webkit-tap-highlight-color:transparent;transition:opacity 0.14s
         }
-        @media(min-width:768px){.desk-chip{display:flex}}
         .desk-chip:hover{opacity:.88}
         .desk-chip-av{
           width:28px;height:28px;border-radius:50%;
@@ -179,78 +257,23 @@ export default function Sidebar({ active }: Props) {
           font-size:10px;font-weight:800;color:white;flex-shrink:0
         }
         .desk-chip-name{font-size:13px;font-weight:700;color:var(--text-1,#1A1A20)}
-        /* Dropdown del chip desktop */
+
+        /* Dropdown desktop — baja del chip */
         .desk-dropdown{
           position:absolute;top:calc(100% + 8px);right:0;
-          background:var(--bg,#ECEEF2);
-          border-radius:var(--r-lg,20px);
+          background:var(--bg,#ECEEF2);border-radius:var(--r-lg,20px);
           box-shadow:0 8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
           min-width:200px;overflow:hidden;z-index:400
         }
 
-        .nav-item.on{
-          background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
-          color:white;opacity:1;
-          box-shadow:0 6px 18px rgba(29,78,216,0.30)
-        }
-        .nav-item:not(.on):active{opacity:0.65;background:rgba(0,0,0,0.05)}
-        .nav-item.on .nav-icon{transform:scale(1.08)}
-
-        .nav-icon{display:flex;align-items:center;justify-content:center;transition:transform 0.12s}
-        .nav-lbl{font-size:9px;font-weight:700;letter-spacing:0.04em;white-space:nowrap;line-height:1}
-        @media(max-width:379px){.nav-lbl{display:none}}
-        @media(min-width:480px){.nav-lbl{font-size:10px}}
-
-        /* ── Avatar item — mismo estilo exacto que .nav-item ── */
-        .nav-av-btn{
-          flex:1;
-          display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-          padding:10px 4px 9px;
-          border-radius:20px;
-          border:none;background:none;color:#0A0A0E;opacity:0.38;
-          cursor:pointer;min-width:0;
-          -webkit-tap-highlight-color:transparent;
-          font-family:var(--font,'Inter',-apple-system,sans-serif);
-          transition:color 0.14s,background 0.14s,opacity 0.14s;
-          position:relative
-        }
-        @media(min-width:480px){.nav-av-btn{padding:10px 12px 9px;min-width:68px}}
-        .nav-av-btn:not(.on):active{opacity:0.65;background:rgba(0,0,0,0.05)}
-        .nav-av-btn.on{
-          background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
-          color:white;opacity:1;
-          box-shadow:0 6px 18px rgba(29,78,216,0.30)
-        }
-        /* Círculo de avatar — 22x22, igual que los iconos SVG */
-        .nav-av-circle{
-          width:22px;height:22px;border-radius:50%;
-          background:linear-gradient(135deg,#1D4ED8,#2563EB);
-          display:flex;align-items:center;justify-content:center;
-          font-size:9px;font-weight:800;color:white;letter-spacing:0;
-          flex-shrink:0
-        }
-        .nav-av-btn.on .nav-av-circle{background:rgba(255,255,255,0.28)}
-        /* Etiqueta — usa exactamente .nav-lbl */
-
-        /* ── Dropdown del avatar ── */
-        .nav-profile-wrap{position:relative}
-        .pc-dropdown{
-          position:absolute;bottom:calc(100% + 12px);right:-8px;top:auto;
-          background:var(--bg,#ECEEF2);
-          border-radius:var(--r-lg,20px);
-          box-shadow:0 -8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
-          min-width:200px;overflow:hidden;z-index:400
-        }
+        /* Menú items compartidos */
         .pc-menu-item{
           display:flex;align-items:center;gap:10px;
-          width:100%;padding:13px 18px;
-          background:none;border:none;
-          font-size:14px;font-weight:600;
-          color:var(--text-1,#0A0A0E);
+          width:100%;padding:13px 18px;background:none;border:none;
+          font-size:14px;font-weight:600;color:var(--text-1,#0A0A0E);
           font-family:var(--font,'Inter',-apple-system,sans-serif);
-          cursor:pointer;text-decoration:none;
-          transition:background 0.12s;text-align:left;
-          -webkit-tap-highlight-color:transparent
+          cursor:pointer;text-decoration:none;transition:background 0.12s;
+          text-align:left;-webkit-tap-highlight-color:transparent
         }
         .pc-menu-item:hover{background:rgba(0,0,0,0.04)}
         .pc-menu-item:active{background:rgba(0,0,0,0.07)}
@@ -259,28 +282,18 @@ export default function Sidebar({ active }: Props) {
         .pc-divider{height:1px;background:rgba(0,0,0,0.06);margin:4px 0}
       `}</style>
 
-      {/* ── Chip de perfil fijo — solo desktop (≥768px) ── */}
-      <div style={{ position: 'relative' }}>
-        <button className="desk-chip" aria-label="Mi perfil" onClick={() => setMenuOpen(v => !v)}>
+      {/* ── Chip fijo desktop (≥768px) ── */}
+      <div className="desk-chip-wrap" ref={desktopWrapRef}>
+        <button className="desk-chip" aria-label="Mi perfil" onClick={() => setDesktopOpen(v => !v)}>
           <div className="desk-chip-av">{initials}</div>
           <span className="desk-chip-name">{displayName || 'Perfil'}</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.35)" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.35)" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
         </button>
-        {menuOpen && (
-          <div className="desk-dropdown" onClick={() => setMenuOpen(false)}>
-            <Link href="/settings" className="pc-menu-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
-              Mi perfil
-            </Link>
-            <Link href="/settings?tab=team" className="pc-menu-item">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
-              Equipo
-            </Link>
-            <div className="pc-divider" />
-            <button className="pc-menu-item danger" onClick={signOut}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              Cerrar sesión
-            </button>
+        {desktopOpen && (
+          <div className="desk-dropdown">
+            {menuLinks(() => setDesktopOpen(false))}
           </div>
         )}
       </div>
@@ -307,32 +320,19 @@ export default function Sidebar({ active }: Props) {
             )
           })}
 
-          {/* Avatar — reemplaza "Ajustes", último ítem del pill */}
-          <div className="nav-profile-wrap">
+          {/* Avatar — solo mobile (<768px) */}
+          <div className="nav-av-wrap" ref={mobileWrapRef}>
             <button
               className={`nav-av-btn${pathname?.startsWith('/settings') ? ' on' : ''}`}
               aria-label="Mi perfil"
-              onClick={() => setMenuOpen(v => !v)}
+              onClick={() => setMobileOpen(v => !v)}
             >
               <div className="nav-av-circle">{initials}</div>
               <span className="nav-lbl">Perfil</span>
             </button>
-
-            {menuOpen && (
-              <div className="pc-dropdown" onClick={() => setMenuOpen(false)}>
-                <Link href="/settings" className="pc-menu-item">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
-                  Mi perfil
-                </Link>
-                <Link href="/settings?tab=team" className="pc-menu-item">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
-                  Equipo
-                </Link>
-                <div className="pc-divider" />
-                <button className="pc-menu-item danger" onClick={signOut}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                  Cerrar sesión
-                </button>
+            {mobileOpen && (
+              <div className="pc-dropdown">
+                {menuLinks(() => setMobileOpen(false))}
               </div>
             )}
           </div>
