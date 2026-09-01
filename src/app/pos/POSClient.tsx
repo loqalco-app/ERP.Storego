@@ -101,51 +101,76 @@ export default function POSClient({
     document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  // ── Parked sales ────────────────────────────────────────────────────────────
-  const PARK_KEY = `pos_parked_${orgId}`
+  // ── Parked sales (Supabase) ──────────────────────────────────────────────────
   const [parkedSales, setParkedSales] = useState<ParkedSale[]>([])
   const [parkedSearch, setParkedSearch] = useState('')
 
   useEffect(() => {
-    try { const s = localStorage.getItem(PARK_KEY); if (s) setParkedSales(JSON.parse(s)) } catch {}
-  }, [PARK_KEY])
+    supabase
+      .from('parked_sales')
+      .select('id, saved_at, customer_id, customer_name, cart, total')
+      .eq('organization_id', orgId)
+      .order('saved_at', { ascending: false })
+      .then(({ data }) => {
+        if (!data) return
+        setParkedSales(data.map(r => ({
+          id: r.id,
+          savedAt: r.saved_at,
+          customer: r.customer_id
+            ? (initialCustomers.find(c => c.id === r.customer_id) || { id: r.customer_id, full_name: r.customer_name || '?', email: null, phone: null })
+            : null,
+          cart: r.cart,
+          total: r.total,
+        })))
+      })
+  }, [orgId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  function saveParked(updater: (prev: ParkedSale[]) => ParkedSale[]) {
-    setParkedSales(prev => {
-      const next = updater(prev)
-      try { localStorage.setItem(PARK_KEY, JSON.stringify(next)) } catch {}
-      return next
-    })
-  }
-
-  function parkCurrentCart() {
+  async function parkCurrentCart() {
     if (cart.length === 0) return
-    const sale: ParkedSale = {
-      id: crypto.randomUUID(), savedAt: new Date().toISOString(),
-      customer, cart, total: cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
-    }
-    saveParked(prev => [...prev, sale])
+    const total = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
+    const tempId = crypto.randomUUID()
+    const now = new Date().toISOString()
+    // Optimistic
+    setParkedSales(prev => [{ id: tempId, savedAt: now, customer, cart, total }, ...prev])
     setCart([]); setCustomer(null); setCustSearch('')
     setShowCartSheet(false); setPosView('home')
+
+    const { data, error } = await supabase.from('parked_sales').insert({
+      organization_id: orgId, saved_by: userId,
+      customer_id: customer?.id || null, customer_name: customer?.full_name || null,
+      cart, total,
+    }).select('id').single()
+    if (error) { setParkedSales(prev => prev.filter(s => s.id !== tempId)); return }
+    setParkedSales(prev => prev.map(s => s.id === tempId ? { ...s, id: data.id } : s))
   }
 
-  function restoreParkedSale(id: string) {
+  async function restoreParkedSale(id: string) {
     const sale = parkedSales.find(s => s.id === id)
     if (!sale) return
     if (cart.length > 0) {
-      const current: ParkedSale = {
-        id: crypto.randomUUID(), savedAt: new Date().toISOString(),
-        customer, cart, total: cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
+      const total = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
+      const { data } = await supabase.from('parked_sales').insert({
+        organization_id: orgId, saved_by: userId,
+        customer_id: customer?.id || null, customer_name: customer?.full_name || null,
+        cart, total,
+      }).select('id, saved_at').single()
+      if (data) {
+        setParkedSales(prev => [...prev.filter(s => s.id !== id), {
+          id: data.id, savedAt: data.saved_at, customer, cart, total,
+        }])
       }
-      saveParked(prev => [...prev.filter(s => s.id !== id), current])
     } else {
-      saveParked(prev => prev.filter(s => s.id !== id))
+      setParkedSales(prev => prev.filter(s => s.id !== id))
     }
+    await supabase.from('parked_sales').delete().eq('id', id)
     setCart(sale.cart); setCustomer(sale.customer); setCustSearch('')
     setPosView('selling')
   }
 
-  function deleteParkedSale(id: string) { saveParked(prev => prev.filter(s => s.id !== id)) }
+  async function deleteParkedSale(id: string) {
+    setParkedSales(prev => prev.filter(s => s.id !== id)) // optimistic
+    await supabase.from('parked_sales').delete().eq('id', id)
+  }
 
   // ── Result ──────────────────────────────────────────────────────────────────
   const [saving, setSaving]     = useState(false)
@@ -254,12 +279,15 @@ export default function POSClient({
     }
     /* Mobile: stacked, horizontal layout */
     @media(max-width:767px){
-      .home-cards{flex-direction:column;gap:12px}
-      .hcard{aspect-ratio:unset;flex-direction:row;align-items:center;padding:20px 18px;border-radius:22px;gap:14px}
-      .hcard-icon{margin-bottom:0;flex-shrink:0;width:46px;height:46px;border-radius:14px}
-      .hcard-text{flex:1;min-width:0}
-      .hcard-badge{position:static;display:inline-flex;margin-bottom:4px;align-self:flex-start;padding:3px 10px;font-size:11px}
-      .hcard-arrow{flex-shrink:0;position:static;opacity:.55}
+      .home-cards{flex-direction:column;gap:14px}
+      .hcard{aspect-ratio:unset;flex-direction:row;align-items:center;padding:24px 20px;border-radius:22px;gap:20px;min-height:100px}
+      .hcard-icon{margin-bottom:0;flex-shrink:0;width:54px;height:54px;border-radius:16px}
+      .hcard-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+      .hcard-badge{position:static;display:inline-flex;margin-bottom:0;align-self:flex-start;padding:4px 10px;font-size:11px}
+      .hcard-label{margin-bottom:0;font-size:10px}
+      .hcard-title{font-size:21px;margin-bottom:0}
+      .hcard-desc{font-size:12px;line-height:1.4}
+      .hcard-arrow{flex-shrink:0;position:static;opacity:.55;align-self:center}
     }
     .hcard{cursor:pointer;border:none;font-family:inherit;text-align:left;display:flex;gap:0;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
     .hcard:active{transform:scale(.98)}
@@ -392,16 +420,17 @@ export default function POSClient({
     .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(10,10,14,0.35);pointer-events:none}
     .search-input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none;transition:border-color .15s}
     .search-input:focus{border-color:#2563EB}
-    .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;overflow-y:auto;flex:1;padding-right:4px;align-content:start}
-    .prod-card-wrap{aspect-ratio:1/1;overflow:hidden;border-radius:14px;align-self:start;display:flex}
-    .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s;display:flex;flex-direction:column;overflow:hidden;min-height:0;flex:1}
-    .prod-card:active{transform:scale(.97)}
-    .prod-card-name{font-size:12px;font-weight:700;color:var(--text,#0A0A0E);margin-bottom:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .prod-card-var{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .prod-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
-    .prod-card-price{font-size:13px;font-weight:800;color:#1D4ED8}
-    .prod-card-stock{font-size:10px;color:rgba(10,10,14,0.40)}
-    .prod-var-sel{width:100%;padding:3px 6px;border-radius:7px;border:1.5px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:11px;font-family:inherit;margin-bottom:6px;outline:none;color:var(--text,#0A0A0E)}
+    .prod-list{display:flex;flex-direction:column;overflow-y:auto;flex:1;padding-right:2px}
+    .prod-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(0,0,0,0.055)}
+    .prod-row:last-child{border-bottom:none}
+    .prod-row-info{flex:1;min-width:0}
+    .prod-row-name{font-size:14px;font-weight:700;color:var(--text,#0A0A0E);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+    .prod-row-meta{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden}
+    .prod-row-var{font-size:12px;color:rgba(10,10,14,0.45);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .prod-row-stock{font-size:11px;color:rgba(10,10,14,0.32);font-weight:600;white-space:nowrap;flex-shrink:0}
+    .prod-row-price{font-size:14px;font-weight:800;color:#1D4ED8;white-space:nowrap;flex-shrink:0;min-width:60px;text-align:right}
+    .prod-row-add{width:34px;height:34px;border-radius:50%;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(29,78,216,0.28);flex-shrink:0;line-height:1}
+    .prod-var-sel{padding:2px 6px;border-radius:6px;border:1px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:11px;font-family:inherit;outline:none;color:var(--text,#0A0A0E);max-width:120px}
     .cart-header{padding:14px 16px 10px;font-size:13px;font-weight:800;color:var(--text,#0A0A0E);border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
     .cart-body{flex:1;overflow-y:auto;padding:8px 12px}
     .cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(10,10,14,0.30);font-size:13px;font-weight:600;gap:8px}
@@ -683,33 +712,33 @@ export default function POSClient({
               <input className="search-input" placeholder="Buscar producto o SKU…" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
 
-            <div className="prod-grid">
+            <div className="prod-list">
               {filteredProducts.map(p => {
                 const selVarId = selectedVariants[p.id] ?? p.variants[0]?.id
                 const selVar   = p.variants.find(v => v.id === selVarId) ?? p.variants[0]
                 if (!selVar) return null
                 return (
-                  <div key={p.id} className="prod-card-wrap"><div className="prod-card">
-                    <div className="prod-card-name">{p.name}</div>
-                    {p.variants.length > 1 ? (
-                      <select className="prod-var-sel" value={selVarId} onChange={e => setSelectedVariants(prev => ({...prev, [p.id]: e.target.value}))} onClick={e => e.stopPropagation()}>
-                        {p.variants.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                      </select>
-                    ) : (
-                      <div className="prod-card-var">{selVar.name}</div>
-                    )}
-                    <div className="prod-card-footer">
-                      <div>
-                        <div className="prod-card-price">{fmt(selVar.sale_price)}</div>
-                        <div className="prod-card-stock">{selVar.stock > 0 ? `${selVar.stock} en stock` : 'Sin stock'}</div>
+                  <div key={p.id} className="prod-row">
+                    <div className="prod-row-info">
+                      <div className="prod-row-name">{p.name}</div>
+                      <div className="prod-row-meta">
+                        {p.variants.length > 1 ? (
+                          <select className="prod-var-sel" value={selVarId} onChange={e => setSelectedVariants(prev => ({...prev, [p.id]: e.target.value}))} onClick={e => e.stopPropagation()}>
+                            {p.variants.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
+                          </select>
+                        ) : (
+                          selVar.name !== p.name && <span className="prod-row-var">{selVar.name}</span>
+                        )}
+                        <span className="prod-row-stock">{selVar.stock > 0 ? `${selVar.stock} uds` : 'Sin stock'}</span>
                       </div>
-                      <button style={{width:30,height:30,borderRadius:'50%',border:'none',background:'linear-gradient(145deg,#1D4ED8,#2563EB)',color:'white',cursor:'pointer',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 3px 10px rgba(29,78,216,0.28)',flexShrink:0}} onClick={() => addToCart(p, selVar)}>+</button>
                     </div>
-                  </div></div>
+                    <div className="prod-row-price">{fmt(selVar.sale_price)}</div>
+                    <button className="prod-row-add" onClick={() => addToCart(p, selVar)}>+</button>
+                  </div>
                 )
               })}
               {filteredProducts.length === 0 && (
-                <div style={{gridColumn:'1/-1',textAlign:'center',padding:'40px 0',color:'rgba(10,10,14,0.35)',fontSize:13,fontWeight:600}}>No se encontraron productos</div>
+                <div style={{textAlign:'center',padding:'40px 0',color:'rgba(10,10,14,0.35)',fontSize:13,fontWeight:600}}>No se encontraron productos</div>
               )}
             </div>
           </div>
