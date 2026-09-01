@@ -22,12 +22,12 @@ export default async function OrdersPage() {
       id, folio, status, subtotal, discount_amount, total, created_at,
       customers(id, full_name, email, phone),
       order_items(id, product_name, variant_name, sku, quantity, unit_price, discount_amount, subtotal),
-      order_payments(id, method, amount),
+      order_payments(id, method, amount, created_at),
       order_shipping(id, type, address_line1, address_line2, city, state, zip)
     `)
     .eq('organization_id', orgId)
     .order('created_at', { ascending: false })
     .limit(100)
 
-  return <OrdersClient orders={(orders ?? []) as any[]} />
+  return <OrdersClient orders={(orders ?? []) as any[]} orgId={orgId} />
 }
