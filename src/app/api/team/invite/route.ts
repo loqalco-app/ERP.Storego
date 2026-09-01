@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function POST(request: Request) {
-  const { email, role, orgId, fullName } = await request.json()
+  const { email, role, orgId, fullName, regenerate } = await request.json()
 
   if (!email || !role || !orgId) {
     return NextResponse.json({ error: 'email, role y orgId son requeridos.' }, { status: 400 })
@@ -45,17 +45,19 @@ export async function POST(request: Request) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  // Verificar que no haya invitación pendiente para este correo
-  const { data: existing } = await supabase
-    .from('organization_invitations')
-    .select('id')
-    .eq('organization_id', orgId)
-    .eq('email', email.toLowerCase())
-    .eq('status', 'pending')
-    .maybeSingle()
+  // Verificar duplicado solo cuando no es regeneración
+  if (!regenerate) {
+    const { data: existing } = await supabase
+      .from('organization_invitations')
+      .select('id')
+      .eq('organization_id', orgId)
+      .eq('email', email.toLowerCase())
+      .eq('status', 'pending')
+      .maybeSingle()
 
-  if (existing) {
-    return NextResponse.json({ error: 'Ya hay un acceso pendiente para ese correo.' }, { status: 409 })
+    if (existing) {
+      return NextResponse.json({ error: 'Ya hay un acceso pendiente para ese correo.' }, { status: 409 })
+    }
   }
 
   // Usar el origin del request — siempre es el dominio correcto en producción
@@ -77,13 +79,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: linkErr?.message ?? 'No se pudo generar el enlace.' }, { status: 400 })
   }
 
-  await supabase.from('organization_invitations').insert({
-    organization_id: orgId,
-    email: email.toLowerCase(),
-    role,
-    invited_by: user.id,
-    full_name: fullName ?? null,
-  })
+  // Solo insertar registro nuevo si no es regeneración
+  if (!regenerate) {
+    await supabase.from('organization_invitations').insert({
+      organization_id: orgId,
+      email: email.toLowerCase(),
+      role,
+      invited_by: user.id,
+      full_name: fullName ?? null,
+    })
+  }
 
   return NextResponse.json({ ok: true, link: linkData.properties.action_link })
 }

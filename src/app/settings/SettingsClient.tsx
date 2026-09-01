@@ -86,6 +86,10 @@ export default function SettingsClient({
   const [invMsg,   setInvMsg]       = useState<{ type:'ok'|'err'; text:string }|null>(null)
   const [generatedLink, setGeneratedLink] = useState('')
   const [copied, setCopied]         = useState(false)
+  const [regenId,    setRegenId]    = useState<string|null>(null)
+  const [regenEmail, setRegenEmail] = useState('')
+  const [regenLink,  setRegenLink]  = useState('')
+  const [regenCopied, setRegenCopied] = useState(false)
 
   const canManage = ['owner','admin'].includes(myRole)
 
@@ -174,6 +178,18 @@ export default function SettingsClient({
     setUpdatingId(null)
   }
 
+  async function getInviteLink(inv: Invitation) {
+    setRegenId(inv.id); setRegenEmail(inv.email); setRegenLink(''); setRegenCopied(false)
+    const res = await fetch('/api/team/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: inv.email, role: inv.role, orgId, regenerate: true }),
+    })
+    const data = await res.json()
+    setRegenId(null)
+    if (res.ok) setRegenLink(data.link)
+  }
+
   async function changeRole(memberId: string, newRole: string) {
     setUpdatingId(memberId)
     const supabase = createClient()
@@ -251,6 +267,12 @@ export default function SettingsClient({
         .cancel-btn{width:28px;height:28px;border-radius:50%;border:none;background:rgba(220,38,38,0.08);color:#DC2626;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.12s;flex-shrink:0}
         .cancel-btn:hover{background:rgba(220,38,38,0.15)}
         .cancel-btn:disabled{opacity:0.4;cursor:default}
+        .link-btn{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:var(--r-pill,50px);border:1.5px solid var(--border,rgba(0,0,0,0.10));background:none;font-size:11px;font-weight:700;color:var(--brand,#1D4ED8);cursor:pointer;font-family:inherit;transition:background 0.12s;white-space:nowrap;flex-shrink:0}
+        .link-btn:hover{background:rgba(29,78,216,0.07)}
+        .link-btn:disabled{opacity:0.4;cursor:default}
+        .regen-panel{padding:10px 18px 14px;background:rgba(0,0,0,0.025);border-top:1px solid rgba(0,0,0,0.05)}
+        .regen-box{background:rgba(0,0,0,0.04);border:1.5px solid rgba(0,0,0,0.08);border-radius:10px;padding:9px 12px;margin-bottom:8px;word-break:break-all;font-size:11px;font-weight:500;color:var(--text-2,#374151);line-height:1.5;font-family:monospace;max-height:60px;overflow-y:auto}
+        .copy-sm-btn{width:100%;padding:9px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;font-size:12px;font-weight:700;transition:all 0.15s}
         .empty{padding:32px;text-align:center;color:var(--text-3);font-size:13px;font-weight:500}
         .modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,0.44);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);z-index:500;display:flex;align-items:flex-end;justify-content:center}
         @media(min-width:600px){.modal-scrim{align-items:center}}
@@ -415,20 +437,51 @@ export default function SettingsClient({
                 <div className="card">
                   {invList.map(inv => {
                     const rm = ROLE_META[inv.role] ?? ROLE_META.staff
+                    const showPanel = regenLink && regenEmail === inv.email
                     return (
-                      <div key={inv.id} className="member-row">
-                        <div className="av-sm invited">
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                      <div key={inv.id}>
+                        <div className="member-row">
+                          <div className="av-sm invited">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                          </div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div className="member-name" style={{ fontSize:13 }}>{inv.email}</div>
+                            <div className="member-sub">Hace {timeAgo(inv.created_at)} · expira en {Math.max(0,Math.ceil((new Date(inv.expires_at).getTime()-Date.now())/86400000))}d</div>
+                          </div>
+                          <div className="member-right">
+                            <span className="badge" style={{ background:rm.bg, color:rm.color }}>{rm.label}</span>
+                            {canManage && (
+                              <button
+                                className="link-btn"
+                                disabled={regenId === inv.id}
+                                onClick={() => { setRegenLink(''); setRegenCopied(false); getInviteLink(inv) }}
+                                title="Ver link de acceso"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                {regenId === inv.id ? 'Generando…' : 'Ver link'}
+                              </button>
+                            )}
+                            {canManage && <button className="cancel-btn" disabled={updatingId === inv.id} onClick={() => { setRegenLink(''); cancelInvitation(inv.id) }} title="Cancelar">×</button>}
+                          </div>
                         </div>
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div className="member-name" style={{ fontSize:13 }}>{inv.email}</div>
-                          <div className="member-sub">Enviado hace {timeAgo(inv.created_at)} · expira en {Math.max(0,Math.ceil((new Date(inv.expires_at).getTime()-Date.now())/86400000))}d</div>
-                        </div>
-                        <div className="member-right">
-                          <span className="badge" style={{ background:rm.bg, color:rm.color }}>{rm.label}</span>
-                          <span className="inv-tag">Pendiente</span>
-                          {canManage && <button className="cancel-btn" disabled={updatingId === inv.id} onClick={() => cancelInvitation(inv.id)} title="Cancelar">×</button>}
-                        </div>
+                        {showPanel && (
+                          <div className="regen-panel">
+                            <div className="regen-box">{regenLink}</div>
+                            <button
+                              className="copy-sm-btn"
+                              onClick={async () => {
+                                try { await navigator.clipboard.writeText(regenLink); setRegenCopied(true); setTimeout(() => setRegenCopied(false), 2500) } catch { /* ignore */ }
+                              }}
+                              style={{
+                                background: regenCopied ? 'rgba(5,150,105,0.12)' : 'linear-gradient(145deg,#1D4ED8,#2563EB)',
+                                color: regenCopied ? '#065f46' : 'white',
+                                boxShadow: regenCopied ? 'none' : '0 3px 10px rgba(29,78,216,0.25)',
+                              }}
+                            >
+                              {regenCopied ? '✓ ¡Copiado!' : 'Copiar link'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
