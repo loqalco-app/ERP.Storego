@@ -151,7 +151,7 @@ export default function CatalogClient({ products: initProducts, categories: init
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{justify-content:space-between}
+        .topbar{display:flex;align-items:center;flex-wrap:nowrap;justify-content:space-between}
         /* Botón agregar — visible siempre, compacto */
         .new-btn{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;border:none;cursor:pointer;font-family:inherit;text-decoration:none;box-shadow:0 4px 14px rgba(29,78,216,0.30);transition:opacity 0.15s,transform 0.12s;flex-shrink:0}
         .new-btn:hover{opacity:.90}
