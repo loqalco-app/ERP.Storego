@@ -90,6 +90,7 @@ export default function SettingsClient({
   const [regenEmail, setRegenEmail] = useState('')
   const [regenLink,  setRegenLink]  = useState('')
   const [regenCopied, setRegenCopied] = useState(false)
+  const [regenError, setRegenError] = useState('')
 
   const canManage = ['owner','admin'].includes(myRole)
 
@@ -179,15 +180,21 @@ export default function SettingsClient({
   }
 
   async function getInviteLink(inv: Invitation) {
-    setRegenId(inv.id); setRegenEmail(inv.email); setRegenLink(''); setRegenCopied(false)
-    const res = await fetch('/api/team/invite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: inv.email, role: inv.role, orgId, regenerate: true }),
-    })
-    const data = await res.json()
-    setRegenId(null)
-    if (res.ok) setRegenLink(data.link)
+    setRegenId(inv.id); setRegenEmail(inv.email); setRegenLink(''); setRegenCopied(false); setRegenError('')
+    try {
+      const res = await fetch('/api/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inv.email, role: inv.role, orgId, regenerate: true }),
+      })
+      const data = await res.json()
+      setRegenId(null)
+      if (res.ok) setRegenLink(data.link)
+      else setRegenError(data.error ?? 'Error al generar el link')
+    } catch {
+      setRegenId(null)
+      setRegenError('Error de red al generar el link')
+    }
   }
 
   async function changeRole(memberId: string, newRole: string) {
@@ -461,9 +468,12 @@ export default function SettingsClient({
                                 {regenId === inv.id ? 'Generando…' : 'Ver link'}
                               </button>
                             )}
-                            {canManage && <button className="cancel-btn" disabled={updatingId === inv.id} onClick={() => { setRegenLink(''); cancelInvitation(inv.id) }} title="Cancelar">×</button>}
+                            {canManage && <button className="cancel-btn" disabled={updatingId === inv.id} onClick={() => { setRegenLink(''); setRegenError(''); cancelInvitation(inv.id) }} title="Cancelar">×</button>}
                           </div>
                         </div>
+                        {regenError && regenEmail === inv.email && (
+                          <div className="regen-panel" style={{ color:'#991b1b', fontSize:12, fontWeight:600 }}>{regenError}</div>
+                        )}
                         {showPanel && (
                           <div className="regen-panel">
                             <div className="regen-box">{regenLink}</div>
