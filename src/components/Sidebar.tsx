@@ -88,7 +88,7 @@ export default function Sidebar({ active }: Props) {
     if (!menuOpen) return
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as HTMLElement
-      if (!target.closest('.nav-profile-wrap')) setMenuOpen(false)
+      if (!target.closest('.nav-profile-wrap') && !target.closest('.desk-chip') && !target.closest('.desk-dropdown')) setMenuOpen(false)
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -148,11 +148,45 @@ export default function Sidebar({ active }: Props) {
           -webkit-tap-highlight-color:transparent
         }
         @media(min-width:480px){.nav-item{padding:10px 12px 9px;min-width:68px}}
-        /* Ajustes: solo desktop, Avatar: solo móvil */
+        /* Ajustes: solo desktop dentro del pill */
         .nav-item.desk-only{display:none}
         @media(min-width:768px){.nav-item.desk-only{display:flex}}
-        .nav-profile-wrap{display:flex}
+        /* Avatar wrap: flex:1 para que ocupe igual que los otros items */
+        .nav-profile-wrap{flex:1;display:flex;position:relative}
+        .nav-profile-wrap .nav-av-btn{width:100%}
+        /* En desktop ocultar del pill, mostrar chip fijo */
         @media(min-width:768px){.nav-profile-wrap{display:none}}
+
+        /* ── Chip de perfil fijo — solo desktop ── */
+        .desk-chip{
+          display:none;
+          position:fixed;top:20px;right:24px;z-index:300;
+          align-items:center;gap:8px;
+          background:var(--bg,#ECEEF2);
+          border:none;border-radius:50px;
+          padding:6px 14px 6px 6px;
+          box-shadow:4px 4px 12px rgba(0,0,0,0.10),-3px -3px 8px rgba(255,255,255,0.90),inset 0 1px 0 rgba(255,255,255,0.70);
+          cursor:pointer;font-family:var(--font,'Inter',-apple-system,sans-serif);
+          -webkit-tap-highlight-color:transparent;
+          transition:opacity 0.14s
+        }
+        @media(min-width:768px){.desk-chip{display:flex}}
+        .desk-chip:hover{opacity:.88}
+        .desk-chip-av{
+          width:28px;height:28px;border-radius:50%;
+          background:linear-gradient(135deg,#1D4ED8,#2563EB);
+          display:flex;align-items:center;justify-content:center;
+          font-size:10px;font-weight:800;color:white;flex-shrink:0
+        }
+        .desk-chip-name{font-size:13px;font-weight:700;color:var(--text-1,#1A1A20)}
+        /* Dropdown del chip desktop */
+        .desk-dropdown{
+          position:absolute;top:calc(100% + 8px);right:0;
+          background:var(--bg,#ECEEF2);
+          border-radius:var(--r-lg,20px);
+          box-shadow:0 8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
+          min-width:200px;overflow:hidden;z-index:400
+        }
 
         .nav-item.on{
           background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
@@ -224,6 +258,32 @@ export default function Sidebar({ active }: Props) {
         .pc-menu-item.danger:hover{background:rgba(220,38,38,0.06)}
         .pc-divider{height:1px;background:rgba(0,0,0,0.06);margin:4px 0}
       `}</style>
+
+      {/* ── Chip de perfil fijo — solo desktop (≥768px) ── */}
+      <div style={{ position: 'relative' }}>
+        <button className="desk-chip" aria-label="Mi perfil" onClick={() => setMenuOpen(v => !v)}>
+          <div className="desk-chip-av">{initials}</div>
+          <span className="desk-chip-name">{displayName || 'Perfil'}</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.35)" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        {menuOpen && (
+          <div className="desk-dropdown" onClick={() => setMenuOpen(false)}>
+            <Link href="/settings" className="pc-menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+              Mi perfil
+            </Link>
+            <Link href="/settings?tab=team" className="pc-menu-item">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
+              Equipo
+            </Link>
+            <div className="pc-divider" />
+            <button className="pc-menu-item danger" onClick={signOut}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Cerrar sesión
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Bottom fade */}
       <div className="nav-fade" aria-hidden="true" />
