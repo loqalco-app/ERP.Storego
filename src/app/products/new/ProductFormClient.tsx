@@ -183,8 +183,8 @@ export default function ProductFormClient({ mode, orgId, userName, orgName, cate
         .shell { display: flex; min-height: 100dvh; }
         .main  { flex: 1; overflow-y: auto; }
 
-        .topbar { display: flex; align-items: center; gap: 12px; padding: 52px 20px 20px; }
-        @media (min-width: 768px) { .topbar { padding: 32px 32px 24px; } }
+        .topbar { display: flex; align-items: center; gap: 12px; padding: 20px 20px 16px; }
+        @media (min-width: 768px) { .topbar { padding: 20px 40px 20px; } }
         .back-btn { width: 38px; height: 38px; border-radius: 12px; background: #ECEEF2; display: flex; align-items: center; justify-content: center; text-decoration: none; flex-shrink: 0; box-shadow: 4px 4px 12px rgba(0,0,0,0.08), -3px -3px 8px rgba(255,255,255,0.95); }
         .page-title { font-size: 22px; font-weight: 800; color: #1A1A20; letter-spacing: -0.4px; }
         @media (min-width: 768px) { .page-title { font-size: 26px; } }

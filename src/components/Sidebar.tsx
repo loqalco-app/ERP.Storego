@@ -106,11 +106,11 @@ export default function Sidebar({ active }: Props) {
         /* ── Profile chip — fixed bottom right ── */
         .nav-profile-wrap{
           position:fixed;
-          bottom:calc(var(--nav-h,80px) + max(env(safe-area-inset-bottom,0px),8px) + 12px);
+          bottom:calc(var(--nav-h,80px) + max(env(safe-area-inset-bottom,0px),8px) + 76px);
           right:16px;
           z-index:300
         }
-        @media(min-width:768px){.nav-profile-wrap{bottom:calc(var(--nav-h,80px) + max(env(safe-area-inset-bottom,0px),16px) + 12px);right:24px}}
+        @media(min-width:768px){.nav-profile-wrap{bottom:calc(var(--nav-h,80px) + max(env(safe-area-inset-bottom,0px),16px) + 16px);right:24px}}
 
         .profile-chip{
           display:flex;align-items:center;gap:8px;
@@ -118,7 +118,7 @@ export default function Sidebar({ active }: Props) {
           border:none;
           border-radius:var(--r-pill,50px);
           padding:5px 12px 5px 5px;
-          box-shadow:var(--shadow-sm,4px 4px 12px rgba(0,0,0,0.07),-3px -3px 8px rgba(255,255,255,0.92));
+          box-shadow:0 8px 32px rgba(0,0,0,0.16),0 2px 8px rgba(0,0,0,0.08),4px 4px 12px rgba(0,0,0,0.06),-3px -3px 8px rgba(255,255,255,0.92);
           text-decoration:none;
           -webkit-tap-highlight-color:transparent;
           transition:opacity 0.12s;
@@ -243,8 +243,8 @@ export default function Sidebar({ active }: Props) {
         @media(min-width:480px){.nav-lbl{font-size:10px}}
       `}</style>
 
-      {/* Profile chip — top right */}
-      <div className="nav-profile-wrap" style={{ position:'relative' }}>
+      {/* Profile chip — bottom right */}
+      <div className="nav-profile-wrap">
         <button
           className="profile-chip"
           aria-label="Menú de perfil"

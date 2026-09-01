@@ -41,21 +41,18 @@ input, select, textarea {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-top: max(env(safe-area-inset-top, 0px), 52px);
+  padding-top: max(env(safe-area-inset-top, 0px), 20px);
   padding-left: 20px;
   padding-bottom: 16px;
-  padding-right: var(--topbar-pr, 186px);
+  padding-right: 20px;
 }
 
 @media (min-width: 768px) {
   .topbar {
-    padding-top: max(env(safe-area-inset-top, 0px), 36px);
+    padding-top: max(env(safe-area-inset-top, 0px), 20px);
     padding-left: 40px;
     padding-bottom: 20px;
-    padding-right: max(
-      var(--topbar-pr, 186px),
-      calc(var(--chip-w, 154px) + 40px + 12px)
-    );
+    padding-right: 40px;
   }
 }
 

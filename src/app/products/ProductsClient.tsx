@@ -55,8 +55,8 @@ export default function ProductsClient({ products, userName, orgName }: Props) {
         .shell { display: flex; min-height: 100dvh; }
         .main  { flex: 1; overflow-y: auto; }
 
-        .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 52px 20px 20px; }
-        @media (min-width: 768px) { .topbar { padding: 32px 32px 24px; } }
+        .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 20px 16px; }
+        @media (min-width: 768px) { .topbar { padding: 20px 40px 20px; } }
         .page-title { font-size: 26px; font-weight: 800; color: #1A1A20; letter-spacing: -0.5px; }
 
         .new-btn {

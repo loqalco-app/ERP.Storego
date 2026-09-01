@@ -102,8 +102,8 @@ export default function InventoryClient({ variants: initial, orgId, userName, or
         body { background: #ECEEF2; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
         .shell { display: flex; min-height: 100dvh; }
         .main  { flex: 1; overflow-y: auto; }
-        .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 52px 20px 20px; }
-        @media (min-width: 768px) { .topbar { padding: 32px 32px 24px; } }
+        .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 20px 16px; }
+        @media (min-width: 768px) { .topbar { padding: 20px 40px 20px; } }
         .content { padding: 0 16px 120px; }
         @media (min-width: 768px) { .content { padding: 0 32px 48px; } }
         .search-wrap { margin-bottom: 16px; position: relative; }

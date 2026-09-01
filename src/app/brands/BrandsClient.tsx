@@ -67,8 +67,8 @@ export default function BrandsClient({ brands: initial, orgId, userName, orgName
         body { background: #ECEEF2; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
         .shell { display: flex; min-height: 100dvh; }
         .main  { flex: 1; overflow-y: auto; }
-        .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 52px 20px 20px; }
-        @media (min-width: 768px) { .topbar { padding: 32px 32px 24px; } }
+        .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 20px 16px; }
+        @media (min-width: 768px) { .topbar { padding: 20px 40px 20px; } }
         .new-btn { display: flex; align-items: center; gap: 7px; background: linear-gradient(145deg,#1D4ED8,#2563EB); color: white; border: none; border-radius: 14px; padding: 11px 18px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 6px 20px rgba(29,78,216,0.28); transition: opacity 0.15s; }
         .new-btn:hover { opacity: 0.90; }
         .content { padding: 0 16px 120px; }
