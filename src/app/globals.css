@@ -59,15 +59,11 @@ input, select, textarea {
 
 @media (min-width: 768px) {
   .topbar {
-    padding-top: max(env(safe-area-inset-top, 0px), 20px);
+    top: 60px; /* debajo del desk-header fijo */
+    padding-top: 16px;
     padding-left: 40px;
-    padding-bottom: 20px;
+    padding-bottom: 16px;
     padding-right: 40px;
-  }
-  /* El chip fixed (right:24px, ~160px ancho) termina ~184px del borde.
-     margin-right empuja el botón hacia la izquierda para no solaparse. */
-  .topbar .new-btn {
-    margin-right: 152px;
   }
 }
 

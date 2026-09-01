@@ -253,11 +253,24 @@ export default function Sidebar({ active }: Props) {
           min-width:200px;overflow:hidden;z-index:400
         }
 
-        /* ── Chip de perfil fijo — solo desktop ── */
-        .desk-chip-wrap{
-          display:none;position:fixed;top:20px;right:24px;z-index:300
+        /* ── Header desktop full-width ── */
+        .desk-header{display:none}
+        @media(min-width:768px){
+          .desk-header{
+            display:flex;align-items:center;gap:16px;
+            position:fixed;top:0;left:0;right:0;height:60px;z-index:300;
+            background:rgba(236,238,242,0.92);
+            -webkit-backdrop-filter:blur(20px) saturate(160%);
+            backdrop-filter:blur(20px) saturate(160%);
+            border-bottom:1px solid rgba(0,0,0,0.07);
+            padding:0 24px;
+          }
         }
-        @media(min-width:768px){.desk-chip-wrap{display:block}}
+        .desk-brand{font-size:15px;font-weight:800;color:var(--text-1,#0A0A0E);letter-spacing:-.3px;flex:1}
+
+        /* ── Chip de perfil — vive dentro del desk-header ── */
+        .desk-chip-wrap{display:none;position:relative}
+        @media(min-width:768px){.desk-chip-wrap{display:flex;align-items:center}}
         .desk-chip{
           display:flex;align-items:center;gap:8px;
           background:var(--bg,#ECEEF2);border:none;border-radius:50px;
@@ -299,20 +312,23 @@ export default function Sidebar({ active }: Props) {
         .pc-divider{height:1px;background:rgba(0,0,0,0.06);margin:4px 0}
       `}</style>
 
-      {/* ── Chip fijo desktop (≥768px) ── */}
-      <div className="desk-chip-wrap" ref={desktopWrapRef}>
-        <button className="desk-chip" aria-label="Mi perfil" onClick={() => setDesktopOpen(v => !v)}>
-          <div className="desk-chip-av">{initials}</div>
-          <span className="desk-chip-name">{displayName || 'Perfil'}</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.35)" strokeWidth="2.5" strokeLinecap="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
-        {desktopOpen && (
-          <div className="desk-dropdown">
-            {menuLinks(() => setDesktopOpen(false))}
-          </div>
-        )}
+      {/* ── Header fijo desktop (≥768px) ── */}
+      <div className="desk-header">
+        <span className="desk-brand">Store ERP</span>
+        <div className="desk-chip-wrap" ref={desktopWrapRef}>
+          <button className="desk-chip" aria-label="Mi perfil" onClick={() => setDesktopOpen(v => !v)}>
+            <div className="desk-chip-av">{initials}</div>
+            <span className="desk-chip-name">{displayName || 'Perfil'}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.35)" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+          {desktopOpen && (
+            <div className="desk-dropdown">
+              {menuLinks(() => setDesktopOpen(false))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Bottom fade */}

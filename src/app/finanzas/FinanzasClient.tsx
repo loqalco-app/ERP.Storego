@@ -43,6 +43,7 @@ export default function FinanzasClient({
   const router = useRouter()
   const supabase = createClient()
 
+  const [tab, setTab] = useState<'resumen'|'productos'|'gastos'|'cobros'>('resumen')
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses)
   const [showExpForm, setShowExpForm] = useState(false)
   const [expForm, setExpForm] = useState({ category: 'gasto_operativo', description: '', amount: '', date: desde })
@@ -146,17 +147,21 @@ export default function FinanzasClient({
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-        .fin-topbar{position:sticky;top:0;z-index:100;background:rgba(236,238,242,0.82);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);padding:max(env(safe-area-inset-top,0px),20px) 20px 16px;display:flex;align-items:center;gap:12px}
-        @media(min-width:768px){.fin-topbar{padding:max(env(safe-area-inset-top,0px),20px) 40px 20px}}
+        .fin-topbar{position:sticky;top:0;z-index:100;background:rgba(236,238,242,0.82);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);padding:max(env(safe-area-inset-top,0px),20px) 20px 0;display:flex;flex-direction:column;gap:0}
+        @media(min-width:768px){.fin-topbar{top:60px;padding:16px 40px 0}}
         .fin-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px}
         @media(min-width:768px){.fin-title{font-size:26px}}
         .fin-content{padding:16px 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}
         @media(min-width:768px){.fin-content{padding:16px 40px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px)}}
 
-        .periodo-row{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none}
+        .periodo-row{display:flex;gap:8px;margin-bottom:0;overflow-x:auto;scrollbar-width:none;padding-bottom:12px}
         .periodo-row::-webkit-scrollbar{display:none}
         .periodo-chip{padding:7px 16px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55);white-space:nowrap;transition:all .15s;flex-shrink:0}
         .periodo-chip.on{border-color:#2563EB;background:rgba(37,99,235,0.08);color:#1D4ED8}
+        .fin-tabs-row{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-top:1px solid rgba(0,0,0,0.06)}
+        .fin-tabs-row::-webkit-scrollbar{display:none}
+        .fin-tab{padding:10px 20px;border:none;border-bottom:2.5px solid transparent;background:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.42);white-space:nowrap;flex-shrink:0;transition:all .15s}
+        .fin-tab.on{color:#1D4ED8;border-bottom-color:#1D4ED8}
 
         .custom-range{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
         .custom-input{padding:8px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;background:rgba(0,0,0,0.03);font-size:13px;font-family:inherit;color:#0A0A0E;outline:none;flex:1;min-width:120px}
@@ -239,24 +244,27 @@ export default function FinanzasClient({
       <Sidebar active="finanzas" />
 
       <div className="fin-topbar">
-        <div className="fin-title">Finanzas</div>
-        <div style={{marginLeft:'auto',fontSize:11,fontWeight:700,color:'rgba(10,10,14,0.40)'}}>
-          {desde === hasta ? desde : `${desde} → ${hasta}`}
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
+          <div className="fin-title">Finanzas</div>
+          <div style={{marginLeft:'auto',fontSize:11,fontWeight:700,color:'rgba(10,10,14,0.40)'}}>
+            {desde === hasta ? desde : `${desde} → ${hasta}`}
+          </div>
+        </div>
+        {/* Selector de periodo */}
+        <div className="periodo-row">
+          {PERIODOS.map(p => (
+            <button key={p.key} className={`periodo-chip${periodo===p.key?' on':''}`} onClick={() => changePeriodo(p.key)}>{p.label}</button>
+          ))}
+        </div>
+        {/* Tabs */}
+        <div className="fin-tabs-row">
+          {([['resumen','Resumen'],['productos','Productos'],['gastos','Gastos'],['cobros','Cobros']] as const).map(([k,l]) => (
+            <button key={k} className={`fin-tab${tab===k?' on':''}`} onClick={() => setTab(k)}>{l}</button>
+          ))}
         </div>
       </div>
 
       <div className="fin-content">
-
-        {/* Selector de periodo */}
-        <div className="periodo-row">
-          {PERIODOS.map(p => (
-            <button
-              key={p.key}
-              className={`periodo-chip${periodo===p.key?' on':''}`}
-              onClick={() => changePeriodo(p.key)}
-            >{p.label}</button>
-          ))}
-        </div>
 
         {/* Rango personalizado */}
         {periodo === 'personalizado' && (
@@ -267,6 +275,9 @@ export default function FinanzasClient({
             <button className="custom-apply" onClick={applyCustomRange}>Aplicar</button>
           </div>
         )}
+
+        {/* ── TAB: RESUMEN ── */}
+        {tab === 'resumen' && <>
 
         {/* ── CASCADA: visión completa de dónde va cada peso ── */}
         <div className="cascade">
@@ -392,13 +403,8 @@ export default function FinanzasClient({
           </div>
         </div>
 
-        {/* KPIs secundarios */}
+        {/* KPIs de métodos de pago */}
         <div className="kpi-row">
-          <div className="kpi-card">
-            <div className="kpi-lbl">C×C pendiente</div>
-            <div className="kpi-v" style={{color:'#D97706'}}>{fmt(totalCxC)}</div>
-            <div className="kpi-s">{cxc.length} apartados</div>
-          </div>
           {Object.entries(kpis.byMethod).map(([m, v]) => (
             <div key={m} className="kpi-card">
               <div className="kpi-lbl">{METHOD_LABEL[m] ?? m}</div>
@@ -408,7 +414,10 @@ export default function FinanzasClient({
           ))}
         </div>
 
-        {/* Top productos */}
+        </>}
+
+        {/* ── TAB: PRODUCTOS ── */}
+        {tab === 'productos' && <>
         <div className="sec-hd"><div className="sec-title">Productos más vendidos</div></div>
         <div className="fin-table">
           {topProductos.length === 0 ? (
@@ -429,42 +438,16 @@ export default function FinanzasClient({
             </div>
           ))}
         </div>
+        </>}
 
-        {/* Cuentas por cobrar */}
-        {cxc.length > 0 && (
-          <>
-            <div className="sec-hd" style={{marginTop:8}}>
-              <div className="sec-title">Cuentas por cobrar</div>
-              <div style={{fontSize:12,fontWeight:800,color:'#D97706'}}>{fmt(totalCxC)}</div>
-            </div>
-            <div className="fin-table">
-              {cxc.map(a => (
-                <div key={a.id} className="fin-row">
-                  <div style={{width:60,fontSize:11,fontWeight:800,color:'#D97706',background:'rgba(217,119,6,0.08)',borderRadius:8,padding:'4px 7px',textAlign:'center',flexShrink:0}}>
-                    {a.folio}
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div className="fin-row-name">{a.customers?.full_name ?? 'Sin cliente'}</div>
-                    <div className="fin-row-sub">Pagado {fmt(a.pagado)} de {fmt(a.total)}</div>
-                  </div>
-                  <div className="fin-right">
-                    <div className="fin-amt" style={{color:'#D97706'}}>{fmt(a.pendiente)}</div>
-                    <div className="fin-pct">pendiente</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* Gastos */}
-        <div className="sec-hd" style={{marginTop:8}}>
+        {/* ── TAB: GASTOS ── */}
+        {tab === 'gastos' && <>
+        <div className="sec-hd">
           <div className="sec-title">Gastos y egresos</div>
           <button className="sec-btn" onClick={() => setShowExpForm(v => !v)}>
             {showExpForm ? 'Cancelar' : '+ Agregar gasto'}
           </button>
         </div>
-
         {showExpForm && (
           <div className="exp-form">
             <div className="exp-grid">
@@ -484,20 +467,16 @@ export default function FinanzasClient({
             </div>
           </div>
         )}
-
         {gastosPorCat.length > 0 && (
           <div className="fin-table" style={{marginBottom:12}}>
             {gastosPorCat.map(([cat, total]) => (
               <div key={cat} className="fin-row">
-                <div style={{flex:1}}>
-                  <div className="fin-row-name">{CATS[cat] ?? cat}</div>
-                </div>
+                <div style={{flex:1}}><div className="fin-row-name">{CATS[cat] ?? cat}</div></div>
                 <div className="fin-amt" style={{color:'#DC2626'}}>{fmt(total)}</div>
               </div>
             ))}
           </div>
         )}
-
         <div className="fin-table">
           {expenses.length === 0 ? (
             <div className="fin-empty">Sin gastos registrados en este periodo</div>
@@ -514,6 +493,36 @@ export default function FinanzasClient({
             </div>
           ))}
         </div>
+        </>}
+
+        {/* ── TAB: COBROS / CxC ── */}
+        {tab === 'cobros' && <>
+        <div className="sec-hd">
+          <div className="sec-title">Cuentas por cobrar</div>
+          <div style={{fontSize:12,fontWeight:800,color:'#D97706'}}>{fmt(totalCxC)}</div>
+        </div>
+        {cxc.length === 0 ? (
+          <div className="fin-table"><div className="fin-empty">Sin cuentas por cobrar en este periodo</div></div>
+        ) : (
+          <div className="fin-table">
+            {cxc.map(a => (
+              <div key={a.id} className="fin-row">
+                <div style={{width:60,fontSize:11,fontWeight:800,color:'#D97706',background:'rgba(217,119,6,0.08)',borderRadius:8,padding:'4px 7px',textAlign:'center',flexShrink:0}}>
+                  {a.folio}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div className="fin-row-name">{a.customers?.full_name ?? 'Sin cliente'}</div>
+                  <div className="fin-row-sub">Pagado {fmt(a.pagado)} de {fmt(a.total)}</div>
+                </div>
+                <div className="fin-right">
+                  <div className="fin-amt" style={{color:'#D97706'}}>{fmt(a.pendiente)}</div>
+                  <div className="fin-pct">pendiente</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        </>}
 
       </div>
     </>

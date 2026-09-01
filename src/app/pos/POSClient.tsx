@@ -109,9 +109,12 @@ export default function POSClient({
     try { const s = localStorage.getItem(PARK_KEY); if (s) setParkedSales(JSON.parse(s)) } catch {}
   }, [PARK_KEY])
 
-  function saveParkedState(sales: ParkedSale[]) {
-    setParkedSales(sales)
-    try { localStorage.setItem(PARK_KEY, JSON.stringify(sales)) } catch {}
+  function saveParked(updater: (prev: ParkedSale[]) => ParkedSale[]) {
+    setParkedSales(prev => {
+      const next = updater(prev)
+      try { localStorage.setItem(PARK_KEY, JSON.stringify(next)) } catch {}
+      return next
+    })
   }
 
   function parkCurrentCart() {
@@ -120,7 +123,7 @@ export default function POSClient({
       id: crypto.randomUUID(), savedAt: new Date().toISOString(),
       customer, cart, total: cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
     }
-    saveParkedState([...parkedSales, sale])
+    saveParked(prev => [...prev, sale])
     setCart([]); setCustomer(null); setCustSearch('')
     setShowCartSheet(false); setPosView('home')
   }
@@ -133,15 +136,15 @@ export default function POSClient({
         id: crypto.randomUUID(), savedAt: new Date().toISOString(),
         customer, cart, total: cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0),
       }
-      saveParkedState([...parkedSales.filter(s => s.id !== id), current])
+      saveParked(prev => [...prev.filter(s => s.id !== id), current])
     } else {
-      saveParkedState(parkedSales.filter(s => s.id !== id))
+      saveParked(prev => prev.filter(s => s.id !== id))
     }
     setCart(sale.cart); setCustomer(sale.customer); setCustSearch('')
     setPosView('selling')
   }
 
-  function deleteParkedSale(id: string) { saveParkedState(parkedSales.filter(s => s.id !== id)) }
+  function deleteParkedSale(id: string) { saveParked(prev => prev.filter(s => s.id !== id)) }
 
   // ── Result ──────────────────────────────────────────────────────────────────
   const [saving, setSaving]     = useState(false)
@@ -361,7 +364,7 @@ export default function POSClient({
     .search-input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none;transition:border-color .15s}
     .search-input:focus{border-color:#2563EB}
     .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;overflow-y:auto;flex:1;padding-right:4px;align-content:start}
-    .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s;aspect-ratio:1;display:flex;flex-direction:column}
+    .prod-card{background:var(--bg,#ECEEF2);border-radius:14px;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.07);box-shadow:3px 3px 8px rgba(0,0,0,0.06),-2px -2px 6px rgba(255,255,255,0.9);transition:transform .12s;aspect-ratio:1/1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
     .prod-card:active{transform:scale(.97)}
     .prod-card-name{font-size:12px;font-weight:700;color:var(--text,#0A0A0E);margin-bottom:2px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .prod-card-var{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
