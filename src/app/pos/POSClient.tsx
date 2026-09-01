@@ -265,7 +265,10 @@ export default function POSClient({
         .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:12px 10px 12px 12px}
         /* RIGHT */
         .pos-right{width:300px;display:flex;flex-direction:column;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);flex-shrink:0}
+        @media(min-width:768px){.pos-right{padding-top:64px}}
         @media(min-width:1024px){.pos-right{width:320px}}
+        /* LEFT also needs top offset on desktop for the nav pill area */
+        @media(min-width:768px){.pos-left{padding-top:64px}}
         /* CUSTOMER */
         .cust-panel{background:rgba(0,0,0,0.03);border:1.5px solid rgba(0,0,0,0.07);border-radius:16px;padding:12px 14px;margin-bottom:12px;flex-shrink:0;position:relative}
         .cust-label{font-size:10px;font-weight:700;color:rgba(10,10,14,0.38);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
