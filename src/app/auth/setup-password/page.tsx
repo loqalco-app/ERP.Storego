@@ -18,25 +18,29 @@ export default function SetupPasswordPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    async function init() {
-      // Exchange code for session if present in URL (invite/recovery flow)
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get('code')
-      if (code) {
-        await supabase.auth.exchangeCodeForSession(code)
-        // Clean code from URL without reload
-        window.history.replaceState({}, '', window.location.pathname)
+    let settled = false
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (settled) return
+        if (
+          (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY' || event === 'INITIAL_SESSION') &&
+          session?.user
+        ) {
+          settled = true
+          const u = session.user
+          const name = u.user_metadata?.full_name || u.email?.split('@')[0] || ''
+          setUserName(name)
+          setUserEmail(u.email ?? '')
+          setLoading(false)
+        } else if (event === 'INITIAL_SESSION' && !session) {
+          settled = true
+          router.replace('/login')
+        }
       }
-      const { data } = await supabase.auth.getUser()
-      if (!data.user) { router.replace('/login'); return }
-      const name = data.user.user_metadata?.full_name
-        || data.user.email?.split('@')[0]
-        || ''
-      setUserName(name)
-      setUserEmail(data.user.email ?? '')
-      setLoading(false)
-    }
-    init()
+    )
+
+    return () => subscription.unsubscribe()
   }, [router])
 
   async function handleSubmit(e: React.FormEvent) {
