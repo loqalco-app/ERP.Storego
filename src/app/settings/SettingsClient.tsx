@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
 
@@ -77,11 +76,14 @@ export default function SettingsClient({
   const [invList,    setInvList]    = useState<Invitation[]>(initInvitations)
   const [updatingId, setUpdatingId] = useState<string|null>(null)
   const [showInvite, setShowInvite] = useState(false)
+  const [invMode, setInvMode]       = useState<'direct'|'link'>('direct')
   const [invStep, setInvStep]       = useState<'form'|'link'>('form')
   const [invFirstName, setInvFirstName] = useState('')
   const [invLastName,  setInvLastName]  = useState('')
   const [invEmail, setInvEmail]     = useState('')
   const [invRole,  setInvRole]      = useState('staff')
+  const [invPassword, setInvPassword]   = useState('')
+  const [showInvPw, setShowInvPw]       = useState(false)
   const [sending,  setSending]      = useState(false)
   const [invMsg,   setInvMsg]       = useState<{ type:'ok'|'err'; text:string }|null>(null)
   const [generatedLink, setGeneratedLink] = useState('')
@@ -94,10 +96,10 @@ export default function SettingsClient({
 
   const canManage = ['owner','admin'].includes(myRole)
 
-  function openInviteModal() { setShowInvite(true); setInvStep('form'); setInvMsg(null); setGeneratedLink(''); setCopied(false) }
+  function openInviteModal() { setShowInvite(true); setInvStep('form'); setInvMsg(null); setGeneratedLink(''); setCopied(false); setInvPassword('') }
   function closeInviteModal() {
     setShowInvite(false); setInvStep('form'); setGeneratedLink(''); setCopied(false)
-    setInvMsg(null); setInvFirstName(''); setInvLastName(''); setInvEmail(''); setInvRole('staff')
+    setInvMsg(null); setInvFirstName(''); setInvLastName(''); setInvEmail(''); setInvRole('staff'); setInvPassword('')
   }
   async function copyLink() {
     try { await navigator.clipboard.writeText(generatedLink); setCopied(true); setTimeout(() => setCopied(false), 2500) } catch { /* ignore */ }
@@ -141,6 +143,24 @@ export default function SettingsClient({
     setSavingPass(false)
     setPassMsg({ type:'ok', text:'Contraseña actualizada correctamente.' })
     setCurPass(''); setNewPass(''); setConfPass('')
+  }
+
+  async function handleDirectCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!invEmail.trim() || !invFirstName.trim() || !invPassword) return
+    setSending(true); setInvMsg(null)
+    const fullName2 = `${invFirstName.trim()} ${invLastName.trim()}`.trim()
+    const res = await fetch('/api/team/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: invEmail.trim(), role: invRole, orgId, fullName: fullName2, password: invPassword }),
+    })
+    const data = await res.json()
+    setSending(false)
+    if (!res.ok) { setInvMsg({ type:'err', text: data.error ?? 'Error al crear usuario' }); return }
+    setMemberList(prev => [{ id: Date.now().toString(), full_name: fullName2, avatar_url: null, role: invRole, status:'active', created_at: new Date().toISOString() }, ...prev])
+    setInvMsg({ type:'ok', text: `Usuario creado. ${fullName2} puede entrar con su correo y la contraseña temporal.` })
+    setTimeout(closeInviteModal, 2200)
   }
 
   async function handleInvite(e: React.FormEvent) {
@@ -214,14 +234,7 @@ export default function SettingsClient({
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{padding-bottom:20px}
-        .back-btn{width:38px;height:38px;border-radius:var(--r-sm,12px);background:var(--bg,#ECEEF2);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;box-shadow:var(--shadow-sm);flex-shrink:0}
-        .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px);max-width:640px;margin:0 auto}}
-        .settings-nav{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-        .snav-btn{display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:var(--r-md,16px);background:var(--bg,#ECEEF2);box-shadow:var(--shadow-sm);font-size:13px;font-weight:700;color:var(--text-2,#0A0A0E);transition:box-shadow 0.15s;border:none;cursor:pointer;font-family:inherit;-webkit-tap-highlight-color:transparent}
-        .snav-btn.active{background:var(--brand-alpha,rgba(29,78,216,0.10));color:var(--brand,#1D4ED8);box-shadow:none}
-        .snav-btn:hover:not(.active){box-shadow:var(--shadow-md)}
+        .content{max-width:640px}
         .av-section{display:flex;align-items:center;gap:20px;margin-bottom:28px}
         .av{width:72px;height:72px;border-radius:50%;background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#3B82F6));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:white;flex-shrink:0;box-shadow:var(--shadow-brand-sm)}
         .av-name{font-size:18px;font-weight:800;color:var(--text-1,#1A1A20)}
@@ -301,27 +314,22 @@ export default function SettingsClient({
         .btn-send{flex:2;padding:14px;border-radius:var(--r-xl,24px);border:none;background:var(--grad-brand-btn,linear-gradient(145deg,#1D4ED8,#2563EB));font-size:15px;font-weight:700;color:white;cursor:pointer;font-family:inherit;box-shadow:var(--shadow-brand);transition:opacity 0.15s}
         .btn-send:hover{opacity:.92}
         .btn-send:disabled{opacity:.5;cursor:not-allowed}
+        .mode-tabs{display:flex;gap:6px;margin-bottom:16px;background:rgba(0,0,0,0.04);border-radius:14px;padding:4px}
+        .mode-tab{flex:1;padding:9px 8px;border-radius:10px;border:none;background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.50);transition:all .15s;text-align:center}
+        .mode-tab.on{background:var(--bg,#ECEEF2);color:var(--text-1,#1A1A20);box-shadow:0 1px 4px rgba(0,0,0,0.10)}
+        .pw-wrap{position:relative;margin-bottom:14px}
+        .pw-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.38);padding:4px;display:flex;align-items:center}
       `}</style>
 
       <Sidebar active="settings" />
 
-      <div className="topbar">
-        <Link href="/dashboard" className="back-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-1,#1A1A20)" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </Link>
-        <div className="page-title">Ajustes</div>
-      </div>
-
       <div className="content">
-        <div className="settings-nav">
-          <button className={`snav-btn${tab === 'profile' ? ' active' : ''}`} onClick={() => switchTab('profile')}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
-            Mi perfil
-          </button>
-          <button className={`snav-btn${tab === 'team' ? ' active' : ''}`} onClick={() => switchTab('team')}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="7" r="4"/><path d="M3 21a6 6 0 0 1 12 0"/><circle cx="17" cy="10" r="3"/><path d="M21 21a4 4 0 0 0-6 0"/></svg>
-            Equipo
-          </button>
+        <div className="page-hd-row">
+          <div className="page-title">Ajustes</div>
+        </div>
+        <div className="page-hd-tabs">
+          <button className={`page-hd-tab${tab === 'profile' ? ' on' : ''}`} onClick={() => switchTab('profile')}>Mi perfil</button>
+          <button className={`page-hd-tab${tab === 'team' ? ' on' : ''}`} onClick={() => switchTab('team')}>Equipo</button>
         </div>
 
         {tab === 'profile' && (
@@ -521,9 +529,17 @@ export default function SettingsClient({
             {invStep === 'form' ? (
               <>
                 <div className="modal-title">Agregar al equipo</div>
-                <div className="modal-sub">Llena los datos y genera el link para mandar por WhatsApp.</div>
+                <div className="mode-tabs">
+                  <button type="button" className={`mode-tab${invMode==='direct'?' on':''}`} onClick={() => setInvMode('direct')}>Con contraseña</button>
+                  <button type="button" className={`mode-tab${invMode==='link'?' on':''}`} onClick={() => setInvMode('link')}>Enviar link</button>
+                </div>
+                <div className="modal-sub">
+                  {invMode === 'direct'
+                    ? 'Crea el usuario con contraseña temporal — al entrar por primera vez se le pedirá cambiarla.'
+                    : 'Genera un link de un solo uso para mandar por WhatsApp.'}
+                </div>
                 {invMsg && <div className={invMsg.type === 'ok' ? 'alert-ok' : 'alert-err'}>{invMsg.text}</div>}
-                <form onSubmit={handleInvite}>
+                <form onSubmit={invMode === 'direct' ? handleDirectCreate : handleInvite}>
                   <div className="name-row">
                     <div>
                       <div className="fl">Nombre *</div>
@@ -536,6 +552,20 @@ export default function SettingsClient({
                   </div>
                   <div className="fl" style={{ marginTop:14 }}>Correo electrónico *</div>
                   <input className="mfi" type="email" placeholder="nombre@ejemplo.com" value={invEmail} onChange={e => setInvEmail(e.target.value)} required />
+                  {invMode === 'direct' && (
+                    <>
+                      <div className="fl">Contraseña temporal *</div>
+                      <div className="pw-wrap">
+                        <input className="mfi" style={{marginBottom:0,paddingRight:44}} type={showInvPw ? 'text' : 'password'} placeholder="Mínimo 8 caracteres" value={invPassword} onChange={e => setInvPassword(e.target.value)} required minLength={8} />
+                        <button type="button" className="pw-eye" onClick={() => setShowInvPw(v => !v)}>
+                          {showInvPw
+                            ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                            : <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                          }
+                        </button>
+                      </div>
+                    </>
+                  )}
                   <div className="fl">Rol</div>
                   <div className="role-pills">
                     {(['admin','staff','viewer'] as const).map(r => (
@@ -551,7 +581,9 @@ export default function SettingsClient({
                   </div>
                   <div className="modal-actions">
                     <button type="button" className="btn-cancel" onClick={closeInviteModal}>Cancelar</button>
-                    <button type="submit" className="btn-send" disabled={sending}>{sending ? 'Generando...' : 'Generar acceso'}</button>
+                    <button type="submit" className="btn-send" disabled={sending}>
+                      {sending ? (invMode==='direct' ? 'Creando...' : 'Generando...') : (invMode==='direct' ? 'Crear usuario' : 'Generar link')}
+                    </button>
                   </div>
                 </form>
               </>
