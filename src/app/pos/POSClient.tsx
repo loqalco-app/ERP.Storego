@@ -356,7 +356,7 @@ export default function POSClient({
 
     /* ── SELLING ── */
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--bg,#ECEEF2);padding-top:env(safe-area-inset-top,0px)}
-    @media(min-width:768px){.pos-wrap{height:calc(100dvh - 60px)}}
+    @media(min-width:768px){.pos-wrap{height:calc(100dvh - 90px)}}
     .pos-topbar{display:flex;align-items:center;gap:12px;padding:14px 18px 10px;flex-shrink:0}
     @media(min-width:768px){.pos-topbar{padding:16px 40px 10px}}
     .pos-back-btn{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
@@ -372,7 +372,7 @@ export default function POSClient({
       .pos-body{justify-content:center}
       .pos-body-inner{max-width:960px;height:100%;margin:0 auto}
       .pos-left{padding:0 16px 16px 0}
-      .pos-right{width:280px;flex-shrink:0;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);display:flex;flex-direction:column}
+      .pos-right{width:280px;flex-shrink:0;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);display:flex;flex-direction:column;overflow:hidden}
     }
     @media(min-width:1280px){
       .pos-body-inner{max-width:1100px}

@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
-import CustomerForm from '../CustomerForm'
+import CustomerDetailClient from './CustomerDetailClient'
+
+export const dynamic = 'force-dynamic'
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -9,38 +11,30 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
-    .from('user_profiles').select('full_name, organization_id, organizations(name)').eq('id', user.id).single()
+    .from('user_profiles').select('organization_id').eq('id', user.id).single()
 
   const orgId = profile?.organization_id
+  if (!orgId) redirect('/dashboard')
 
-  const { data: customer } = await supabase
-    .from('customers')
-    .select('id, full_name, email, phone, tax_id, notes, status, credit_limit, balance_owing, tags')
-    .eq('id', id).eq('organization_id', orgId).single()
+  const [{ data: customer }, { data: orders }] = await Promise.all([
+    supabase
+      .from('customers')
+      .select('id, full_name, email, phone, tax_id, notes, status, credit_limit, balance_owing, tags, created_at')
+      .eq('id', id).eq('organization_id', orgId).single(),
+    supabase
+      .from('orders')
+      .select('id, folio, status, subtotal, discount_amount, total, created_at, order_items(id, product_name, variant_name, quantity, unit_price, discount_amount, subtotal), order_payments(id, method, amount)')
+      .eq('customer_id', id).eq('organization_id', orgId)
+      .order('created_at', { ascending: false }),
+  ])
 
   if (!customer) notFound()
 
-  const userName = profile?.full_name && !profile.full_name.includes('@')
-    ? profile.full_name : (user.email?.split('@')[0] ?? 'Usuario')
-  const orgName = (profile?.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'
-
   return (
-    <CustomerForm
-      mode="edit"
+    <CustomerDetailClient
+      customer={customer as any}
+      orders={(orders ?? []) as any}
       orgId={orgId}
-      userId={user.id}
-      userName={userName}
-      orgName={orgName}
-      customerId={id}
-      initial={{
-        fullName: customer.full_name,
-        email: customer.email ?? '',
-        phone: customer.phone ?? '',
-        taxId: customer.tax_id ?? '',
-        notes: customer.notes ?? '',
-        status: customer.status,
-        creditLimit: String(customer.credit_limit),
-      }}
     />
   )
 }
