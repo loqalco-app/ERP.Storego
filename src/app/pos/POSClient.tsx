@@ -248,25 +248,24 @@ export default function POSClient({
   // ── CSS ──────────────────────────────────────────────────────────────────────
   const CSS = `
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+    body{background:#FFFFFF;font-family:'Space Grotesk','Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
 
     /* ── SHARED ── */
-    .pos-page{min-height:100dvh;background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif}
-    .btn-primary{width:100%;padding:15px;border:none;border-radius:20px;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(29,78,216,0.28);transition:opacity .15s,transform .12s}
-    .btn-primary:hover{opacity:.92}
+    .pos-page{min-height:100dvh;background:#FFFFFF;font-family:'Space Grotesk','Inter',-apple-system,sans-serif}
+    .btn-primary{width:100%;padding:15px;border:none;border-radius:20px;background:#CAFF3A;color:#0A0A0A;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(202,255,58,0.28);transition:opacity .15s,transform .12s;letter-spacing:.01em}
+    .btn-primary:hover{opacity:.88}
     .btn-primary:active{transform:scale(.98)}
-    .btn-primary:disabled{opacity:.5;cursor:not-allowed}
+    .btn-primary:disabled{opacity:.35;cursor:not-allowed;background:#CAFF3A}
     .btn-ghost{width:100%;padding:13px;border:1.5px solid rgba(0,0,0,0.12);border-radius:18px;background:none;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55)}
     .btn-ghost:hover{background:rgba(0,0,0,0.04)}
     .btn-sm{padding:5px 12px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:11px;font-weight:700;color:rgba(10,10,14,0.5);cursor:pointer;font-family:inherit;white-space:nowrap}
 
     /* ── HOME ── */
-    .home-wrap{display:flex;flex-direction:column;min-height:100dvh;padding:max(env(safe-area-inset-top,0px),28px) 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
-    @media(min-width:768px){.home-wrap{padding-top:80px;max-width:600px;margin:0 auto;padding-left:0;padding-right:0}}
-    .home-greeting{font-size:13px;font-weight:700;color:rgba(10,10,14,0.40);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
-    .home-title{font-size:30px;font-weight:900;color:#0A0A0E;letter-spacing:-.8px;margin-bottom:4px;line-height:1.1}
-    @media(min-width:768px){.home-title{font-size:38px}}
-    .home-sub{font-size:14px;color:rgba(10,10,14,0.45);font-weight:500;margin-bottom:28px}
+    .home-wrap{display:flex;flex-direction:column;min-height:100dvh;padding:max(env(safe-area-inset-top,0px),28px) 5% calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px);background:#FFFFFF}
+    @media(min-width:768px){.home-wrap{padding-top:80px;max-width:min(600px,90vw);margin:0 auto;padding-left:0;padding-right:0}}
+    .home-greeting{font-size:10px;font-weight:700;color:rgba(10,10,14,0.35);text-transform:uppercase;letter-spacing:.12em;margin-bottom:12px}
+    .home-title{display:none}
+    .home-sub{font-size:18px;font-weight:800;color:#0A0A0A;letter-spacing:-.3px;margin-bottom:28px}
     /* ── Cards ── */
     /* Mobile & Desktop: square column cards */
     .home-cards{display:flex;flex-direction:column;gap:16px}
@@ -288,27 +287,27 @@ export default function POSClient({
     }
     .hcard{cursor:pointer;border:none;font-family:inherit;text-align:left;display:flex;gap:0;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
     .hcard:active{transform:scale(.98)}
-    .hcard-new{background:linear-gradient(145deg,#1D4ED8,#2563EB);box-shadow:0 12px 40px rgba(29,78,216,0.35)}
-    .hcard-parked{background:var(--bg,#ECEEF2);box-shadow:8px 8px 20px rgba(0,0,0,0.09),-6px -6px 16px rgba(255,255,255,0.95);border:1.5px solid rgba(0,0,0,0.06)}
+    .hcard-new{background:#0A0A0A;box-shadow:0 16px 48px rgba(0,0,0,0.22)}
+    .hcard-parked{background:#F3F3F1;box-shadow:none;border:1.5px solid rgba(0,0,0,0.10)}
     .hcard-icon{display:flex;align-items:center;justify-content:center}
-    .hcard-new .hcard-icon{background:rgba(255,255,255,0.18)}
-    .hcard-parked .hcard-icon{background:rgba(217,119,6,0.12)}
-    .hcard-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
-    .hcard-new .hcard-label{color:rgba(255,255,255,0.65)}
-    .hcard-parked .hcard-label{color:rgba(217,119,6,0.80)}
-    .hcard-title{font-size:20px;font-weight:900;letter-spacing:-.4px;margin-bottom:4px;line-height:1.1}
+    .hcard-new .hcard-icon{background:#CAFF3A}
+    .hcard-parked .hcard-icon{background:rgba(0,0,0,0.07)}
+    .hcard-label{font-size:10px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;margin-bottom:3px}
+    .hcard-new .hcard-label{color:rgba(255,255,255,0.40)}
+    .hcard-parked .hcard-label{color:rgba(10,10,14,0.40)}
+    .hcard-title{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px;line-height:1.1}
     @media(min-width:768px){.hcard-title{font-size:24px}}
-    .hcard-new .hcard-title{color:white}
-    .hcard-parked .hcard-title{color:#0A0A0E}
+    .hcard-new .hcard-title{color:#FFFFFF}
+    .hcard-parked .hcard-title{color:#0A0A0A}
     .hcard-desc{font-size:12px;font-weight:500;line-height:1.4}
-    .hcard-new .hcard-desc{color:rgba(255,255,255,0.70)}
+    .hcard-new .hcard-desc{color:rgba(255,255,255,0.45)}
     .hcard-parked .hcard-desc{color:rgba(10,10,14,0.45)}
-    .hcard-badge{background:rgba(255,255,255,0.25);border-radius:50px;padding:5px 12px;font-size:12px;font-weight:800;color:white}
-    .hcard-parked .hcard-badge{background:rgba(217,119,6,0.15);color:#92400E}
-    .hcard-arrow{opacity:.5;transition:opacity .15s,transform .15s}
-    .hcard:hover .hcard-arrow{opacity:.9;transform:translateX(4px)}
-    .hcard-new .hcard-arrow{color:white}
-    .hcard-parked .hcard-arrow{color:#0A0A0E}
+    .hcard-badge{border-radius:50px;padding:5px 12px;font-size:11px;font-weight:800}
+    .hcard-parked .hcard-badge{background:#CAFF3A;color:#0A0A0A}
+    .hcard-arrow{opacity:.55;transition:opacity .15s,transform .15s;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .hcard:hover .hcard-arrow{opacity:1;transform:translateX(4px)}
+    .hcard-new .hcard-arrow{background:rgba(255,255,255,0.10);color:rgba(255,255,255,0.70)}
+    .hcard-parked .hcard-arrow{background:rgba(0,0,0,0.06);color:rgba(10,10,14,0.50)}
 
     /* ── PARKED VIEW ── */
     .parked-view{min-height:100dvh;padding:max(env(safe-area-inset-top,0px),20px) 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
@@ -355,7 +354,7 @@ export default function POSClient({
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--bg,#ECEEF2);padding-top:env(safe-area-inset-top,0px)}
     @media(min-width:768px){.pos-wrap{margin-top:60px;height:calc(100dvh - 60px - 88px)}}
     .pos-topbar{display:flex;align-items:center;gap:12px;padding:14px 18px 10px;flex-shrink:0}
-    @media(min-width:768px){.pos-topbar{padding:16px 40px 10px}}
+    @media(min-width:768px){.pos-topbar{padding:16px 40px 10px;position:sticky;top:60px;z-index:99;background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.07)}}
     .pos-back-btn{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pos-topbar-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px;flex:1}
     @media(min-width:768px){.pos-topbar-title{font-size:26px}}
@@ -372,8 +371,8 @@ export default function POSClient({
       .pos-right{
         position:fixed;top:60px;right:0;bottom:88px;width:300px;
         display:flex;flex-direction:column;overflow:hidden;
-        background:var(--bg,#ECEEF2);
-        border-left:1px solid rgba(0,0,0,0.07);
+        background:#0D0D0D;
+        border-left:1px solid rgba(255,255,255,0.06);
       }
     }
     @media(min-width:1280px){
@@ -383,10 +382,10 @@ export default function POSClient({
     @media(max-width:767px){.pos-right{display:none}}
     .cart-fab{display:none}
     @media(max-width:767px){
-      .cart-fab{display:flex;align-items:center;gap:10px;position:fixed;left:16px;right:16px;bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px);background:linear-gradient(145deg,#1D4ED8,#2563EB);border-radius:20px;padding:14px 18px;box-shadow:0 8px 24px rgba(29,78,216,0.38);cursor:pointer;z-index:200;border:none;font-family:inherit}
-      .cart-fab-count{font-size:12px;font-weight:700;color:rgba(255,255,255,0.75)}
-      .cart-fab-total{font-size:16px;font-weight:800;color:white;flex:1}
-      .cart-fab-cta{font-size:13px;font-weight:700;color:rgba(255,255,255,0.85);white-space:nowrap}
+      .cart-fab{display:flex;align-items:center;gap:10px;position:fixed;left:16px;right:16px;bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 16px);background:#0A0A0A;border-radius:20px;padding:14px 18px;box-shadow:0 8px 28px rgba(0,0,0,0.30);cursor:pointer;z-index:200;border:none;font-family:inherit}
+      .cart-fab-count{font-size:12px;font-weight:700;color:rgba(202,255,58,0.70)}
+      .cart-fab-total{font-size:16px;font-weight:800;color:#CAFF3A;flex:1}
+      .cart-fab-cta{font-size:13px;font-weight:700;color:rgba(255,255,255,0.80);white-space:nowrap}
     }
     .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:flex;flex-direction:column;justify-content:flex-end}
     .cart-sheet{background:var(--bg,#ECEEF2);border-radius:28px 28px 0 0;display:flex;flex-direction:column;padding-bottom:max(env(safe-area-inset-bottom,0px),8px);transition:height 0.3s cubic-bezier(0.32,0.72,0,1),transform 0.3s cubic-bezier(0.32,0.72,0,1)}
@@ -415,13 +414,13 @@ export default function POSClient({
     .cust-opt:hover{background:rgba(0,0,0,0.04)}
     .cust-opt-sub{font-size:11px;color:rgba(10,10,14,0.45)}
     .cust-selected{display:flex;align-items:center;gap:8px;flex:1}
-    .cust-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1D4ED8,#3B82F6);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:white;flex-shrink:0}
+    .cust-av{width:30px;height:30px;border-radius:50%;background:#0A0A0A;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#CAFF3A;flex-shrink:0}
     .cust-name{font-size:14px;font-weight:700;color:var(--text,#0A0A0E);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cust-info{font-size:11px;color:rgba(10,10,14,0.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .search-wrap{position:relative;margin-bottom:12px;flex-shrink:0}
     .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(10,10,14,0.35);pointer-events:none}
     .search-input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none;transition:border-color .15s}
-    .search-input:focus{border-color:#2563EB}
+    .search-input:focus{border-color:#CAFF3A}
     .prod-list{display:flex;flex-direction:column;overflow-y:auto;flex:1;padding-right:2px}
     .prod-row{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid rgba(0,0,0,0.055)}
     .prod-row:last-child{border-bottom:none}
@@ -430,31 +429,31 @@ export default function POSClient({
     .prod-row-meta{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden}
     .prod-row-var{font-size:12px;color:rgba(10,10,14,0.45);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .prod-row-stock{font-size:11px;color:rgba(10,10,14,0.32);font-weight:600;white-space:nowrap;flex-shrink:0}
-    .prod-row-price{font-size:14px;font-weight:800;color:#1D4ED8;white-space:nowrap;flex-shrink:0;min-width:60px;text-align:right}
-    .prod-row-add{width:34px;height:34px;border-radius:50%;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(29,78,216,0.28);flex-shrink:0;line-height:1}
+    .prod-row-price{font-size:14px;font-weight:800;color:#0A0A0A;white-space:nowrap;flex-shrink:0;min-width:60px;text-align:right}
+    .prod-row-add{width:34px;height:34px;border-radius:50%;border:none;background:#0A0A0A;color:#CAFF3A;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);flex-shrink:0;line-height:1}
     .prod-var-sel{padding:2px 6px;border-radius:6px;border:1px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:11px;font-family:inherit;outline:none;color:var(--text,#0A0A0E);max-width:120px}
-    .cart-header{padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.06);flex-shrink:0}
+    .cart-header{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0}
     .cart-hd-row{display:flex;align-items:center;justify-content:space-between}
-    .cart-hd-title{font-size:13px;font-weight:800;color:var(--text,#0A0A0E)}
+    .cart-hd-title{font-size:13px;font-weight:800;color:rgba(255,255,255,0.90)}
     .cart-hd-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
     .cart-body{flex:1;overflow-y:auto;padding:8px 12px}
-    .cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(10,10,14,0.30);font-size:13px;font-weight:600;gap:8px}
-    .cart-item{padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)}
-    .cart-item-name{font-size:13px;font-weight:700;color:var(--text,#0A0A0E);margin-bottom:2px}
-    .cart-item-sub{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px}
+    .cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.22);font-size:13px;font-weight:600;gap:8px}
+    .cart-item{padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+    .cart-item-name{font-size:13px;font-weight:700;color:rgba(255,255,255,0.90);margin-bottom:2px}
+    .cart-item-sub{font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:6px}
     .cart-item-row{display:flex;align-items:center;gap:8px}
     .qty-ctrl{display:flex;align-items:center;gap:6px}
-    .qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.12);background:none;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;color:var(--text,#0A0A0E);line-height:1}
-    .qty-btn:hover{background:rgba(0,0,0,0.06)}
-    .qty-num{font-size:14px;font-weight:700;min-width:20px;text-align:center;color:var(--text,#0A0A0E)}
-    .item-price{margin-left:auto;font-size:13px;font-weight:700;color:var(--text,#0A0A0E)}
-    .rm-btn{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.30);padding:2px;line-height:1}
-    .rm-btn:hover{color:#DC2626}
-    .cart-footer{border-top:1px solid rgba(0,0,0,0.07);padding:12px 16px;flex-shrink:0}
-    .total-row{display:flex;justify-content:space-between;font-size:13px;color:rgba(10,10,14,0.55);margin-bottom:4px}
-    .total-row.big{font-size:20px;font-weight:800;color:var(--text,#0A0A0E);margin-top:4px;margin-bottom:0}
-    .park-btn-sm{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55);transition:background .15s}
-    .park-btn-sm:hover{background:rgba(0,0,0,0.05)}
+    .qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);background:none;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.80);line-height:1}
+    .qty-btn:hover{background:rgba(255,255,255,0.08)}
+    .qty-num{font-size:14px;font-weight:700;min-width:20px;text-align:center;color:rgba(255,255,255,0.90)}
+    .item-price{margin-left:auto;font-size:13px;font-weight:700;color:#CAFF3A}
+    .rm-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.22);padding:2px;line-height:1}
+    .rm-btn:hover{color:#FF6B6B}
+    .cart-footer{border-top:1px solid rgba(255,255,255,0.07);padding:12px 16px;flex-shrink:0}
+    .total-row{display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,0.40);margin-bottom:4px}
+    .total-row.big{font-size:20px;font-weight:800;color:#CAFF3A;margin-top:4px;margin-bottom:0}
+    .park-btn-sm{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:50px;border:1.5px solid rgba(255,255,255,0.15);background:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(255,255,255,0.55);transition:background .15s}
+    .park-btn-sm:hover{background:rgba(255,255,255,0.07)}
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:flex-end;justify-content:center}
     @media(min-width:640px){.modal-overlay{align-items:center}}
     .modal-sheet{background:var(--bg,#ECEEF2);border-radius:28px 28px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto}
@@ -492,6 +491,8 @@ export default function POSClient({
   const wrap = (children: React.ReactNode) => (
     <>
       <Sidebar active="pos" />
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&display=swap" />
       <style>{CSS}</style>
       {children}
     </>
@@ -524,7 +525,7 @@ export default function POSClient({
         {/* Nueva venta */}
         <button className="hcard hcard-new" onClick={() => { setCart([]); setCustomer(null); setPosView('selling') }}>
           <div className="hcard-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2.5" strokeLinecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
           </div>
           <div className="hcard-text">
             <div className="hcard-label">Cobrar ahora</div>
@@ -539,7 +540,7 @@ export default function POSClient({
         {/* Ventas guardadas */}
         <button className="hcard hcard-parked" onClick={() => setPosView('parked')}>
           <div className="hcard-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0A0A0A" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           </div>
           <div className="hcard-text">
             {parkedSales.length > 0 && (
@@ -649,13 +650,13 @@ export default function POSClient({
           </button>
           <div className="pos-topbar-title">Nueva venta</div>
           {cart.length > 0 && (
-            <button className="park-btn-sm" style={{marginLeft:'auto'}} onClick={parkCurrentCart}>
+            <button className="park-btn-sm" style={{marginLeft:'auto',borderColor:'rgba(0,0,0,0.12)',color:'rgba(10,10,14,0.60)',background:'rgba(0,0,0,0.04)'}} onClick={parkCurrentCart}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Guardar venta
             </button>
           )}
           {parkedSales.length > 0 && cart.length === 0 && (
-            <button className="park-btn-sm" style={{marginLeft:'auto',borderColor:'rgba(217,119,6,0.25)',color:'#92400E',background:'rgba(217,119,6,0.07)'}} onClick={() => setPosView('parked')}>
+            <button className="park-btn-sm" style={{marginLeft:'auto',borderColor:'rgba(0,0,0,0.12)',color:'rgba(10,10,14,0.60)',background:'rgba(0,0,0,0.04)'}} onClick={() => setPosView('parked')}>
               {parkedSales.length} guardada{parkedSales.length > 1 ? 's' : ''} →
             </button>
           )}
@@ -753,12 +754,12 @@ export default function POSClient({
             <div className="cart-header">
               <div className="cart-hd-row">
                 <span className="cart-hd-title">Carrito</span>
-                {cart.length > 0 && <button className="btn-sm" style={{color:'#DC2626',borderColor:'rgba(220,38,38,0.2)'}} onClick={() => setCart([])}>Vaciar</button>}
+                {cart.length > 0 && <button className="btn-sm" style={{color:'#FF6B6B',borderColor:'rgba(255,107,107,0.25)',background:'rgba(255,107,107,0.10)'}} onClick={() => setCart([])}>Vaciar</button>}
               </div>
               {(parkedSales.length > 0 || cart.length > 0) && (
                 <div className="cart-hd-acts">
                   {parkedSales.length > 0 && (
-                    <button className="park-btn-sm" style={{borderColor:'rgba(217,119,6,0.25)',color:'#92400E',background:'rgba(217,119,6,0.07)'}} onClick={() => setPosView('parked')}>
+                    <button className="park-btn-sm" style={{borderColor:'rgba(202,255,58,0.30)',color:'#CAFF3A',background:'rgba(202,255,58,0.08)'}} onClick={() => setPosView('parked')}>
                       {parkedSales.length} guardada{parkedSales.length > 1 ? 's' : ''}
                     </button>
                   )}
@@ -831,7 +832,7 @@ export default function POSClient({
               <span className="sheet-title">Carrito · {cart.length} {cart.length === 1 ? 'art.' : 'arts.'}</span>
               <div style={{display:'flex',gap:6,alignItems:'center'}}>
                 {cart.length > 0 && (
-                  <button className="park-btn-sm" onClick={parkCurrentCart}>
+                  <button className="park-btn-sm" style={{borderColor:'rgba(0,0,0,0.12)',color:'rgba(10,10,14,0.60)',background:'rgba(0,0,0,0.04)'}} onClick={parkCurrentCart}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
                     Guardar
                   </button>
