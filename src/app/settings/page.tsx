@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdmin } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import SettingsClient from './SettingsClient'
 
@@ -27,13 +28,20 @@ export default async function SettingsPage({
   const orgName = (profile.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'
   const myRole  = (profile as unknown as { role?: string }).role ?? 'owner'
 
+  // Use service role to bypass RLS — owner must see all members in their org
+  const adminClient = createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
   const [membersResult, { data: invitations }] = await Promise.all([
-    supabase
+    adminClient
       .from('user_profiles')
       .select('id, full_name, avatar_url, role, status, created_at, allowed_modules')
       .eq('organization_id', orgId)
       .order('created_at', { ascending: true }),
-    supabase
+    adminClient
       .from('organization_invitations')
       .select('id, email, role, status, created_at, expires_at')
       .eq('organization_id', orgId)
@@ -44,7 +52,7 @@ export default async function SettingsPage({
   // Fallback: if allowed_modules column doesn't exist yet (migration 009 pending)
   let rawMembers = membersResult.data
   if (membersResult.error) {
-    const { data: fallback } = await supabase
+    const { data: fallback } = await adminClient
       .from('user_profiles')
       .select('id, full_name, avatar_url, role, status, created_at')
       .eq('organization_id', orgId)

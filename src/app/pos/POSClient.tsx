@@ -268,26 +268,23 @@ export default function POSClient({
     @media(min-width:768px){.home-title{font-size:38px}}
     .home-sub{font-size:14px;color:rgba(10,10,14,0.45);font-weight:500;margin-bottom:28px}
     /* ── Cards ── */
-    /* Mobile: stacked full-width */
+    /* Mobile & Desktop: square column cards */
     .home-cards{display:flex;flex-direction:column;gap:16px}
-    .hcard{aspect-ratio:unset;min-height:160px;flex-direction:row;align-items:center;padding:24px 22px;border-radius:24px;gap:20px}
-    .hcard-icon{width:60px;height:60px;border-radius:18px;flex-shrink:0;margin-bottom:0}
-    .hcard-text{flex:1;min-width:0;margin-top:0;display:flex;flex-direction:column;gap:4px}
-    .hcard-badge{display:inline-flex;align-self:flex-start;padding:4px 10px;font-size:11px;margin-bottom:2px;position:static}
-    .hcard-label{font-size:10px;margin-bottom:2px}
-    .hcard-title{font-size:24px;margin-bottom:2px;line-height:1.1}
-    .hcard-desc{font-size:13px;line-height:1.4}
-    .hcard-arrow{flex-shrink:0;position:static;opacity:.55}
+    .hcard{aspect-ratio:1/1;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:24px;border-radius:24px;gap:0;min-height:unset}
+    .hcard-icon{width:56px;height:56px;border-radius:16px;flex-shrink:0;margin-bottom:0}
+    .hcard-text{flex:1;min-width:0;margin-top:14px;display:flex;flex-direction:column}
+    .hcard-badge{display:inline-flex;align-self:flex-start;padding:4px 10px;font-size:11px;margin-bottom:6px;position:absolute;top:20px;right:20px}
+    .hcard-label{font-size:10px;margin-bottom:3px}
+    .hcard-title{font-size:22px;margin-bottom:4px;line-height:1.1}
+    .hcard-desc{font-size:12px;line-height:1.4}
+    .hcard-arrow{position:absolute;bottom:20px;right:20px;opacity:.55}
     /* Desktop: 2-col square grid */
     @media(min-width:768px){
       .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:600px}
-      .hcard{aspect-ratio:1/1;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:28px;gap:0;min-height:unset}
-      .hcard-icon{width:56px;height:56px;border-radius:16px;margin-bottom:0}
-      .hcard-text{flex:1;min-width:0;margin-top:14px}
-      .hcard-badge{position:absolute;top:20px;right:20px}
-      .hcard-title{font-size:22px}
-      .hcard-desc{font-size:12px}
-      .hcard-arrow{position:absolute;bottom:24px;right:24px;flex-shrink:unset}
+      .hcard{padding:28px}
+      .hcard-title{font-size:24px}
+      .hcard-badge{top:24px;right:24px}
+      .hcard-arrow{bottom:24px;right:24px}
     }
     .hcard{cursor:pointer;border:none;font-family:inherit;text-align:left;display:flex;gap:0;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
     .hcard:active{transform:scale(.98)}
@@ -436,7 +433,10 @@ export default function POSClient({
     .prod-row-price{font-size:14px;font-weight:800;color:#1D4ED8;white-space:nowrap;flex-shrink:0;min-width:60px;text-align:right}
     .prod-row-add{width:34px;height:34px;border-radius:50%;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(29,78,216,0.28);flex-shrink:0;line-height:1}
     .prod-var-sel{padding:2px 6px;border-radius:6px;border:1px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:11px;font-family:inherit;outline:none;color:var(--text,#0A0A0E);max-width:120px}
-    .cart-header{padding:14px 16px 10px;font-size:13px;font-weight:800;color:var(--text,#0A0A0E);border-bottom:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .cart-header{padding:12px 16px;border-bottom:1px solid rgba(0,0,0,0.06);flex-shrink:0}
+    .cart-hd-row{display:flex;align-items:center;justify-content:space-between}
+    .cart-hd-title{font-size:13px;font-weight:800;color:var(--text,#0A0A0E)}
+    .cart-hd-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
     .cart-body{flex:1;overflow-y:auto;padding:8px 12px}
     .cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(10,10,14,0.30);font-size:13px;font-weight:600;gap:8px}
     .cart-item{padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.05)}
@@ -751,21 +751,25 @@ export default function POSClient({
           {/* RIGHT: Cart — desktop */}
           <div className="pos-right">
             <div className="cart-header">
-              <span>Carrito</span>
-              <div style={{display:'flex',gap:6}}>
-                {parkedSales.length > 0 && (
-                  <button className="park-btn-sm" style={{borderColor:'rgba(217,119,6,0.25)',color:'#92400E',background:'rgba(217,119,6,0.07)'}} onClick={() => setPosView('parked')}>
-                    {parkedSales.length} guardada{parkedSales.length > 1 ? 's' : ''}
-                  </button>
-                )}
-                {cart.length > 0 && (
-                  <button className="park-btn-sm" onClick={parkCurrentCart}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    Guardar
-                  </button>
-                )}
+              <div className="cart-hd-row">
+                <span className="cart-hd-title">Carrito</span>
                 {cart.length > 0 && <button className="btn-sm" style={{color:'#DC2626',borderColor:'rgba(220,38,38,0.2)'}} onClick={() => setCart([])}>Vaciar</button>}
               </div>
+              {(parkedSales.length > 0 || cart.length > 0) && (
+                <div className="cart-hd-acts">
+                  {parkedSales.length > 0 && (
+                    <button className="park-btn-sm" style={{borderColor:'rgba(217,119,6,0.25)',color:'#92400E',background:'rgba(217,119,6,0.07)'}} onClick={() => setPosView('parked')}>
+                      {parkedSales.length} guardada{parkedSales.length > 1 ? 's' : ''}
+                    </button>
+                  )}
+                  {cart.length > 0 && (
+                    <button className="park-btn-sm" onClick={parkCurrentCart}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                      Guardar
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="cart-body">
