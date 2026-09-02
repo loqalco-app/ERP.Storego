@@ -351,10 +351,10 @@ export default function POSClient({
     .pk-empty-sub{font-size:13px;color:rgba(10,10,14,0.30);font-weight:500}
 
     /* ── SELLING ── */
-    .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--bg,#ECEEF2);padding-top:env(safe-area-inset-top,0px)}
+    .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:#FFFFFF;padding-top:env(safe-area-inset-top,0px)}
     @media(min-width:768px){.pos-wrap{margin-top:60px;height:calc(100dvh - 60px - 88px)}}
-    .pos-topbar{display:flex;align-items:center;gap:12px;padding:14px 18px 10px;flex-shrink:0}
-    @media(min-width:768px){.pos-topbar{padding:16px 40px 10px;position:sticky;top:60px;z-index:99;background:#FFFFFF;border-bottom:1px solid rgba(0,0,0,0.07)}}
+    .pos-topbar{display:flex;align-items:center;gap:12px;padding:14px 18px 10px;flex-shrink:0;background:#FFFFFF}
+    @media(min-width:768px){.pos-topbar{padding:16px 40px 14px;border-bottom:1px solid rgba(0,0,0,0.07)}}
     .pos-back-btn{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pos-topbar-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px;flex:1}
     @media(min-width:768px){.pos-topbar-title{font-size:26px}}
