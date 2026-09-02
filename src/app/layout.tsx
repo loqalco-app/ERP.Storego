@@ -51,6 +51,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
+        {/* Fix iOS PWA: establece --app-h antes del primer paint para que position:fixed quede correcto */}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function(){
+              function setH(){document.documentElement.style.setProperty('--app-h',window.innerHeight+'px')}
+              setH();
+              window.addEventListener('resize',setH);
+              /* Fuerza repaint en iOS PWA al recuperar focus */
+              window.addEventListener('focus',function(){setTimeout(setH,100)});
+            })();
+          `
+        }} />
         {children}
         <script dangerouslySetInnerHTML={{
           __html: `

@@ -176,7 +176,8 @@ export default function Sidebar({ active }: Props) {
         .nav-fade{
           position:fixed;bottom:0;left:0;right:0;height:96px;
           background:linear-gradient(to top,var(--bg,#ECEEF2) 60%,transparent);
-          pointer-events:none;z-index:198
+          pointer-events:none;z-index:198;
+          -webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0)
         }
 
         /* ── Nav bar ── */
@@ -184,7 +185,9 @@ export default function Sidebar({ active }: Props) {
           position:fixed;bottom:0;left:0;right:0;z-index:199;
           display:flex;align-items:flex-end;justify-content:center;
           padding:0 16px max(env(safe-area-inset-bottom,0px),10px);
-          pointer-events:none
+          pointer-events:none;
+          -webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);
+          will-change:transform
         }
         @media(min-width:480px){.nav-bar{padding:0 20px max(env(safe-area-inset-bottom,0px),16px)}}
 

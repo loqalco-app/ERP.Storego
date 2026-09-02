@@ -7,13 +7,35 @@
   padding: 0;
 }
 
+:root {
+  /* Fallback seguro: dvh con fallback a --app-h (seteado por JS antes del primer paint) */
+  --safe-h: var(--app-h, 100dvh);
+}
+
 body {
   background: var(--bg, #ECEEF2);
   color: #0A0A0B;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-height: 100dvh;
+  min-height: var(--safe-h);
+}
+
+/* iOS PWA: nav bar siempre visible desde el primer paint (SSR-safe) */
+.nav-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 199;
+  -webkit-transform: translate3d(0,0,0);
+  transform: translate3d(0,0,0);
+  will-change: transform;
+}
+.nav-fade {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 198;
+  -webkit-transform: translate3d(0,0,0);
+  transform: translate3d(0,0,0);
 }
 @media (min-width: 768px) {
   /* Compensa el .desk-header fixed de 60px para que el contenido no quede tapado */
