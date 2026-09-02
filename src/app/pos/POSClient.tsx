@@ -267,28 +267,27 @@ export default function POSClient({
     .home-title{font-size:30px;font-weight:900;color:#0A0A0E;letter-spacing:-.8px;margin-bottom:4px;line-height:1.1}
     @media(min-width:768px){.home-title{font-size:38px}}
     .home-sub{font-size:14px;color:rgba(10,10,14,0.45);font-weight:500;margin-bottom:28px}
-    /* Cards — square grid on ALL screen sizes */
-    .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .hcard{aspect-ratio:1/1;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:20px;border-radius:22px;gap:0}
-    .hcard-icon{width:48px;height:48px;border-radius:14px;flex-shrink:0;margin-bottom:0}
-    .hcard-text{flex:1;min-width:0;margin-top:12px}
-    .hcard-badge{display:inline-flex;align-self:flex-start;padding:3px 9px;font-size:10px;margin-bottom:6px;position:static}
-    .hcard-label{font-size:9px;margin-bottom:3px}
-    .hcard-title{font-size:18px;margin-bottom:3px;line-height:1.15}
-    .hcard-desc{font-size:11px;line-height:1.4}
-    .hcard-arrow{position:absolute;bottom:16px;right:16px;opacity:.50}
-    @media(min-width:480px){
-      .hcard{padding:24px;border-radius:26px}
-      .hcard-icon{width:54px;height:54px}
-      .hcard-title{font-size:20px}
-    }
+    /* ── Cards ── */
+    /* Mobile: stacked full-width */
+    .home-cards{display:flex;flex-direction:column;gap:16px}
+    .hcard{aspect-ratio:unset;min-height:160px;flex-direction:row;align-items:center;padding:24px 22px;border-radius:24px;gap:20px}
+    .hcard-icon{width:60px;height:60px;border-radius:18px;flex-shrink:0;margin-bottom:0}
+    .hcard-text{flex:1;min-width:0;margin-top:0;display:flex;flex-direction:column;gap:4px}
+    .hcard-badge{display:inline-flex;align-self:flex-start;padding:4px 10px;font-size:11px;margin-bottom:2px;position:static}
+    .hcard-label{font-size:10px;margin-bottom:2px}
+    .hcard-title{font-size:24px;margin-bottom:2px;line-height:1.1}
+    .hcard-desc{font-size:13px;line-height:1.4}
+    .hcard-arrow{flex-shrink:0;position:static;opacity:.55}
+    /* Desktop: 2-col square grid */
     @media(min-width:768px){
-      .home-cards{max-width:560px}
-      .hcard{padding:28px;border-radius:28px}
-      .hcard-icon{width:56px;height:56px;border-radius:16px}
-      .hcard-title{font-size:22px}
+      .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:600px}
+      .hcard{aspect-ratio:1/1;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:28px;gap:0;min-height:unset}
+      .hcard-icon{width:56px;height:56px;border-radius:16px;margin-bottom:0}
+      .hcard-text{flex:1;min-width:0;margin-top:14px}
       .hcard-badge{position:absolute;top:20px;right:20px}
-      .hcard-arrow{bottom:24px;right:24px}
+      .hcard-title{font-size:22px}
+      .hcard-desc{font-size:12px}
+      .hcard-arrow{position:absolute;bottom:24px;right:24px;flex-shrink:unset}
     }
     .hcard{cursor:pointer;border:none;font-family:inherit;text-align:left;display:flex;gap:0;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
     .hcard:active{transform:scale(.98)}
@@ -368,16 +367,21 @@ export default function POSClient({
     .pos-body-inner{display:flex;flex:1;overflow:hidden;min-height:0;width:100%}
     .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 16px 12px}
     @media(max-width:767px){.pos-left{padding-bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 96px)}}
-    /* desktop: centrado en max-width con dos columnas */
+    /* desktop: left col scrollable, right panel fixed */
     @media(min-width:768px){
-      .pos-body{justify-content:center}
-      .pos-body-inner{max-width:960px;height:100%;margin:0 auto}
-      .pos-left{padding:0 16px 16px 0}
-      .pos-right{width:280px;flex-shrink:0;border-left:1px solid rgba(0,0,0,0.07);background:var(--bg,#ECEEF2);display:flex;flex-direction:column;overflow:hidden}
+      .pos-body{overflow:hidden}
+      .pos-body-inner{display:block;width:100%;height:100%;overflow-y:auto;padding-right:300px;box-sizing:border-box}
+      .pos-left{padding:0 24px 24px;max-width:760px;margin:0 auto}
+      .pos-right{
+        position:fixed;top:60px;right:0;bottom:88px;width:300px;
+        display:flex;flex-direction:column;overflow:hidden;
+        background:var(--bg,#ECEEF2);
+        border-left:1px solid rgba(0,0,0,0.07);
+      }
     }
     @media(min-width:1280px){
-      .pos-body-inner{max-width:1100px}
-      .pos-right{width:300px}
+      .pos-body-inner{padding-right:320px}
+      .pos-right{width:320px}
     }
     @media(max-width:767px){.pos-right{display:none}}
     .cart-fab{display:none}
