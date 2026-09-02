@@ -96,6 +96,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg || 'No se pudo generar el enlace.' }, { status: 400 })
   }
 
+  // Upsert profile immediately so the member appears in the team list right away
+  if (linkData.user?.id) {
+    await adminClient.from('user_profiles').upsert({
+      id: linkData.user.id,
+      organization_id: orgId,
+      full_name: fullName?.trim() ?? '',
+      role,
+      status: 'active',
+    }, { onConflict: 'id' })
+  }
+
   // Solo insertar registro nuevo si no es regeneración
   if (!regenerate) {
     await supabase.from('organization_invitations').insert({

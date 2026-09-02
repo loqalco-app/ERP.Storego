@@ -261,33 +261,34 @@ export default function POSClient({
     .btn-sm{padding:5px 12px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:11px;font-weight:700;color:rgba(10,10,14,0.5);cursor:pointer;font-family:inherit;white-space:nowrap}
 
     /* ── HOME ── */
-    .home-wrap{display:flex;flex-direction:column;min-height:100dvh;padding:max(env(safe-area-inset-top,0px),32px) 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
-    @media(min-width:768px){.home-wrap{padding-top:max(env(safe-area-inset-top,0px),64px);max-width:600px;margin:0 auto;padding-left:0;padding-right:0}}
+    .home-wrap{display:flex;flex-direction:column;min-height:100dvh;padding:max(env(safe-area-inset-top,0px),28px) 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
+    @media(min-width:768px){.home-wrap{padding-top:80px;max-width:600px;margin:0 auto;padding-left:0;padding-right:0}}
     .home-greeting{font-size:13px;font-weight:700;color:rgba(10,10,14,0.40);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
     .home-title{font-size:30px;font-weight:900;color:#0A0A0E;letter-spacing:-.8px;margin-bottom:4px;line-height:1.1}
     @media(min-width:768px){.home-title{font-size:38px}}
     .home-sub{font-size:14px;color:rgba(10,10,14,0.45);font-weight:500;margin-bottom:28px}
-    .home-cards{display:flex;gap:14px}
-    /* Desktop: side by side square */
-    @media(min-width:768px){
-      .home-cards{flex-direction:row}
-      .hcard{flex:1;aspect-ratio:1/1;flex-direction:column;padding:28px 24px;border-radius:28px}
-      .hcard-icon{margin-bottom:20px;flex-shrink:unset}
-      .hcard-text{flex:1;min-width:unset}
-      .hcard-badge{position:absolute;top:20px;right:20px}
-      .hcard-arrow{position:absolute;bottom:24px;right:24px}
+    /* Cards — square grid on ALL screen sizes */
+    .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .hcard{aspect-ratio:1/1;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:20px;border-radius:22px;gap:0}
+    .hcard-icon{width:48px;height:48px;border-radius:14px;flex-shrink:0;margin-bottom:0}
+    .hcard-text{flex:1;min-width:0;margin-top:12px}
+    .hcard-badge{display:inline-flex;align-self:flex-start;padding:3px 9px;font-size:10px;margin-bottom:6px;position:static}
+    .hcard-label{font-size:9px;margin-bottom:3px}
+    .hcard-title{font-size:18px;margin-bottom:3px;line-height:1.15}
+    .hcard-desc{font-size:11px;line-height:1.4}
+    .hcard-arrow{position:absolute;bottom:16px;right:16px;opacity:.50}
+    @media(min-width:480px){
+      .hcard{padding:24px;border-radius:26px}
+      .hcard-icon{width:54px;height:54px}
+      .hcard-title{font-size:20px}
     }
-    /* Mobile: stacked, horizontal layout */
-    @media(max-width:767px){
-      .home-cards{flex-direction:column;gap:14px}
-      .hcard{aspect-ratio:unset;flex-direction:row;align-items:center;padding:24px 20px;border-radius:22px;gap:20px;min-height:100px}
-      .hcard-icon{margin-bottom:0;flex-shrink:0;width:54px;height:54px;border-radius:16px}
-      .hcard-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
-      .hcard-badge{position:static;display:inline-flex;margin-bottom:0;align-self:flex-start;padding:4px 10px;font-size:11px}
-      .hcard-label{margin-bottom:0;font-size:10px}
-      .hcard-title{font-size:21px;margin-bottom:0}
-      .hcard-desc{font-size:12px;line-height:1.4}
-      .hcard-arrow{flex-shrink:0;position:static;opacity:.55;align-self:center}
+    @media(min-width:768px){
+      .home-cards{max-width:560px}
+      .hcard{padding:28px;border-radius:28px}
+      .hcard-icon{width:56px;height:56px;border-radius:16px}
+      .hcard-title{font-size:22px}
+      .hcard-badge{position:absolute;top:20px;right:20px}
+      .hcard-arrow{bottom:24px;right:24px}
     }
     .hcard{cursor:pointer;border:none;font-family:inherit;text-align:left;display:flex;gap:0;transition:transform .15s,box-shadow .15s;position:relative;overflow:hidden}
     .hcard:active{transform:scale(.98)}
@@ -315,7 +316,7 @@ export default function POSClient({
 
     /* ── PARKED VIEW ── */
     .parked-view{min-height:100dvh;padding:max(env(safe-area-inset-top,0px),20px) 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
-    @media(min-width:768px){.parked-view{max-width:960px;margin:0 auto;padding:max(env(safe-area-inset-top,0px),28px) 0 calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}}
+    @media(min-width:768px){.parked-view{max-width:960px;margin:60px auto 0;padding:28px 0 calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}}
     .pv-topbar{display:flex;align-items:center;gap:14px;margin-bottom:28px}
     .pv-back{width:38px;height:38px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pv-back:hover{background:rgba(0,0,0,0.10)}
@@ -356,7 +357,7 @@ export default function POSClient({
 
     /* ── SELLING ── */
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:var(--bg,#ECEEF2);padding-top:env(safe-area-inset-top,0px)}
-    @media(min-width:768px){.pos-wrap{height:calc(100dvh - 90px)}}
+    @media(min-width:768px){.pos-wrap{margin-top:60px;height:calc(100dvh - 60px - 88px)}}
     .pos-topbar{display:flex;align-items:center;gap:12px;padding:14px 18px 10px;flex-shrink:0}
     @media(min-width:768px){.pos-topbar{padding:16px 40px 10px}}
     .pos-back-btn{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
