@@ -359,7 +359,8 @@ export default function POSClient({
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:#FFFFFF;padding-top:env(safe-area-inset-top,0px)}
     @media(min-width:768px){.pos-wrap{height:calc(100dvh - 60px - 88px)}}
     .pos-topbar{display:flex;align-items:center;gap:12px;padding:10px 18px 8px;flex-shrink:0;background:#FFFFFF}
-    @media(min-width:768px){.pos-topbar{padding:10px 32px 10px;border-bottom:1px solid rgba(0,0,0,0.07)}}
+    @media(min-width:768px){.pos-topbar{padding:10px calc(300px + 32px) 10px 32px;border-bottom:1px solid rgba(0,0,0,0.07)}}
+    @media(min-width:1280px){.pos-topbar{padding-right:calc(320px + 32px)}}
     .pos-back-btn{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pos-topbar-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px;flex:1}
     @media(min-width:768px){.pos-topbar-title{font-size:24px}}
