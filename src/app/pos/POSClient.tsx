@@ -274,7 +274,7 @@ export default function POSClient({
     /* ── Cards ── */
     /* Mobile & Desktop: square column cards */
     .home-cards{display:flex;flex-direction:column;gap:16px}
-    .hcard{aspect-ratio:1/1;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:24px;border-radius:24px;gap:0;min-height:unset}
+    .hcard{aspect-ratio:4/3;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:24px;border-radius:24px;gap:0;min-height:unset}
     .hcard-icon{width:56px;height:56px;border-radius:16px;flex-shrink:0;margin-bottom:0}
     .hcard-text{flex:1;min-width:0;margin-top:14px;display:flex;flex-direction:column}
     .hcard-badge{display:inline-flex;align-self:flex-start;padding:4px 10px;font-size:11px;margin-bottom:6px;position:absolute;top:20px;right:20px}
@@ -285,7 +285,7 @@ export default function POSClient({
     /* Desktop: 2-col square grid */
     @media(min-width:768px){
       .home-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:600px}
-      .hcard{padding:28px}
+      .hcard{padding:28px;aspect-ratio:1/1}
       .hcard-title{font-size:24px}
       .hcard-badge{top:24px;right:24px}
       .hcard-arrow{bottom:24px;right:24px}
