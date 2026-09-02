@@ -27,7 +27,7 @@ export default async function BrandsPage() {
       brands={(brands ?? []).map(b => ({ ...b, productCount: countMap[b.id] ?? 0 }))}
       orgId={orgId}
       userName={profile?.full_name && !profile.full_name.includes('@') ? profile.full_name : (user.email?.split('@')[0] ?? 'Usuario')}
-      orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'}
+      orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'NORTHÉA'}
     />
   )
 }

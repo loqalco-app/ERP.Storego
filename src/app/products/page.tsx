@@ -33,7 +33,7 @@ export default async function ProductsPage() {
     <ProductsClient
       products={products}
       userName={profile?.full_name && !profile.full_name.includes('@') ? profile.full_name : (user.email?.split('@')[0] ?? 'Usuario')}
-      orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'}
+      orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'NORTHÉA'}
     />
   )
 }

@@ -12,7 +12,7 @@ export default async function NewCustomerPage() {
 
   const userName = profile?.full_name && !profile.full_name.includes('@')
     ? profile.full_name : (user.email?.split('@')[0] ?? 'Usuario')
-  const orgName = (profile?.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'
+  const orgName = (profile?.organizations as unknown as { name: string } | null)?.name ?? 'NORTHÉA'
 
   return (
     <CustomerForm

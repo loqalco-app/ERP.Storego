@@ -210,7 +210,7 @@ export default function LoginPage() {
             </div>
 
             <h1>Bienvenido</h1>
-            <p className="sub">Inicia sesión en Store ERP</p>
+            <p className="sub">Inicia sesión en NORTHÉA</p>
 
             <form onSubmit={handleLogin}>
               <label className="label">Correo</label>
@@ -241,7 +241,7 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <p className="footer">Store ERP · Acceso privado</p>
+          <p className="footer">NORTHÉA · Acceso privado</p>
         </div>
       </div>
     </>

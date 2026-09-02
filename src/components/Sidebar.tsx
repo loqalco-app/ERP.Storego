@@ -329,7 +329,7 @@ export default function Sidebar({ active }: Props) {
 
       {/* ── Header fijo desktop (≥768px) ── */}
       <div className="desk-header">
-        <span className="desk-brand">Store ERP</span>
+        <span className="desk-brand">NORTHÉA</span>
         <div className="desk-chip-wrap" ref={desktopWrapRef}>
           <button className="desk-chip" aria-label="Mi perfil" onClick={() => setDesktopOpen(v => !v)}>
             <div className="desk-chip-av">{initials}</div>

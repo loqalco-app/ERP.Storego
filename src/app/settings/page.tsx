@@ -25,7 +25,7 @@ export default async function SettingsPage({
   if (!profile) redirect('/dashboard')
 
   const orgId   = profile.organization_id
-  const orgName = (profile.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'
+  const orgName = (profile.organizations as unknown as { name: string } | null)?.name ?? 'NORTHÉA'
   const myRole  = (profile as unknown as { role?: string }).role ?? 'owner'
 
   // Use service role to bypass RLS — owner must see all members in their org

@@ -29,7 +29,7 @@ export default async function EditCatalogProductPage({ params }: { params: Promi
       orgId={orgId}
       productId={id}
       userName={profile?.full_name && !profile.full_name.includes('@') ? profile.full_name : (user.email?.split('@')[0] ?? 'Usuario')}
-      orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'Store ERP'}
+      orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'NORTHÉA'}
       categories={categories ?? []}
       brands={brands ?? []}
       initial={{ name: product.name, description: product.description ?? '', status: product.status, condition: product.condition, categoryId: product.category_id ?? '', brandId: product.brand_id ?? '', variants: variants.map(v => ({ name: v.name, sku: v.sku, sale_price: String(v.sale_price), cost_price: String(v.cost_price), stock: '' })) }}

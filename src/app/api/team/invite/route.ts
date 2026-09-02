@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     || process.env.SITE_URL
     || (fwdHost && !fwdHost.includes('localhost') ? `${fwdProto}://${fwdHost}` : null)
     || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-    || 'https://erp-storego.vercel.app'
+    || 'https://app.northea.cc'
 
   // Generar link de invite (single-use, no envía correo)
   const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({

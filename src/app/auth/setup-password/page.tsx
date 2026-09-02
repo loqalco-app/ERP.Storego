@@ -101,7 +101,7 @@ export default function SetupPasswordPage() {
         <div className="card">
           <div className="logo">S</div>
           <div className="greeting">¡Hola, {firstName}!</div>
-          <div className="sub" style={{marginBottom:20}}>Crea tu contraseña para entrar a Store ERP.</div>
+          <div className="sub" style={{marginBottom:20}}>Crea tu contraseña para entrar a NORTHÉA.</div>
 
           <div className="info-block">
             <div className="info-row">
@@ -167,7 +167,7 @@ export default function SetupPasswordPage() {
             </div>
 
             <button type="submit" className="submit-btn" disabled={saving || !newPass || !confPass}>
-              {saving ? 'Guardando...' : 'Entrar a Store ERP →'}
+              {saving ? 'Guardando...' : 'Entrar a NORTHÉA →'}
             </button>
           </form>
         </div>
