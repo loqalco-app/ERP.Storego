@@ -55,6 +55,8 @@ export default function POSClient({
   const [newCust, setNewCust]           = useState({ full_name: '', email: '', phone: '' })
   const [savingCust, setSavingCust]     = useState(false)
   const custRef = useRef<HTMLDivElement>(null)
+  const [showCustTopDrop, setShowCustTopDrop] = useState(false)
+  const custTopRef = useRef<HTMLDivElement>(null)
 
   // ── Cart ────────────────────────────────────────────────────────────────────
   const [cart, setCart] = useState<CartItem[]>([])
@@ -97,7 +99,10 @@ export default function POSClient({
     document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
   }, [])
   useEffect(() => {
-    function h(e: MouseEvent) { if (custRef.current && !custRef.current.contains(e.target as Node)) setShowCustDrop(false) }
+    function h(e: MouseEvent) {
+      if (custRef.current && !custRef.current.contains(e.target as Node)) setShowCustDrop(false)
+      if (custTopRef.current && !custTopRef.current.contains(e.target as Node)) setShowCustTopDrop(false)
+    }
     document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h)
   }, [])
 
@@ -357,7 +362,26 @@ export default function POSClient({
     @media(min-width:768px){.pos-topbar{padding:16px 40px 14px;border-bottom:1px solid rgba(0,0,0,0.07)}}
     .pos-back-btn{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pos-topbar-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px;flex:1}
-    @media(min-width:768px){.pos-topbar-title{font-size:26px}}
+    @media(min-width:768px){.pos-topbar-title{font-size:24px}}
+    /* Customer chip in topbar */
+    .cust-chip-wrap{position:relative;margin-left:auto;flex-shrink:0}
+    .cust-chip{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.05);border:1.5px solid rgba(0,0,0,0.09);border-radius:50px;padding:4px 8px 4px 4px;cursor:pointer;font-family:inherit;transition:background .15s;max-width:170px}
+    .cust-chip:hover{background:rgba(0,0,0,0.08)}
+    .cust-chip-av{width:26px;height:26px;border-radius:50%;background:#0A0A0A;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#CAFF3A;flex-shrink:0;letter-spacing:-.2px}
+    .cust-chip-name{font-size:12px;font-weight:700;color:#0A0A0A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cust-chip-x{width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;padding:0;line-height:1;color:rgba(10,10,14,0.50)}
+    .cust-chip-x:hover{background:rgba(220,38,38,0.12);color:#DC2626}
+    .cust-add-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:50px;border:1.5px dashed rgba(0,0,0,0.22);background:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.42);transition:background .15s;white-space:nowrap;margin-left:auto}
+    .cust-add-btn:hover{background:rgba(0,0,0,0.04);border-style:solid}
+    .cust-top-drop{position:absolute;top:calc(100% + 8px);right:0;min-width:260px;background:#FFFFFF;border:1.5px solid rgba(0,0,0,0.10);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,0.14);z-index:300;overflow:hidden;padding:8px}
+    .cust-top-search{width:100%;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;font-size:13px;font-family:inherit;background:rgba(0,0,0,0.03);color:#0A0A0A;outline:none;margin-bottom:4px}
+    .cust-top-search:focus{border-color:#0A0A0A}
+    .cust-top-opt{padding:9px 12px;font-size:13px;font-weight:500;cursor:pointer;display:flex;flex-direction:column;gap:1px;border-radius:10px}
+    .cust-top-opt:hover{background:rgba(0,0,0,0.04)}
+    .cust-top-new{padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(10,10,14,0.50);border-radius:10px;border-top:1px solid rgba(0,0,0,0.06);margin-top:4px;display:flex;align-items:center;gap:6px}
+    .cust-top-new:hover{background:rgba(0,0,0,0.04);color:#0A0A0A}
+    /* Product avatar */
+    .prod-av{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:white;flex-shrink:0;letter-spacing:-.3px}
     .pos-body{display:flex;flex:1;overflow:hidden;min-height:0}
     /* mobile */
     .pos-body-inner{display:flex;flex:1;overflow:hidden;min-height:0;width:100%;background:#FFFFFF}
@@ -432,10 +456,11 @@ export default function POSClient({
     .prod-row-price{font-size:14px;font-weight:800;color:#0A0A0A;white-space:nowrap;flex-shrink:0;min-width:60px;text-align:right}
     .prod-row-add{width:34px;height:34px;border-radius:50%;border:none;background:#0A0A0A;color:#CAFF3A;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);flex-shrink:0;line-height:1}
     .prod-var-sel{padding:2px 6px;border-radius:6px;border:1px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:11px;font-family:inherit;outline:none;color:var(--text,#0A0A0E);max-width:120px}
-    .cart-header{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0}
-    .cart-hd-row{display:flex;align-items:center;justify-content:space-between}
-    .cart-hd-title{font-size:13px;font-weight:800;color:rgba(255,255,255,0.90)}
-    .cart-hd-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+    .cart-header{padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0}
+    .cart-hd-row{display:flex;align-items:center;gap:8px}
+    .cart-hd-title{font-size:10px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:.10em;flex:1}
+    .cart-hd-count{background:#CAFF3A;color:#0A0A0A;border-radius:50px;padding:2px 8px;font-size:10px;font-weight:800;white-space:nowrap}
+    .cart-hd-acts{display:flex;gap:6px;margin-top:8px;align-items:center}
     .cart-body{flex:1;overflow-y:auto;padding:8px 12px}
     .cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.22);font-size:13px;font-weight:600;gap:8px}
     /* cart items — default: light (used in mobile sheet) */
@@ -451,8 +476,8 @@ export default function POSClient({
     .rm-btn{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.28);padding:2px;line-height:1}
     .rm-btn:hover{color:#DC2626}
     .cart-footer{border-top:1px solid rgba(0,0,0,0.08);padding:12px 16px;flex-shrink:0}
-    .total-row{display:flex;justify-content:space-between;font-size:13px;color:rgba(10,10,14,0.50);margin-bottom:4px}
-    .total-row.big{font-size:20px;font-weight:800;color:#0A0A0A;margin-top:4px;margin-bottom:0}
+    .total-row{display:flex;justify-content:space-between;font-size:12px;color:rgba(10,10,14,0.45);margin-bottom:6px}
+    .total-row.big{font-size:19px;font-weight:800;color:#0A0A0A;margin-top:8px;margin-bottom:0;border-top:1px solid rgba(0,0,0,0.07);padding-top:8px}
     /* cart items — dark panel overrides (desktop .pos-right) */
     .pos-right .cart-item{border-bottom-color:rgba(255,255,255,0.06)}
     .pos-right .cart-item-name{color:rgba(255,255,255,0.90)}
@@ -464,8 +489,8 @@ export default function POSClient({
     .pos-right .rm-btn{color:rgba(255,255,255,0.22)}
     .pos-right .rm-btn:hover{color:#FF6B6B}
     .pos-right .cart-footer{border-top-color:rgba(255,255,255,0.07)}
-    .pos-right .total-row{color:rgba(255,255,255,0.40)}
-    .pos-right .total-row.big{color:#CAFF3A}
+    .pos-right .total-row{color:rgba(255,255,255,0.38)}
+    .pos-right .total-row.big{color:#CAFF3A;border-top-color:rgba(255,255,255,0.08)}
     .park-btn-sm{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:50px;border:1.5px solid rgba(255,255,255,0.15);background:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(255,255,255,0.55);transition:background .15s}
     .park-btn-sm:hover{background:rgba(255,255,255,0.07)}
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:flex-end;justify-content:center}
@@ -654,6 +679,18 @@ export default function POSClient({
   )
 
   // ── SELLING VIEW ──────────────────────────────────────────────────────────────
+  function prodColor(name: string) {
+    const palette = ['#3B4EFF','#7C3AED','#059669','#DC2626','#D97706','#0891B2','#DB2777','#65A30D','#EA580C','#0D9488']
+    let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffff
+    return palette[h % palette.length]
+  }
+  function prodInitials(name: string) {
+    return name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase() || '?'
+  }
+  const filteredCusts = custSearch.length >= 1
+    ? customers.filter(c => `${c.full_name} ${c.email ?? ''} ${c.phone ?? ''}`.toLowerCase().includes(custSearch.toLowerCase())).slice(0,6)
+    : customers.slice(0,6)
+
   return wrap(
     <>
       <div className="pos-wrap">
@@ -663,69 +700,68 @@ export default function POSClient({
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </button>
           <div className="pos-topbar-title">Nueva venta</div>
-          {cart.length > 0 && (
-            <button className="park-btn-sm" style={{marginLeft:'auto',borderColor:'rgba(0,0,0,0.12)',color:'rgba(10,10,14,0.60)',background:'rgba(0,0,0,0.04)'}} onClick={parkCurrentCart}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              Guardar venta
-            </button>
-          )}
-          {parkedSales.length > 0 && cart.length === 0 && (
-            <button className="park-btn-sm" style={{marginLeft:'auto',borderColor:'rgba(0,0,0,0.12)',color:'rgba(10,10,14,0.60)',background:'rgba(0,0,0,0.04)'}} onClick={() => setPosView('parked')}>
-              {parkedSales.length} guardada{parkedSales.length > 1 ? 's' : ''} →
-            </button>
-          )}
+
+          {/* Customer chip — right side of topbar */}
+          <div className="cust-chip-wrap" ref={custTopRef}>
+            {customer ? (
+              <div className="cust-chip">
+                <div className="cust-chip-av">
+                  {customer.full_name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+                </div>
+                <span className="cust-chip-name">{customer.full_name}</span>
+                <button className="cust-chip-x" onClick={e => { e.stopPropagation(); setCustomer(null); setCustSearch('') }}>
+                  <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+                </button>
+              </div>
+            ) : (
+              <>
+                <button className="cust-add-btn" onClick={() => setShowCustTopDrop(v => !v)}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+                  + Cliente
+                </button>
+                {showCustTopDrop && (
+                  <div className="cust-top-drop">
+                    <input
+                      className="cust-top-search"
+                      placeholder="Buscar cliente…"
+                      value={custSearch}
+                      autoFocus
+                      onChange={e => setCustSearch(e.target.value)}
+                    />
+                    {filteredCusts.map(c => (
+                      <div key={c.id} className="cust-top-opt" onClick={() => { setCustomer(c); setCustSearch(''); setShowCustTopDrop(false) }}>
+                        <span style={{fontWeight:700,fontSize:13}}>{c.full_name}</span>
+                        <span style={{fontSize:11,color:'rgba(10,10,14,0.45)'}}>{[c.phone,c.email].filter(Boolean).join(' · ')}</span>
+                      </div>
+                    ))}
+                    <div className="cust-top-new" onClick={() => { setShowCustTopDrop(false); setShowNewCust(true) }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      Nuevo cliente
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="pos-body">
           <div className="pos-body-inner">
           {/* LEFT: Customer + Products */}
           <div className="pos-left">
-            <div ref={custRef}>
-              <div className="cust-panel">
-                <div className="cust-label">Cliente *</div>
-                {customer ? (
-                  <div className="cust-row">
-                    <div className="cust-selected">
-                      <div className="cust-av">{customer.full_name.charAt(0).toUpperCase()}</div>
-                      <div style={{minWidth:0,overflow:'hidden'}}>
-                        <div className="cust-name">{customer.full_name}</div>
-                        <div className="cust-info">{customer.phone || customer.email || 'Sin contacto'}</div>
-                      </div>
-                    </div>
-                    <button className="btn-sm" onClick={() => { setCustomer(null); setCustSearch('') }}>Cambiar</button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="cust-row">
-                      <input className="cust-input" placeholder="Buscar cliente por nombre, email o teléfono…" value={custSearch} onChange={e => { setCustSearch(e.target.value); setShowCustDrop(true) }} onFocus={() => setShowCustDrop(true)} />
-                      <button className="btn-sm" onClick={() => setShowNewCust(v => !v)}>+ Nuevo</button>
-                    </div>
-                    {showCustDrop && filteredCustomers.length > 0 && (
-                      <div className="cust-drop">
-                        {filteredCustomers.map(c => (
-                          <div key={c.id} className="cust-opt" onClick={() => { setCustomer(c); setCustSearch(''); setShowCustDrop(false); setShowNewCust(false) }}>
-                            <span style={{fontWeight:700}}>{c.full_name}</span>
-                            <span className="cust-opt-sub">{[c.phone, c.email].filter(Boolean).join(' · ')}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {showNewCust && (
-                      <div className="new-cust-form">
-                        <div style={{fontSize:12,fontWeight:700,color:'var(--text,#0A0A0E)',marginBottom:8}}>Nuevo cliente</div>
-                        <input className="new-cust-input" placeholder="Nombre completo *" value={newCust.full_name} onChange={e => setNewCust(p => ({...p, full_name: e.target.value}))} />
-                        <input className="new-cust-input" placeholder="Teléfono" value={newCust.phone} onChange={e => setNewCust(p => ({...p, phone: e.target.value}))} />
-                        <input className="new-cust-input" placeholder="Email" value={newCust.email} onChange={e => setNewCust(p => ({...p, email: e.target.value}))} />
-                        <div className="new-cust-btns">
-                          <button className="btn-cancel-sm" onClick={() => setShowNewCust(false)}>Cancelar</button>
-                          <button className="btn-create" disabled={savingCust || !newCust.full_name.trim()} onClick={createCustomer}>{savingCust ? 'Guardando…' : 'Crear cliente'}</button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
+            {/* New customer form (shows when + Nuevo cliente is clicked in topbar dropdown) */}
+            {showNewCust && (
+              <div className="new-cust-form">
+                <div style={{fontSize:12,fontWeight:700,color:'var(--text,#0A0A0E)',marginBottom:8}}>Nuevo cliente</div>
+                <input className="new-cust-input" placeholder="Nombre completo *" value={newCust.full_name} onChange={e => setNewCust(p => ({...p, full_name: e.target.value}))} />
+                <input className="new-cust-input" placeholder="Teléfono" value={newCust.phone} onChange={e => setNewCust(p => ({...p, phone: e.target.value}))} />
+                <input className="new-cust-input" placeholder="Email" value={newCust.email} onChange={e => setNewCust(p => ({...p, email: e.target.value}))} />
+                <div className="new-cust-btns">
+                  <button className="btn-cancel-sm" onClick={() => setShowNewCust(false)}>Cancelar</button>
+                  <button className="btn-create" disabled={savingCust || !newCust.full_name.trim()} onClick={createCustomer}>{savingCust ? 'Guardando…' : 'Crear cliente'}</button>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="search-wrap">
               <span className="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
@@ -739,6 +775,7 @@ export default function POSClient({
                 if (!selVar) return null
                 return (
                   <div key={p.id} className="prod-row">
+                    <div className="prod-av" style={{background:prodColor(p.name)}}>{prodInitials(p.name)}</div>
                     <div className="prod-row-info">
                       <div className="prod-row-name">{p.name}</div>
                       <div className="prod-row-meta">
@@ -768,23 +805,24 @@ export default function POSClient({
             <div className="cart-header">
               <div className="cart-hd-row">
                 <span className="cart-hd-title">Carrito</span>
-                {cart.length > 0 && <button className="btn-sm" style={{color:'#FF6B6B',borderColor:'rgba(255,107,107,0.25)',background:'rgba(255,107,107,0.10)'}} onClick={() => setCart([])}>Vaciar</button>}
+                <span className="cart-hd-count">{cart.length} {cart.length === 1 ? 'art.' : 'arts.'}</span>
               </div>
-              {(parkedSales.length > 0 || cart.length > 0) && (
-                <div className="cart-hd-acts">
-                  {parkedSales.length > 0 && (
-                    <button className="park-btn-sm" style={{borderColor:'rgba(202,255,58,0.30)',color:'#CAFF3A',background:'rgba(202,255,58,0.08)'}} onClick={() => setPosView('parked')}>
-                      {parkedSales.length} guardada{parkedSales.length > 1 ? 's' : ''}
-                    </button>
-                  )}
-                  {cart.length > 0 && (
-                    <button className="park-btn-sm" onClick={parkCurrentCart}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                      Guardar
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="cart-hd-acts">
+                {parkedSales.length > 0 && (
+                  <button className="park-btn-sm" style={{borderColor:'rgba(202,255,58,0.30)',color:'#CAFF3A',background:'rgba(202,255,58,0.08)'}} onClick={() => setPosView('parked')}>
+                    {parkedSales.length} guardada{parkedSales.length > 1 ? 's' : ''}
+                  </button>
+                )}
+                {cart.length > 0 && (
+                  <button className="park-btn-sm" onClick={parkCurrentCart}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Guardar
+                  </button>
+                )}
+                {cart.length > 0 && (
+                  <button className="park-btn-sm" style={{color:'#FF6B6B',borderColor:'rgba(255,107,107,0.25)',background:'rgba(255,107,107,0.08)',marginLeft:'auto'}} onClick={() => setCart([])}>Vaciar</button>
+                )}
+              </div>
             </div>
 
             <div className="cart-body">
@@ -812,14 +850,14 @@ export default function POSClient({
               ))}
             </div>
 
-            {cart.length > 0 && (
-              <div className="cart-footer">
-                <div className="total-row big"><span>Total</span><span>{fmt(cartTotal)}</span></div>
-                <button className="btn-primary" disabled={!customer} onClick={() => setShowPayment(true)} style={{marginTop:12}}>
-                  {!customer ? 'Selecciona un cliente primero' : 'Continuar con el pago →'}
-                </button>
-              </div>
-            )}
+            <div className="cart-footer">
+              <div className="total-row"><span>Subtotal</span><span>{cart.length > 0 ? fmt(cartTotal) : '$0'}</span></div>
+              <div className="total-row"><span>Descuento</span><span>—</span></div>
+              <div className="total-row big"><span>Total</span><span>{fmt(cartTotal)}</span></div>
+              <button className="btn-primary" disabled={!customer || cart.length === 0} onClick={() => setShowPayment(true)} style={{marginTop:12}}>
+                {cart.length === 0 ? 'Agrega productos' : !customer ? 'Elige un cliente para continuar' : 'Cobrar →'}
+              </button>
+            </div>
           </div>
           </div>{/* /pos-body-inner */}
         </div>
