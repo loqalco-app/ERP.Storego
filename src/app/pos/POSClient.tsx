@@ -357,9 +357,9 @@ export default function POSClient({
 
     /* ── SELLING ── */
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:#FFFFFF;padding-top:env(safe-area-inset-top,0px)}
-    @media(min-width:768px){.pos-wrap{margin-top:60px;height:calc(100dvh - 60px - 88px)}}
-    .pos-topbar{display:flex;align-items:center;gap:12px;padding:14px 18px 10px;flex-shrink:0;background:#FFFFFF}
-    @media(min-width:768px){.pos-topbar{padding:16px 40px 14px;border-bottom:1px solid rgba(0,0,0,0.07)}}
+    @media(min-width:768px){.pos-wrap{height:calc(100dvh - 60px - 88px)}}
+    .pos-topbar{display:flex;align-items:center;gap:12px;padding:10px 18px 8px;flex-shrink:0;background:#FFFFFF}
+    @media(min-width:768px){.pos-topbar{padding:10px 32px 10px;border-bottom:1px solid rgba(0,0,0,0.07)}}
     .pos-back-btn{width:36px;height:36px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pos-topbar-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px;flex:1}
     @media(min-width:768px){.pos-topbar-title{font-size:24px}}
@@ -371,7 +371,7 @@ export default function POSClient({
     .cust-chip-name{font-size:12px;font-weight:700;color:#0A0A0A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cust-chip-x{width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;padding:0;line-height:1;color:rgba(10,10,14,0.50)}
     .cust-chip-x:hover{background:rgba(220,38,38,0.12);color:#DC2626}
-    .cust-add-btn{display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:50px;border:1.5px dashed rgba(0,0,0,0.22);background:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.42);transition:background .15s;white-space:nowrap;margin-left:auto}
+    .cust-add-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.18);background:rgba(0,0,0,0.03);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.65);transition:all .15s;white-space:nowrap;margin-left:auto}
     .cust-add-btn:hover{background:rgba(0,0,0,0.04);border-style:solid}
     .cust-top-drop{position:absolute;top:calc(100% + 8px);right:0;min-width:260px;background:#FFFFFF;border:1.5px solid rgba(0,0,0,0.10);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,0.14);z-index:300;overflow:hidden;padding:8px}
     .cust-top-search{width:100%;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;font-size:13px;font-family:inherit;background:rgba(0,0,0,0.03);color:#0A0A0A;outline:none;margin-bottom:4px}
@@ -441,7 +441,7 @@ export default function POSClient({
     .cust-av{width:30px;height:30px;border-radius:50%;background:#0A0A0A;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#CAFF3A;flex-shrink:0}
     .cust-name{font-size:14px;font-weight:700;color:var(--text,#0A0A0E);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cust-info{font-size:11px;color:rgba(10,10,14,0.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .search-wrap{position:relative;margin-bottom:12px;flex-shrink:0}
+    .search-wrap{position:relative;margin-top:14px;margin-bottom:12px;flex-shrink:0}
     .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(10,10,14,0.35);pointer-events:none}
     .search-input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none;transition:border-color .15s}
     .search-input:focus{border-color:#CAFF3A}
@@ -453,7 +453,7 @@ export default function POSClient({
     .prod-row-meta{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow:hidden}
     .prod-row-var{font-size:12px;color:rgba(10,10,14,0.45);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .prod-row-stock{font-size:11px;color:rgba(10,10,14,0.32);font-weight:600;white-space:nowrap;flex-shrink:0}
-    .prod-row-price{font-size:14px;font-weight:800;color:#0A0A0A;white-space:nowrap;flex-shrink:0;min-width:60px;text-align:right}
+    .prod-row-price{font-size:17px;font-weight:900;color:#0A0A0A;white-space:nowrap;flex-shrink:0;min-width:68px;text-align:right;letter-spacing:-.3px}
     .prod-row-add{width:34px;height:34px;border-radius:50%;border:none;background:#0A0A0A;color:#CAFF3A;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);flex-shrink:0;line-height:1}
     .prod-var-sel{padding:2px 6px;border-radius:6px;border:1px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:11px;font-family:inherit;outline:none;color:var(--text,#0A0A0E);max-width:120px}
     .cart-header{padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0}
