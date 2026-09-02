@@ -371,8 +371,10 @@ export default function POSClient({
     .cust-chip-name{font-size:12px;font-weight:700;color:#0A0A0A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cust-chip-x{width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,0.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;padding:0;line-height:1;color:rgba(10,10,14,0.50)}
     .cust-chip-x:hover{background:rgba(220,38,38,0.12);color:#DC2626}
-    .cust-add-btn{display:flex;align-items:center;gap:5px;padding:7px 14px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.18);background:rgba(0,0,0,0.03);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.65);transition:all .15s;white-space:nowrap;margin-left:auto}
-    .cust-add-btn:hover{background:rgba(0,0,0,0.04);border-style:solid}
+    .cust-add-btn{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.05);border:1.5px solid rgba(0,0,0,0.10);border-radius:50px;padding:5px 12px 5px 5px;cursor:pointer;font-family:inherit;transition:background .15s;max-width:180px;white-space:nowrap;margin-left:auto}
+    .cust-add-btn:hover{background:rgba(0,0,0,0.09)}
+    .cust-add-icon{width:26px;height:26px;border-radius:50%;background:#0A0A0A;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#CAFF3A}
+    .cust-add-label{font-size:12px;font-weight:700;color:#0A0A0A}
     .cust-top-drop{position:absolute;top:calc(100% + 8px);right:0;min-width:260px;background:#FFFFFF;border:1.5px solid rgba(0,0,0,0.10);border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,0.14);z-index:300;overflow:hidden;padding:8px}
     .cust-top-search{width:100%;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;font-size:13px;font-family:inherit;background:rgba(0,0,0,0.03);color:#0A0A0A;outline:none;margin-bottom:4px}
     .cust-top-search:focus{border-color:#0A0A0A}
@@ -716,8 +718,10 @@ export default function POSClient({
             ) : (
               <>
                 <button className="cust-add-btn" onClick={() => setShowCustTopDrop(v => !v)}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
-                  + Cliente
+                  <div className="cust-add-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </div>
+                  <span className="cust-add-label">Agregar cliente</span>
                 </button>
                 {showCustTopDrop && (
                   <div className="cust-top-drop">
