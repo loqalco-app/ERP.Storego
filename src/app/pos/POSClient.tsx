@@ -364,7 +364,7 @@ export default function POSClient({
     .pos-topbar-title{font-size:22px;font-weight:800;color:#0A0A0E;letter-spacing:-.4px;flex:1}
     @media(min-width:768px){.pos-topbar-title{font-size:24px}}
     /* Customer chip in topbar */
-    .cust-chip-wrap{position:relative;margin-left:auto;flex-shrink:0}
+    .cust-chip-wrap{position:relative;margin-left:auto;flex-shrink:0;display:none}
     .cust-chip{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.05);border:1.5px solid rgba(0,0,0,0.09);border-radius:50px;padding:4px 8px 4px 4px;cursor:pointer;font-family:inherit;transition:background .15s;max-width:170px}
     .cust-chip:hover{background:rgba(0,0,0,0.08)}
     .cust-chip-av{width:26px;height:26px;border-radius:50%;background:#0A0A0A;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#CAFF3A;flex-shrink:0;letter-spacing:-.2px}
@@ -441,7 +441,24 @@ export default function POSClient({
     .cust-av{width:30px;height:30px;border-radius:50%;background:#0A0A0A;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#CAFF3A;flex-shrink:0}
     .cust-name{font-size:14px;font-weight:700;color:var(--text,#0A0A0E);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cust-info{font-size:11px;color:rgba(10,10,14,0.45);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .search-wrap{position:relative;margin-top:14px;margin-bottom:12px;flex-shrink:0}
+    /* Customer inline bar */
+    .cust-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;border:1.5px solid rgba(0,0,0,0.08);background:rgba(0,0,0,0.025);cursor:pointer;margin-top:12px;flex-shrink:0;transition:background .15s;position:relative}
+    .cust-bar:hover{background:rgba(0,0,0,0.05)}
+    .cust-bar-av{width:28px;height:28px;border-radius:50%;background:#0A0A0A;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#CAFF3A;flex-shrink:0;letter-spacing:-.2px}
+    .cust-bar-icon{width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:rgba(10,10,14,0.40)}
+    .cust-bar-text{flex:1;min-width:0}
+    .cust-bar-name{font-size:13px;font-weight:700;color:#0A0A0A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .cust-bar-hint{font-size:11px;font-weight:500;color:rgba(10,10,14,0.40)}
+    .cust-bar-x{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,0.07);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:none;cursor:pointer;color:rgba(10,10,14,0.40)}
+    .cust-bar-x:hover{background:rgba(220,38,38,0.10);color:#DC2626}
+    .cust-bar-drop{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#FFFFFF;border:1.5px solid rgba(0,0,0,0.10);border-radius:16px;box-shadow:0 12px 36px rgba(0,0,0,0.14);z-index:300;overflow:hidden;padding:8px}
+    .cust-bar-search{width:100%;padding:10px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;font-size:14px;font-family:inherit;background:rgba(0,0,0,0.03);color:#0A0A0A;outline:none;margin-bottom:4px}
+    .cust-bar-search:focus{border-color:#0A0A0A}
+    .cust-bar-opt{padding:9px 12px;font-size:13px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;gap:1px;border-radius:10px;color:#0A0A0A}
+    .cust-bar-opt:hover{background:rgba(0,0,0,0.04)}
+    .cust-bar-new{padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;color:rgba(10,10,14,0.50);border-radius:10px;border-top:1px solid rgba(0,0,0,0.06);margin-top:4px;display:flex;align-items:center;gap:6px}
+    .cust-bar-new:hover{background:rgba(0,0,0,0.04);color:#0A0A0A}
+    .search-wrap{position:relative;margin-top:10px;margin-bottom:12px;flex-shrink:0}
     .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(10,10,14,0.35);pointer-events:none}
     .search-input{width:100%;padding:10px 12px 10px 38px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:14px;font-weight:500;color:var(--text,#0A0A0E);font-family:inherit;outline:none;transition:border-color .15s}
     .search-input:focus{border-color:#CAFF3A}
@@ -762,6 +779,52 @@ export default function POSClient({
                 </div>
               </div>
             )}
+
+            {/* Customer inline bar — always visible in the content area */}
+            <div className="cust-bar" ref={custTopRef} onClick={() => !customer && setShowCustTopDrop(v => !v)}>
+              {customer ? (
+                <div className="cust-bar-av">
+                  {customer.full_name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+                </div>
+              ) : (
+                <div className="cust-bar-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
+                </div>
+              )}
+              <div className="cust-bar-text">
+                <div className="cust-bar-name">{customer ? customer.full_name : 'Agregar cliente'}</div>
+                {customer && (customer.phone || customer.email) && (
+                  <div className="cust-bar-hint">{[customer.phone, customer.email].filter(Boolean).join(' · ')}</div>
+                )}
+                {!customer && <div className="cust-bar-hint">Opcional — toca para buscar o crear</div>}
+              </div>
+              {customer && (
+                <button className="cust-bar-x" onClick={e => { e.stopPropagation(); setCustomer(null); setCustSearch('') }}>
+                  <svg width="8" height="8" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+                </button>
+              )}
+              {!customer && showCustTopDrop && (
+                <div className="cust-bar-drop" onClick={e => e.stopPropagation()}>
+                  <input
+                    className="cust-bar-search"
+                    placeholder="Buscar cliente…"
+                    value={custSearch}
+                    autoFocus
+                    onChange={e => setCustSearch(e.target.value)}
+                  />
+                  {filteredCusts.map(c => (
+                    <div key={c.id} className="cust-bar-opt" onClick={() => { setCustomer(c); setCustSearch(''); setShowCustTopDrop(false) }}>
+                      <span>{c.full_name}</span>
+                      <span style={{fontSize:11,color:'rgba(10,10,14,0.45)',fontWeight:500}}>{[c.phone,c.email].filter(Boolean).join(' · ')}</span>
+                    </div>
+                  ))}
+                  <div className="cust-bar-new" onClick={() => { setShowCustTopDrop(false); setShowNewCust(true) }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Nuevo cliente
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="search-wrap">
               <span className="search-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
