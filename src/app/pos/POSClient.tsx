@@ -360,13 +360,13 @@ export default function POSClient({
     @media(min-width:768px){.pos-topbar-title{font-size:26px}}
     .pos-body{display:flex;flex:1;overflow:hidden;min-height:0}
     /* mobile */
-    .pos-body-inner{display:flex;flex:1;overflow:hidden;min-height:0;width:100%}
-    .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 16px 12px}
+    .pos-body-inner{display:flex;flex:1;overflow:hidden;min-height:0;width:100%;background:#FFFFFF}
+    .pos-left{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 16px 12px;background:#FFFFFF}
     @media(max-width:767px){.pos-left{padding-bottom:calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 96px)}}
     /* desktop: left col scrollable, right panel fixed */
     @media(min-width:768px){
-      .pos-body{overflow:hidden}
-      .pos-body-inner{display:block;width:100%;height:100%;overflow-y:auto;padding-right:300px;box-sizing:border-box}
+      .pos-body{overflow:hidden;background:#FFFFFF}
+      .pos-body-inner{display:block;width:100%;height:100%;overflow-y:auto;padding-right:300px;box-sizing:border-box;background:#FFFFFF}
       .pos-left{padding:0 24px 24px;max-width:760px;margin:0 auto}
       .pos-right{
         position:fixed;top:60px;right:0;bottom:88px;width:300px;
@@ -388,7 +388,7 @@ export default function POSClient({
       .cart-fab-cta{font-size:13px;font-weight:700;color:rgba(255,255,255,0.80);white-space:nowrap}
     }
     .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:flex;flex-direction:column;justify-content:flex-end}
-    .cart-sheet{background:var(--bg,#ECEEF2);border-radius:28px 28px 0 0;display:flex;flex-direction:column;padding-bottom:max(env(safe-area-inset-bottom,0px),8px);transition:height 0.3s cubic-bezier(0.32,0.72,0,1),transform 0.3s cubic-bezier(0.32,0.72,0,1)}
+    .cart-sheet{background:#FFFFFF;border-radius:28px 28px 0 0;display:flex;flex-direction:column;padding-bottom:max(env(safe-area-inset-bottom,0px),8px);transition:height 0.3s cubic-bezier(0.32,0.72,0,1),transform 0.3s cubic-bezier(0.32,0.72,0,1)}
     .cart-sheet.peek{height:58dvh}
     .cart-sheet.full{height:92dvh}
     .sheet-handle-area{padding:12px 0 4px;cursor:grab;touch-action:none;flex-shrink:0}
@@ -438,20 +438,34 @@ export default function POSClient({
     .cart-hd-acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
     .cart-body{flex:1;overflow-y:auto;padding:8px 12px}
     .cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.22);font-size:13px;font-weight:600;gap:8px}
-    .cart-item{padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
-    .cart-item-name{font-size:13px;font-weight:700;color:rgba(255,255,255,0.90);margin-bottom:2px}
-    .cart-item-sub{font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:6px}
+    /* cart items — default: light (used in mobile sheet) */
+    .cart-item{padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.06)}
+    .cart-item-name{font-size:13px;font-weight:700;color:#0A0A0A;margin-bottom:2px}
+    .cart-item-sub{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px}
     .cart-item-row{display:flex;align-items:center;gap:8px}
     .qty-ctrl{display:flex;align-items:center;gap:6px}
-    .qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);background:none;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.80);line-height:1}
-    .qty-btn:hover{background:rgba(255,255,255,0.08)}
-    .qty-num{font-size:14px;font-weight:700;min-width:20px;text-align:center;color:rgba(255,255,255,0.90)}
-    .item-price{margin-left:auto;font-size:13px;font-weight:700;color:#CAFF3A}
-    .rm-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.22);padding:2px;line-height:1}
-    .rm-btn:hover{color:#FF6B6B}
-    .cart-footer{border-top:1px solid rgba(255,255,255,0.07);padding:12px 16px;flex-shrink:0}
-    .total-row{display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,0.40);margin-bottom:4px}
-    .total-row.big{font-size:20px;font-weight:800;color:#CAFF3A;margin-top:4px;margin-bottom:0}
+    .qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.12);background:none;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#0A0A0A;line-height:1}
+    .qty-btn:hover{background:rgba(0,0,0,0.06)}
+    .qty-num{font-size:14px;font-weight:700;min-width:20px;text-align:center;color:#0A0A0A}
+    .item-price{margin-left:auto;font-size:13px;font-weight:700;color:#0A0A0A}
+    .rm-btn{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.28);padding:2px;line-height:1}
+    .rm-btn:hover{color:#DC2626}
+    .cart-footer{border-top:1px solid rgba(0,0,0,0.08);padding:12px 16px;flex-shrink:0}
+    .total-row{display:flex;justify-content:space-between;font-size:13px;color:rgba(10,10,14,0.50);margin-bottom:4px}
+    .total-row.big{font-size:20px;font-weight:800;color:#0A0A0A;margin-top:4px;margin-bottom:0}
+    /* cart items — dark panel overrides (desktop .pos-right) */
+    .pos-right .cart-item{border-bottom-color:rgba(255,255,255,0.06)}
+    .pos-right .cart-item-name{color:rgba(255,255,255,0.90)}
+    .pos-right .cart-item-sub{color:rgba(255,255,255,0.35)}
+    .pos-right .qty-btn{border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.80)}
+    .pos-right .qty-btn:hover{background:rgba(255,255,255,0.08)}
+    .pos-right .qty-num{color:rgba(255,255,255,0.90)}
+    .pos-right .item-price{color:#CAFF3A}
+    .pos-right .rm-btn{color:rgba(255,255,255,0.22)}
+    .pos-right .rm-btn:hover{color:#FF6B6B}
+    .pos-right .cart-footer{border-top-color:rgba(255,255,255,0.07)}
+    .pos-right .total-row{color:rgba(255,255,255,0.40)}
+    .pos-right .total-row.big{color:#CAFF3A}
     .park-btn-sm{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:50px;border:1.5px solid rgba(255,255,255,0.15);background:none;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(255,255,255,0.55);transition:background .15s}
     .park-btn-sm:hover{background:rgba(255,255,255,0.07)}
     .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;display:flex;align-items:flex-end;justify-content:center}
