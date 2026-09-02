@@ -231,7 +231,7 @@ export default function POSClient({
   async function createOrder() {
     if (!customer || cart.length === 0) return
     setSaving(true)
-    const { data: order, error: oErr } = await supabase.from('orders').insert({ organization_id: orgId, customer_id: customer.id, folio: '', status: isApartado ? 'apartado' : (remaining <= 0 ? 'pagado' : 'apartado'), subtotal: cartTotal, discount_amount: 0, total: cartTotal, created_by: userId }).select('id, folio').single()
+    const { data: order, error: oErr } = await supabase.from('orders').insert({ organization_id: orgId, customer_id: customer.id, folio: '', status: isApartado ? 'apartado' : (remaining <= 0 ? 'pagado' : 'apartado'), subtotal: cartTotal, discount_amount: 0, total: cartTotal, created_by: userId, source: 'pos' }).select('id, folio').single()
     if (oErr || !order) { setSaving(false); return }
     await supabase.from('order_items').insert(cart.map(i => ({ order_id: order.id, organization_id: orgId, product_id: i.productId, variant_id: i.variantId, product_name: i.productName, variant_name: i.variantName, sku: i.sku, quantity: i.quantity, unit_price: i.unitPrice, cost_price: i.costPrice, discount_amount: i.discount, subtotal: i.unitPrice * i.quantity - i.discount })))
     const vp = payments.filter(p => parseFloat(p.amount) > 0)

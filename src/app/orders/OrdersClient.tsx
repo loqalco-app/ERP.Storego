@@ -9,6 +9,7 @@ interface Customer { id: string; full_name: string; email: string | null; phone:
 
 interface OrderSummary {
   id: string; folio: string; status: string; total: number; created_at: string
+  source?: string; created_by?: string
   customers: Customer | null
   order_payments: OrderPayment[]
 }
@@ -36,7 +37,13 @@ const fmt = (n: number) => Number(n).toLocaleString('es-MX', { style: 'currency'
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 const fmtShort = (iso: string) => new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 
-export default function OrdersClient({ orders: initialOrders, orgId }: { orders: OrderSummary[]; orgId: string }) {
+const SOURCE_LABEL: Record<string, { label: string; color: string; bg: string }> = {
+  pos:       { label: 'POS',        color: '#1D4ED8', bg: 'rgba(37,99,235,0.09)' },
+  ecommerce: { label: 'Tienda web', color: '#7C3AED', bg: 'rgba(124,58,237,0.09)' },
+  manual:    { label: 'Manual',     color: '#6B7280', bg: 'rgba(107,114,128,0.09)' },
+}
+
+export default function OrdersClient({ orders: initialOrders, orgId, sellersMap = {} }: { orders: OrderSummary[]; orgId: string; sellersMap?: Record<string, string> }) {
   const supabase = createClient()
   const [orders, setOrders] = useState<OrderSummary[]>(initialOrders)
   const [selected, setSelected] = useState<OrderDetail | null>(null)
@@ -186,12 +193,17 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
             const st = STATUS[o.status] ?? { label: o.status, color: '#64748B', bg: 'rgba(100,116,139,0.10)' }
             const paid = o.order_payments.reduce((s, p) => s + Number(p.amount), 0)
             const pct = Math.min(100, Math.round(paid / Math.max(1, Number(o.total)) * 100))
+            const src = SOURCE_LABEL[o.source ?? 'pos'] ?? SOURCE_LABEL.pos
+            const sellerName = o.created_by ? (sellersMap[o.created_by] ?? '') : ''
             return (
               <div key={o.id} className="ord-row" onClick={() => openOrder(o)}>
                 <div className="ord-folio">{o.folio}</div>
                 <div className="ord-info">
                   <div className="ord-cust">{o.customers?.full_name ?? 'Sin cliente'}</div>
-                  <div className="ord-date">{fmtDate(o.created_at)}</div>
+                  <div className="ord-date">
+                    {fmtDate(o.created_at)}
+                    {sellerName && <span style={{marginLeft:6,opacity:.55}}>· {sellerName}</span>}
+                  </div>
                   {o.status === 'apartado' && (
                     <div style={{marginTop:4,display:'flex',alignItems:'center',gap:6}}>
                       <div style={{flex:1,height:4,borderRadius:2,background:'rgba(0,0,0,0.08)',overflow:'hidden'}}>
@@ -203,7 +215,10 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
                 </div>
                 <div className="ord-right">
                   <div className="ord-total">{fmt(o.total)}</div>
-                  <span className="badge" style={{ color: st.color, background: st.bg }}>{st.label}</span>
+                  <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                    <span className="badge" style={{ color: src.color, background: src.bg }}>{src.label}</span>
+                    <span className="badge" style={{ color: st.color, background: st.bg }}>{st.label}</span>
+                  </div>
                 </div>
               </div>
             )
@@ -231,6 +246,8 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
       {/* DETAIL SHEET — cargado bajo demanda */}
       {selected && !loadingDetail && (() => {
         const st = STATUS[selected.status] ?? { label: selected.status, color: '#64748B', bg: 'rgba(100,116,139,0.10)' }
+        const src = SOURCE_LABEL[selected.source ?? 'pos'] ?? SOURCE_LABEL.pos
+        const sellerName = selected.created_by ? (sellersMap[selected.created_by] ?? '') : ''
         const totalPaid = selected.order_payments.reduce((s, p) => s + Number(p.amount), 0)
         const pending = Math.max(0, Number(selected.total) - totalPaid)
         const pct = Math.min(100, Math.round(totalPaid / Math.max(1, Number(selected.total)) * 100))
@@ -247,10 +264,22 @@ export default function OrdersClient({ orders: initialOrders, orgId }: { orders:
                   <div className="detail-folio">{selected.folio}</div>
                   <div style={{ fontSize: 12, color: 'rgba(10,10,14,0.40)', marginTop: 2 }}>{fmtDate(selected.created_at)}</div>
                 </div>
-                <span className="badge" style={{ color: st.color, background: st.bg, fontSize: 12, padding: '5px 12px' }}>{st.label}</span>
+                <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
+                  <span className="badge" style={{ color: st.color, background: st.bg, fontSize: 12, padding: '5px 12px' }}>{st.label}</span>
+                  <span className="badge" style={{ color: src.color, background: src.bg, fontSize: 10, padding: '3px 9px' }}>{src.label}</span>
+                </div>
               </div>
 
               <div className="detail-body">
+                {/* Vendedor / origen */}
+                <div className="d-section">
+                  <div className="d-title">Origen de la venta</div>
+                  <div className="d-box">
+                    <div className="d-row"><span className="d-label">Canal</span><span className="d-val" style={{color:src.color}}>{src.label}</span></div>
+                    {sellerName && <div className="d-row"><span className="d-label">Vendedor</span><span className="d-val">{sellerName}</span></div>}
+                  </div>
+                </div>
+
                 {/* Cliente */}
                 <div className="d-section">
                   <div className="d-title">Cliente</div>
