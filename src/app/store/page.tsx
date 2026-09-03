@@ -20,19 +20,18 @@ export default async function StorePage() {
 
   const [{ data: categories }, { data: products }] = await Promise.all([
     supabase
-      .from('store_categories')
-      .select('id, parent_id, name, slug, sort_order, is_visible, description')
+      .from('categories')
+      .select('id, parent_id, name, slug, web_sort_order, is_web_visible, description')
       .eq('organization_id', orgId)
-      .order('sort_order'),
+      .order('web_sort_order'),
     supabase
       .from('products')
       .select(`
-        id, name, slug, is_published,
+        id, name, slug, is_published, category_id,
         product_images(url, is_primary),
         store_product_categories(category_id)
       `)
       .eq('organization_id', orgId)
-      .eq('is_published', true)
       .order('name'),
   ])
 
