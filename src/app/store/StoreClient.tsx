@@ -358,13 +358,23 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
             <div className="field-lbl">Slug (URL) *</div>
             <input className="field-input" type="text" value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="mujer, calzado, tops..." />
 
-            <div className="field-lbl">Categoría padre</div>
-            <select className="field-select" value={form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}>
-              <option value="">— Ninguna (categoría principal) —</option>
-              {cats.filter(c => !c.parent_id && c.id !== editing?.id).map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+            <div className="toggle-row" style={{ marginBottom: 8 }}>
+              <span className="toggle-label">Es subcategoría</span>
+              <label className="tog-wrap">
+                <input type="checkbox" checked={!!form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.checked ? (cats.find(c => !c.parent_id && c.id !== editing?.id)?.id ?? '') : '' }))} />
+                <span className="tog-track" /><span className="tog-thumb" />
+              </label>
+            </div>
+            {form.parent_id !== '' && (
+              <>
+                <div className="field-lbl">Categoría principal</div>
+                <select className="field-select" value={form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}>
+                  {cats.filter(c => !c.parent_id && c.id !== editing?.id).map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </>
+            )}
 
             <div className="toggle-row">
               <span className="toggle-label">Visible en la tienda</span>
