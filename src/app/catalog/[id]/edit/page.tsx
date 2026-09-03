@@ -21,8 +21,6 @@ export default async function EditCatalogProductPage({ params }: { params: Promi
 
   if (!product) notFound()
 
-  const variants = (product.product_variants as unknown as Array<{ id: string; name: string; sku: string; sale_price: number; cost_price: number }>)
-
   return (
     <CatalogProductForm
       mode="edit"
@@ -32,7 +30,7 @@ export default async function EditCatalogProductPage({ params }: { params: Promi
       orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'NORTHÉA'}
       categories={categories ?? []}
       brands={brands ?? []}
-      initial={{ name: product.name, description: product.description ?? '', status: product.status, condition: product.condition, categoryId: product.category_id ?? '', brandId: product.brand_id ?? '', variants: variants.map(v => ({ name: v.name, sku: v.sku, sale_price: String(v.sale_price), cost_price: String(v.cost_price), stock: '' })) }}
+      initial={{ name: product.name, description: product.description ?? '', status: product.status, condition: product.condition, categoryId: product.category_id ?? '', brandId: product.brand_id ?? '' }}
     />
   )
 }
