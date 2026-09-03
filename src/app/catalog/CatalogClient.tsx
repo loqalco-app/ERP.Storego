@@ -59,6 +59,7 @@ export default function CatalogClient({ products: initProducts, categories: init
     setProducts(ps => ps.map(p => p.id === productId ? { ...p, is_published: newValue } : p))
     if (viewProduct?.id === productId) setViewProduct(vp => vp ? { ...vp, is_published: newValue } : vp)
     await createClient().from('products').update({ is_published: newValue }).eq('id', productId)
+    fetch('/api/store/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId }) }).catch(() => {})
     setPublishing(p => { const n = { ...p }; delete n[productId]; return n })
   }
 

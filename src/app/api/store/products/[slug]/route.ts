@@ -21,9 +21,10 @@ export async function GET(
   const { data: product, error } = await client
     .from('products')
     .select(`
-      id, name, slug, description, created_at,
+      id, name, slug, description, created_at, category_id,
       product_variants(id, name, sku, sale_price, status),
-      product_images(url, is_primary, sort_order, alt_text)
+      product_images(url, is_primary, sort_order, alt_text),
+      store_product_categories(category_id)
     `)
     .eq('organization_id', orgId)
     .eq('slug', slug)
@@ -49,8 +50,17 @@ export async function GET(
     in_stock: (stockMap[v.id] ?? 0) > 0,
   }))
 
+  const extraCatIds = (product.store_product_categories as { category_id: string }[] ?? []).map(a => a.category_id)
+  const categoryIds = Array.from(new Set([product.category_id, ...extraCatIds].filter(Boolean))) as string[]
+
+  const { data: categories } = categoryIds.length
+    ? await client.from('categories').select('id, parent_id, name, slug').in('id', categoryIds)
+    : { data: [] as { id: string; parent_id: string | null; name: string; slug: string }[] }
+
+  const { store_product_categories: _omit, ...productRest } = product
+
   return NextResponse.json(
-    { product: { ...product, product_variants: variants } },
+    { product: { ...productRest, product_variants: variants, categories: categories ?? [] } },
     {
       headers: {
         'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120',
