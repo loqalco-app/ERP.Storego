@@ -179,6 +179,12 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         .cat-assign-chip { padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 700; cursor: pointer; border: 1.5px solid rgba(0,0,0,0.10); background: transparent; color: rgba(26,26,32,0.45); font-family: inherit; transition: all 0.12s; }
         .cat-assign-chip.on { background: #1A1A20; color: #CAFF3A; border-color: #1A1A20; }
         .cat-assign-chip:disabled { opacity: 0.4; cursor: not-allowed; }
+        .cat-add-btn { padding: 7px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid #1A1A20; background: #1A1A20; color: #CAFF3A; font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: opacity 0.12s; }
+        .cat-add-btn:hover { opacity: 0.8; }
+        .cat-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .cat-remove-btn { padding: 7px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid rgba(220,38,38,0.25); background: rgba(220,38,38,0.06); color: #DC2626; font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: opacity 0.12s; }
+        .cat-remove-btn:hover { opacity: 0.7; }
+        .cat-remove-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
         /* Modal */
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
@@ -292,51 +298,119 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
             {/* ── PRODUCTOS TAB ── */}
             {tab === 'productos' && (
               <>
-                <div className="filter-row">
-                  <button className={`filter-chip${catFilter === 'all' ? ' active' : ''}`} onClick={() => setCatFilter('all')}>Todos</button>
-                  <button className={`filter-chip${catFilter === 'none' ? ' active' : ''}`} onClick={() => setCatFilter('none')}>Sin categoría</button>
-                  {cats.filter(c => !c.parent_id).map(c => (
-                    <button key={c.id} className={`filter-chip${catFilter === c.id ? ' active' : ''}`} onClick={() => setCatFilter(c.id)}>{c.name}</button>
-                  ))}
-                </div>
-                <div className="count-label" style={{ marginBottom: 10 }}>{filteredProducts.length} producto{filteredProducts.length !== 1 ? 's' : ''}</div>
-                <div className="card">
-                  {filteredProducts.length === 0 ? (
-                    <div className="empty">Sin productos en esta categoría</div>
-                  ) : filteredProducts.map(p => {
-                    const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
-                    const assigned = new Set(p.store_product_categories.map(a => a.category_id))
-                    return (
-                      <div key={p.id} className="prod-row">
-                        {thumb
-                          ? <img className="prod-thumb" src={thumb} alt={p.name} />
-                          : <div className="prod-thumb" />
-                        }
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div className="row-name" style={{ marginBottom: 6 }}>{p.name}</div>
-                          <div className="cat-chips-wrap">
-                            {cats.map(cat => {
-                              const isOn = assigned.has(cat.id)
-                              const key = `${p.id}-${cat.id}`
-                              const busy = assigning[key]
-                              return (
-                                <button
-                                  key={cat.id}
-                                  className={`cat-assign-chip${isOn ? ' on' : ''}`}
-                                  disabled={busy}
-                                  onClick={() => toggleProductCategory(p.id, cat.id, isOn)}
-                                  style={{ paddingLeft: cat.parent_id ? 8 : undefined }}
-                                >
-                                  {cat.parent_id ? '└ ' : ''}{cat.name}
-                                </button>
-                              )
-                            })}
-                          </div>
+                {cats.length === 0 ? (
+                  <div className="card"><div className="empty">Primero crea categorías en la tab de Categorías</div></div>
+                ) : (
+                  <>
+                    {/* Selector de categoría activa */}
+                    <div className="filter-row">
+                      <button className={`filter-chip${catFilter === 'all' ? ' active' : ''}`} onClick={() => setCatFilter('all')}>Todos sin categoría</button>
+                      {cats.map(c => (
+                        <button key={c.id} className={`filter-chip${catFilter === c.id ? ' active' : ''}`} onClick={() => setCatFilter(c.id)}>
+                          {c.parent_id ? '└ ' : ''}{c.name}
+                        </button>
+                      ))}
+                    </div>
+
+                    {catFilter === 'all' ? (
+                      /* Vista: todos los productos sin categoría */
+                      <>
+                        <div className="count-label" style={{ marginBottom: 10 }}>
+                          {products.filter(p => p.store_product_categories.length === 0).length} productos sin categoría
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                        <div className="card">
+                          {products.filter(p => p.store_product_categories.length === 0).length === 0 ? (
+                            <div className="empty">Todos los productos tienen categoría asignada</div>
+                          ) : products.filter(p => p.store_product_categories.length === 0).map(p => {
+                            const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
+                            return (
+                              <div key={p.id} className="prod-row">
+                                {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div className="row-name">{p.name}</div>
+                                  <div className="row-sub">Sin categoría</div>
+                                </div>
+                                <div className="cat-chips-wrap" style={{ flex: 'none' }}>
+                                  {cats.filter(c => !c.parent_id).map(cat => (
+                                    <button key={cat.id} className="cat-add-btn" disabled={!!assigning[`${p.id}-${cat.id}`]}
+                                      onClick={() => toggleProductCategory(p.id, cat.id, false)}>
+                                      + {cat.name}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      /* Vista: productos de la categoría seleccionada */
+                      (() => {
+                        const activeCat = cats.find(c => c.id === catFilter)!
+                        const inCat = products.filter(p => p.store_product_categories.some(a => a.category_id === catFilter))
+                        const notInCat = products.filter(p => !p.store_product_categories.some(a => a.category_id === catFilter))
+                        return (
+                          <>
+                            <div style={{ marginBottom: 16 }}>
+                              <div className="count-label" style={{ marginBottom: 12 }}>
+                                {inCat.length} producto{inCat.length !== 1 ? 's' : ''} en <strong>{activeCat.name}</strong>
+                              </div>
+                              <div className="card">
+                                {inCat.length === 0 ? (
+                                  <div className="empty">Aún no hay productos — agrega uno abajo</div>
+                                ) : inCat.map(p => {
+                                  const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
+                                  const busy = !!assigning[`${p.id}-${catFilter}`]
+                                  return (
+                                    <div key={p.id} className="prod-row">
+                                      {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div className="row-name">{p.name}</div>
+                                      </div>
+                                      <button className="cat-remove-btn" disabled={busy}
+                                        onClick={() => toggleProductCategory(p.id, catFilter, true)}>
+                                        {busy ? '...' : 'Quitar'}
+                                      </button>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+
+                            {notInCat.length > 0 && (
+                              <>
+                                <div className="count-label" style={{ marginBottom: 8 }}>Agregar a <strong>{activeCat.name}</strong></div>
+                                <div className="card">
+                                  {notInCat.map(p => {
+                                    const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
+                                    const busy = !!assigning[`${p.id}-${catFilter}`]
+                                    return (
+                                      <div key={p.id} className="prod-row">
+                                        {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                          <div className="row-name">{p.name}</div>
+                                          {p.store_product_categories.length > 0 && (
+                                            <div className="row-sub">
+                                              Ya en: {p.store_product_categories.map(a => cats.find(c => c.id === a.category_id)?.name).filter(Boolean).join(', ')}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <button className="cat-add-btn" disabled={busy}
+                                          onClick={() => toggleProductCategory(p.id, catFilter, false)}>
+                                          {busy ? '...' : '+ Agregar'}
+                                        </button>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )
+                      })()
+                    )}
+                  </>
+                )}
               </>
             )}
           </div>
@@ -358,16 +432,10 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
             <div className="field-lbl">Slug (URL) *</div>
             <input className="field-input" type="text" value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="mujer, calzado, tops..." />
 
-            <div className="toggle-row" style={{ marginBottom: 8 }}>
-              <span className="toggle-label">Es subcategoría</span>
-              <label className="tog-wrap">
-                <input type="checkbox" checked={!!form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.checked ? (cats.find(c => !c.parent_id && c.id !== editing?.id)?.id ?? '') : '' }))} />
-                <span className="tog-track" /><span className="tog-thumb" />
-              </label>
-            </div>
-            {form.parent_id !== '' && (
+            {/* Solo al editar una subcategoría se muestra de qué categoría depende */}
+            {modal === 'edit' && editing?.parent_id && (
               <>
-                <div className="field-lbl">Categoría principal</div>
+                <div className="field-lbl">Subcategoría de</div>
                 <select className="field-select" value={form.parent_id} onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}>
                   {cats.filter(c => !c.parent_id && c.id !== editing?.id).map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
