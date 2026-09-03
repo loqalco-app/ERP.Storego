@@ -37,6 +37,10 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
   const [assigning, setAssigning] = useState<Record<string, boolean>>({})
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
 
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<string | null>(null)
+  const [prods, setProds] = useState(initP)
+
   function openNew(parentId?: string) {
     setForm({ name: '', slug: '', parent_id: parentId ?? '', description: '', is_web_visible: true })
     setEditing(null); setModal('new'); setErr(null)
@@ -127,11 +131,26 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
     if (isAssigned) {
       await supabase.from('store_product_categories').delete().eq('product_id', productId).eq('category_id', categoryId)
     } else {
-      const count = products.find(p => p.id === productId)?.store_product_categories.length ?? 0
+      const count = prods.find(p => p.id === productId)?.store_product_categories.length ?? 0
       await supabase.from('store_product_categories').insert({ product_id: productId, category_id: categoryId, sort_order: count })
     }
     setAssigning(a => { const n = { ...a }; delete n[key]; return n })
     window.location.reload()
+  }
+
+  async function dropProduct(catId: string) {
+    if (!draggedId) return
+    setDropTarget(null)
+    const supabase = createClient()
+    await supabase.from('products').update({ category_id: catId }).eq('id', draggedId)
+    setProds(ps => ps.map(p => p.id === draggedId ? { ...p, category_id: catId } : p))
+    setDraggedId(null)
+  }
+
+  async function removeFromCat(productId: string) {
+    const supabase = createClient()
+    await supabase.from('products').update({ category_id: null }).eq('id', productId)
+    setProds(ps => ps.map(p => p.id === productId ? { ...p, category_id: null } : p))
   }
 
   const roots = cats.filter(c => !c.parent_id).sort((a, b) => a.web_sort_order - b.web_sort_order)
@@ -232,6 +251,30 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         .btn-save   { flex: 2; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(145deg,#1D4ED8,#2563EB); font-size: 15px; font-weight: 700; color: white; cursor: pointer; font-family: inherit; }
         .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
         .info-banner { background: rgba(29,78,216,0.06); border: 1px solid rgba(29,78,216,0.15); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1D4ED8; font-weight: 500; line-height: 1.5; }
+
+        /* ── Drag & Drop layout ── */
+        .dnd-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media(max-width:900px){ .dnd-layout { grid-template-columns: 1fr; } }
+        .dnd-col-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(26,26,32,0.35); margin-bottom: 4px; }
+        .dnd-hint { font-size: 12px; color: rgba(26,26,32,0.38); margin-bottom: 12px; }
+        .dnd-cat-zone { background: #ECEEF2; border-radius: 18px; padding: 14px; margin-bottom: 10px; box-shadow: 5px 5px 15px rgba(0,0,0,0.07),-3px -3px 9px rgba(255,255,255,0.90); }
+        .dnd-cat-hdr { font-size: 14px; font-weight: 800; color: #1A1A20; margin-bottom: 10px; }
+        .dnd-subcat-zone { margin-top: 8px; padding: 10px 12px; background: rgba(0,0,0,0.03); border-radius: 13px; }
+        .dnd-subcat-hdr { font-size: 12px; font-weight: 700; color: rgba(26,26,32,0.55); margin-bottom: 8px; }
+        .dnd-assigned-prod { display: flex; align-items: center; gap: 8px; padding: 7px 8px; background: rgba(255,255,255,0.60); border-radius: 10px; margin-bottom: 5px; }
+        .dnd-thumb { width: 32px; height: 32px; border-radius: 7px; object-fit: cover; background: rgba(0,0,0,0.07); flex-shrink: 0; }
+        .dnd-prod-name { font-size: 12px; font-weight: 600; color: #1A1A20; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dnd-rm { background: none; border: none; cursor: pointer; color: rgba(26,26,32,0.30); font-size: 16px; padding: 0 2px; line-height: 1; flex-shrink: 0; }
+        .dnd-rm:hover { color: #DC2626; }
+        .dnd-drop-zone { border: 2px dashed rgba(0,0,0,0.12); border-radius: 10px; padding: 10px; text-align: center; font-size: 12px; font-weight: 600; color: rgba(26,26,32,0.30); transition: all 0.15s; cursor: default; margin-top: 6px; }
+        .dnd-drop-zone.over { border-color: #2563EB; background: rgba(29,78,216,0.06); color: #2563EB; }
+        .dnd-prod-card { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #ECEEF2; border-radius: 16px; margin-bottom: 8px; box-shadow: 4px 4px 12px rgba(0,0,0,0.07),-3px -3px 8px rgba(255,255,255,0.90); cursor: grab; transition: opacity 0.15s, box-shadow 0.15s; user-select: none; }
+        .dnd-prod-card:hover { box-shadow: 6px 6px 18px rgba(0,0,0,0.10),-4px -4px 12px rgba(255,255,255,0.95); }
+        .dnd-prod-card.dragging { opacity: 0.45; cursor: grabbing; }
+        .dnd-drag-handle { font-size: 14px; color: rgba(26,26,32,0.20); flex-shrink: 0; letter-spacing: -2px; }
+        .dnd-prod-thumb { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; background: rgba(0,0,0,0.07); flex-shrink: 0; }
+        .dnd-cat-badge { font-size: 11px; font-weight: 600; color: #059669; margin-top: 2px; }
+        .dnd-no-cat { font-size: 11px; color: rgba(26,26,32,0.30); font-weight: 500; margin-top: 2px; }
       `}</style>
 
       <div className="shell">
@@ -315,99 +358,106 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
 
             {/* ── PRODUCTOS TAB ── */}
             {tab === 'productos' && (
-              <>
-                <div className="info-banner">
-                  La categoría de cada producto se asigna desde <strong>Stock → producto → Categoría</strong>. Aquí puedes añadirlos a categorías adicionales de la tienda.
-                </div>
+              cats.length === 0
+                ? <div className="card"><div className="empty">Primero crea categorías en la tab Categorías</div></div>
+                : <div className="dnd-layout">
 
-                {cats.length === 0 ? (
-                  <div className="card"><div className="empty">Primero crea categorías en la tab Categorías</div></div>
-                ) : (
-                  <>
-                    <div className="filter-row">
-                      <button className={`filter-chip${catFilter === 'none' ? ' active' : ''}`} onClick={() => setCatFilter('none')}>Sin categoría</button>
-                      {cats.map(c => (
-                        <button key={c.id} className={`filter-chip${catFilter === c.id ? ' active' : ''}`} onClick={() => setCatFilter(c.id)}>
-                          {c.parent_id ? '└ ' : ''}{c.name}
-                        </button>
-                      ))}
-                    </div>
+                    {/* LEFT: Category drop zones */}
+                    <div className="dnd-left">
+                      <div className="dnd-col-lbl">Categorías</div>
+                      <div className="dnd-hint">Arrastra productos aquí para asignarlos</div>
+                      {roots.map(root => {
+                        const children = getChildren(root.id)
+                        const rootProds = prods.filter(p => p.category_id === root.id)
+                        const isOver = dropTarget === root.id
+                        return (
+                          <div key={root.id} className="dnd-cat-zone">
+                            <div className="dnd-cat-hdr">{root.name}</div>
 
-                    {catFilter === 'none' ? (
-                      uncategorized.length === 0
-                        ? <div className="card"><div className="empty">Todos los productos tienen categoría asignada</div></div>
-                        : <div className="prod-grid">
-                            {uncategorized.map(p => {
+                            {rootProds.map(p => {
                               const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
                               return (
-                                <div key={p.id} className="prod-row">
-                                  {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div className="row-name">{p.name}</div>
-                                    <div className="row-sub">Asigna la categoría desde Stock</div>
+                                <div key={p.id} className="dnd-assigned-prod">
+                                  {thumb ? <img className="dnd-thumb" src={thumb} alt="" /> : <div className="dnd-thumb" />}
+                                  <div className="dnd-prod-name" style={{ flex: 1, minWidth: 0 }}>{p.name}</div>
+                                  <button className="dnd-rm" onClick={() => removeFromCat(p.id)} title="Quitar de categoría">×</button>
+                                </div>
+                              )
+                            })}
+
+                            <div
+                              className={`dnd-drop-zone${isOver ? ' over' : ''}`}
+                              onDragOver={e => { e.preventDefault(); setDropTarget(root.id) }}
+                              onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null) }}
+                              onDrop={() => dropProduct(root.id)}
+                            >
+                              {isOver ? '◎  Suelta aquí' : '+ Arrastra producto aquí'}
+                            </div>
+
+                            {children.map(sub => {
+                              const subProds = prods.filter(p => p.category_id === sub.id)
+                              const isOverSub = dropTarget === sub.id
+                              return (
+                                <div key={sub.id} className="dnd-subcat-zone">
+                                  <div className="dnd-subcat-hdr">↳ {sub.name}</div>
+                                  {subProds.map(p => {
+                                    const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
+                                    return (
+                                      <div key={p.id} className="dnd-assigned-prod">
+                                        {thumb ? <img className="dnd-thumb" src={thumb} alt="" /> : <div className="dnd-thumb" />}
+                                        <div className="dnd-prod-name" style={{ flex: 1, minWidth: 0 }}>{p.name}</div>
+                                        <button className="dnd-rm" onClick={() => removeFromCat(p.id)}>×</button>
+                                      </div>
+                                    )
+                                  })}
+                                  <div
+                                    className={`dnd-drop-zone${isOverSub ? ' over' : ''}`}
+                                    onDragOver={e => { e.preventDefault(); setDropTarget(sub.id) }}
+                                    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null) }}
+                                    onDrop={() => dropProduct(sub.id)}
+                                  >
+                                    {isOverSub ? '◎  Suelta aquí' : '+ Arrastra aquí'}
                                   </div>
                                 </div>
                               )
                             })}
                           </div>
-                    ) : (() => {
-                      const activeCat = cats.find(c => c.id === catFilter)!
-                      const inCat = getProductsInCat(catFilter)
-                      const notInCat = getProductsNotInCat(catFilter)
-                      return (
-                        <>
-                          <div className="section-title">{inCat.length} producto{inCat.length !== 1 ? 's' : ''} en {activeCat.name}</div>
-                          {inCat.length === 0
-                            ? <div className="card" style={{ marginBottom: 16 }}><div className="empty">Sin productos aún — agrega uno abajo</div></div>
-                            : <div className="prod-grid">
-                                {inCat.map(p => {
-                                  const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
-                                  const isPrimary = p.category_id === catFilter
-                                  const busy = !!assigning[`${p.id}-${catFilter}`]
-                                  return (
-                                    <div key={p.id} className="prod-row">
-                                      {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div className="row-name">{p.name}</div>
-                                      </div>
-                                      {isPrimary
-                                        ? <span className="primary-badge">Principal</span>
-                                        : <button className="cat-remove-btn" disabled={busy} onClick={() => toggleProductCategory(p.id, catFilter, true)}>{busy ? '...' : 'Quitar'}</button>
-                                      }
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                          }
+                        )
+                      })}
+                    </div>
 
-                          {notInCat.length > 0 && (
-                            <>
-                              <div className="section-title">Agregar a {activeCat.name}</div>
-                              <div className="prod-grid">
-                                {notInCat.map(p => {
-                                  const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
-                                  const busy = !!assigning[`${p.id}-${catFilter}`]
-                                  const currentCat = p.category_id ? cats.find(c => c.id === p.category_id)?.name : null
-                                  return (
-                                    <div key={p.id} className="prod-row">
-                                      {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div className="row-name">{p.name}</div>
-                                        {currentCat && <div className="row-sub">Cat. principal: {currentCat}</div>}
-                                      </div>
-                                      <button className="cat-add-btn" disabled={busy} onClick={() => toggleProductCategory(p.id, catFilter, false)}>{busy ? '...' : '+ Agregar'}</button>
-                                    </div>
-                                  )
-                                })}
+                    {/* RIGHT: Products pool */}
+                    <div className="dnd-right">
+                      <div className="dnd-col-lbl">Todos los productos</div>
+                      <div className="dnd-hint">Arrastra a una categoría de la izquierda</div>
+                      {prods.length === 0
+                        ? <div style={{ fontSize: 13, color: 'rgba(26,26,32,0.35)', marginTop: 16 }}>No hay productos aún — agrégalos desde Stock</div>
+                        : prods.map(p => {
+                            const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
+                            const cat = cats.find(c => c.id === p.category_id)
+                            const isDragging = draggedId === p.id
+                            return (
+                              <div
+                                key={p.id}
+                                className={`dnd-prod-card${isDragging ? ' dragging' : ''}`}
+                                draggable
+                                onDragStart={() => setDraggedId(p.id)}
+                                onDragEnd={() => { setDraggedId(null); setDropTarget(null) }}
+                              >
+                                <div className="dnd-drag-handle">⋮⋮</div>
+                                {thumb ? <img className="dnd-prod-thumb" src={thumb} alt="" /> : <div className="dnd-prod-thumb" />}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <div className="dnd-prod-name">{p.name}</div>
+                                  {cat && <div className="dnd-cat-badge">{cat.name}</div>}
+                                  {!cat && <div className="dnd-no-cat">Sin categoría</div>}
+                                </div>
                               </div>
-                            </>
-                          )}
-                        </>
-                      )
-                    })()}
-                  </>
-                )}
-              </>
+                            )
+                          })
+                      }
+                    </div>
+
+                  </div>
             )}
           </div>
         </main>

@@ -225,6 +225,15 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) { setErr('El nombre del producto es obligatorio.'); return }
+
+    const salePrice = parseFloat(globalPrice) || 0
+    const costPrice = parseFloat(globalCost)  || 0
+    if (!salePrice) { setErr('El precio de venta es obligatorio.'); return }
+
+    const hasColors = colorBlocks.length > 0
+    const hasVariants = hasColors ? variants.length > 0 : !!stdSku.trim()
+    if (!hasVariants) { setErr('Agrega al menos una variante con SKU.'); return }
+
     setSaving(true); setErr(null)
     const supabase = createClient()
 
@@ -238,11 +247,6 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
     } else if (pErr) { setSaving(false); setErr(pErr.message); return }
 
     const pid = product!.id
-    const hasColors = colorBlocks.length > 0
-
-    const salePrice = parseFloat(globalPrice) || 0
-    const costPrice = parseFloat(globalCost)  || 0
-    if (!salePrice) { setSaving(false); setErr('El precio de venta es obligatorio.'); return }
 
     const variantRows = hasColors
       ? variants.map(v => {
