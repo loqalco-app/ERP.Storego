@@ -164,6 +164,12 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         .card { background: #ECEEF2; border-radius: 24px; overflow: hidden; box-shadow: 6px 6px 18px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.95), inset 0 1px 0 rgba(255,255,255,0.7); margin-bottom: 16px; }
         .row { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-top: 1px solid rgba(0,0,0,0.05); }
         .row:first-child { border-top: none; }
+        /* Independent category cards */
+        .cat-grid { display: flex; flex-direction: column; gap: 10px; }
+        .cat-card { background: #ECEEF2; border-radius: 20px; box-shadow: 6px 6px 18px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.95), inset 0 1px 0 rgba(255,255,255,0.7); overflow: hidden; }
+        .cat-card-row { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
+        .sub-list { display: flex; flex-direction: column; gap: 6px; padding: 0 12px 12px; }
+        .sub-card { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: rgba(0,0,0,0.025); border-radius: 14px; }
         .row-name { font-size: 14px; font-weight: 700; color: #1A1A20; }
         .row-sub  { font-size: 12px; color: rgba(26,26,32,0.38); margin-top: 1px; }
         .slug-tag { font-size: 11px; font-weight: 600; background: rgba(0,0,0,0.05); border-radius: 6px; padding: 2px 7px; color: rgba(26,26,32,0.40); font-family: monospace; }
@@ -189,9 +195,9 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         .filter-chip { padding: 6px 14px; border-radius: 50px; border: 1.5px solid rgba(0,0,0,0.10); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; background: transparent; color: rgba(26,26,32,0.50); transition: all 0.12s; }
         .filter-chip.active { background: #1A1A20; color: #fff; border-color: #1A1A20; }
 
-        /* Product rows */
-        .prod-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-top: 1px solid rgba(0,0,0,0.05); }
-        .prod-row:first-child { border-top: none; }
+        /* Product rows — each as independent card */
+        .prod-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #ECEEF2; border-radius: 18px; box-shadow: 4px 4px 12px rgba(0,0,0,0.07), -3px -3px 8px rgba(255,255,255,0.90), inset 0 1px 0 rgba(255,255,255,0.65); }
+        .prod-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
         .prod-thumb { width: 40px; height: 40px; border-radius: 10px; background: rgba(0,0,0,0.06); flex-shrink: 0; object-fit: cover; }
         .cat-add-btn { padding: 7px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid #1A1A20; background: #1A1A20; color: #CAFF3A; font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: opacity 0.12s; }
         .cat-add-btn:hover { opacity: 0.8; }
@@ -258,64 +264,47 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                 {cats.length === 0 ? (
                   <div className="card"><div className="empty">Aún no hay categorías.<br/>Créalas aquí o en el módulo de <strong>Stock</strong> — se sincronizan automáticamente.</div></div>
                 ) : (
-                  <div className="card">
+                  <div className="cat-grid">
                     {roots.map(root => {
                       const children = getChildren(root.id)
                       return (
-                        <div key={root.id}>
-                          <div className="row">
-                            <button
-                              className="vis-btn" title={root.is_web_visible ? 'Visible en tienda — clic para ocultar' : 'Oculto en tienda — clic para mostrar'}
-                              disabled={!!toggling[root.id]}
-                              onClick={() => toggleVisibility(root.id, root.is_web_visible)}
-                            >
+                        <div key={root.id} className="cat-card">
+                          {/* Root */}
+                          <div className="cat-card-row">
+                            <button className="vis-btn" title={root.is_web_visible ? 'Visible — clic para ocultar' : 'Oculto — clic para mostrar'} disabled={!!toggling[root.id]} onClick={() => toggleVisibility(root.id, root.is_web_visible)}>
                               <div className="vis-dot" style={{ background: root.is_web_visible ? '#059669' : '#D1D5DB' }} />
                             </button>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div className="row-name">{root.name}</div>
-                              <div className="row-sub">
-                                <span className="slug-tag">/{root.slug}</span>
-                                {children.length > 0 && ` · ${children.length} sub`}
-                              </div>
+                              <div className="row-sub"><span className="slug-tag">/{root.slug}</span>{children.length > 0 && ` · ${children.length} sub`}</div>
                             </div>
                             <button className="add-sub-btn" onClick={() => openNew(root.id)}>+ Sub</button>
-                            <button className="icon-btn" onClick={() => moveOrder(root.id, -1)}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>
-                            </button>
-                            <button className="icon-btn" onClick={() => moveOrder(root.id, 1)}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-                            </button>
-                            <button className="icon-btn" onClick={() => openEdit(root)}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                            </button>
-                            <button className="icon-btn danger" onClick={() => deleteCategory(root.id)}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                            </button>
+                            <button className="icon-btn" onClick={() => moveOrder(root.id, -1)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+                            <button className="icon-btn" onClick={() => moveOrder(root.id, 1)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+                            <button className="icon-btn" onClick={() => openEdit(root)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                            <button className="icon-btn danger" onClick={() => deleteCategory(root.id)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
                           </div>
 
-                          {children.map(sub => (
-                            <div key={sub.id} className="row" style={{ paddingLeft: 40, background: 'rgba(0,0,0,0.015)' }}>
-                              <button className="vis-btn" disabled={!!toggling[sub.id]} onClick={() => toggleVisibility(sub.id, sub.is_web_visible)}>
-                                <div className="vis-dot" style={{ width: 8, height: 8, background: sub.is_web_visible ? '#059669' : '#D1D5DB' }} />
-                              </button>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div className="row-name" style={{ fontSize: 13 }}>{sub.name}</div>
-                                <div className="row-sub"><span className="slug-tag">/{root.slug}/{sub.slug}</span></div>
-                              </div>
-                              <button className="icon-btn" onClick={() => moveOrder(sub.id, -1)}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>
-                              </button>
-                              <button className="icon-btn" onClick={() => moveOrder(sub.id, 1)}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-                              </button>
-                              <button className="icon-btn" onClick={() => openEdit(sub)}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                              </button>
-                              <button className="icon-btn danger" onClick={() => deleteCategory(sub.id)}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                              </button>
+                          {/* Subcategories */}
+                          {children.length > 0 && (
+                            <div className="sub-list">
+                              {children.map(sub => (
+                                <div key={sub.id} className="sub-card">
+                                  <button className="vis-btn" disabled={!!toggling[sub.id]} onClick={() => toggleVisibility(sub.id, sub.is_web_visible)}>
+                                    <div className="vis-dot" style={{ width: 8, height: 8, background: sub.is_web_visible ? '#059669' : '#D1D5DB' }} />
+                                  </button>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div className="row-name" style={{ fontSize: 13 }}>{sub.name}</div>
+                                    <div className="row-sub"><span className="slug-tag">/{root.slug}/{sub.slug}</span></div>
+                                  </div>
+                                  <button className="icon-btn" onClick={() => moveOrder(sub.id, -1)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg></button>
+                                  <button className="icon-btn" onClick={() => moveOrder(sub.id, 1)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+                                  <button className="icon-btn" onClick={() => openEdit(sub)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                                  <button className="icon-btn danger" onClick={() => deleteCategory(sub.id)}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
                         </div>
                       )
                     })}
@@ -345,23 +334,22 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                     </div>
 
                     {catFilter === 'none' ? (
-                      <div className="card">
-                        {uncategorized.length === 0
-                          ? <div className="empty">Todos los productos tienen categoría asignada</div>
-                          : uncategorized.map(p => {
-                            const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
-                            return (
-                              <div key={p.id} className="prod-row">
-                                {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div className="row-name">{p.name}</div>
-                                  <div className="row-sub">Asigna la categoría desde Stock</div>
+                      uncategorized.length === 0
+                        ? <div className="card"><div className="empty">Todos los productos tienen categoría asignada</div></div>
+                        : <div className="prod-grid">
+                            {uncategorized.map(p => {
+                              const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
+                              return (
+                                <div key={p.id} className="prod-row">
+                                  {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div className="row-name">{p.name}</div>
+                                    <div className="row-sub">Asigna la categoría desde Stock</div>
+                                  </div>
                                 </div>
-                              </div>
-                            )
-                          })
-                        }
-                      </div>
+                              )
+                            })}
+                          </div>
                     ) : (() => {
                       const activeCat = cats.find(c => c.id === catFilter)!
                       const inCat = getProductsInCat(catFilter)
@@ -369,35 +357,33 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                       return (
                         <>
                           <div className="section-title">{inCat.length} producto{inCat.length !== 1 ? 's' : ''} en {activeCat.name}</div>
-                          <div className="card">
-                            {inCat.length === 0
-                              ? <div className="empty">Sin productos aún — agrega uno abajo</div>
-                              : inCat.map(p => {
-                                const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
-                                const isPrimary = p.category_id === catFilter
-                                const busy = !!assigning[`${p.id}-${catFilter}`]
-                                return (
-                                  <div key={p.id} className="prod-row">
-                                    {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                      <div className="row-name">{p.name}</div>
+                          {inCat.length === 0
+                            ? <div className="card" style={{ marginBottom: 16 }}><div className="empty">Sin productos aún — agrega uno abajo</div></div>
+                            : <div className="prod-grid">
+                                {inCat.map(p => {
+                                  const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
+                                  const isPrimary = p.category_id === catFilter
+                                  const busy = !!assigning[`${p.id}-${catFilter}`]
+                                  return (
+                                    <div key={p.id} className="prod-row">
+                                      {thumb ? <img className="prod-thumb" src={thumb} alt={p.name} /> : <div className="prod-thumb" />}
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div className="row-name">{p.name}</div>
+                                      </div>
+                                      {isPrimary
+                                        ? <span className="primary-badge">Principal</span>
+                                        : <button className="cat-remove-btn" disabled={busy} onClick={() => toggleProductCategory(p.id, catFilter, true)}>{busy ? '...' : 'Quitar'}</button>
+                                      }
                                     </div>
-                                    {isPrimary
-                                      ? <span className="primary-badge">Principal</span>
-                                      : <button className="cat-remove-btn" disabled={busy} onClick={() => toggleProductCategory(p.id, catFilter, true)}>
-                                          {busy ? '...' : 'Quitar'}
-                                        </button>
-                                    }
-                                  </div>
-                                )
-                              })
-                            }
-                          </div>
+                                  )
+                                })}
+                              </div>
+                          }
 
                           {notInCat.length > 0 && (
                             <>
                               <div className="section-title">Agregar a {activeCat.name}</div>
-                              <div className="card">
+                              <div className="prod-grid">
                                 {notInCat.map(p => {
                                   const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
                                   const busy = !!assigning[`${p.id}-${catFilter}`]
@@ -409,9 +395,7 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                                         <div className="row-name">{p.name}</div>
                                         {currentCat && <div className="row-sub">Cat. principal: {currentCat}</div>}
                                       </div>
-                                      <button className="cat-add-btn" disabled={busy} onClick={() => toggleProductCategory(p.id, catFilter, false)}>
-                                        {busy ? '...' : '+ Agregar'}
-                                      </button>
+                                      <button className="cat-add-btn" disabled={busy} onClick={() => toggleProductCategory(p.id, catFilter, false)}>{busy ? '...' : '+ Agregar'}</button>
                                     </div>
                                   )
                                 })}
