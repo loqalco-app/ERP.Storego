@@ -563,7 +563,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                       <div key={v.sizeName} className="vcard">
                         <div className="vcard-hdr" onClick={() => toggleVariant(block.id, v.sizeName)}>
                           <div className="vcard-name">{v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName}</div>
-                          {!v.isOpen && v.sku && <div className="vcard-preview">{v.sku} · ${v.sale_price || '—'}</div>}
+                          {!v.isOpen && v.sku && <div className="vcard-preview">{v.sku}</div>}
                           <span className={`vcard-chevron${v.isOpen ? ' open' : ''}`}>▼</span>
                         </div>
                         {v.isOpen && (
