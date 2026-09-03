@@ -13,7 +13,7 @@ export default async function BrandsPage() {
   const orgId = profile?.organization_id
 
   const [{ data: brands }, { data: productCounts }] = await Promise.all([
-    supabase.from('brands').select('id, name, description').eq('organization_id', orgId).order('name'),
+    supabase.from('brands').select('id, name').eq('organization_id', orgId).order('name'),
     supabase.from('products').select('brand_id').eq('organization_id', orgId).eq('status', 'active'),
   ])
 
@@ -24,7 +24,7 @@ export default async function BrandsPage() {
 
   return (
     <BrandsClient
-      brands={(brands ?? []).map(b => ({ ...b, productCount: countMap[b.id] ?? 0 }))}
+      brands={(brands ?? []).map(b => ({ ...b, description: null, productCount: countMap[b.id] ?? 0 }))}
       orgId={orgId}
       userName={profile?.full_name && !profile.full_name.includes('@') ? profile.full_name : (user.email?.split('@')[0] ?? 'Usuario')}
       orgName={(profile?.organizations as unknown as { name: string } | null)?.name ?? 'NORTHÉA'}

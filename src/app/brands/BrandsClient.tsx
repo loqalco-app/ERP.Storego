@@ -38,15 +38,15 @@ export default function BrandsClient({ brands: initial, orgId, userName, orgName
     const supabase = createClient()
 
     if (editing) {
-      const { error } = await supabase.from('brands').update({ name: name.trim(), description: desc.trim() || null }).eq('id', editing.id)
+      const { error } = await supabase.from('brands').update({ name: name.trim() }).eq('id', editing.id)
       if (error) { setSaving(false); setErr(error.message); return }
-      setBrands(bs => bs.map(b => b.id === editing.id ? { ...b, name: name.trim(), description: desc.trim() || null } : b))
+      setBrands(bs => bs.map(b => b.id === editing.id ? { ...b, name: name.trim() } : b))
     } else {
       const { data, error } = await supabase.from('brands')
-        .insert({ organization_id: orgId, name: name.trim(), description: desc.trim() || null, slug: slugify(name.trim()) })
-        .select('id, name, description').single()
+        .insert({ organization_id: orgId, name: name.trim(), slug: slugify(name.trim()) })
+        .select('id, name').single()
       if (error) { setSaving(false); setErr(error.message.includes('slug') ? 'Ya existe una marca con ese nombre.' : error.message); return }
-      setBrands(bs => [...bs, { ...data, productCount: 0 }])
+      setBrands(bs => [...bs, { ...data, description: null, productCount: 0 }])
     }
     setSaving(false); closeForm()
   }

@@ -14,33 +14,25 @@ export default async function CatalogPage() {
 
   const orgId = profile?.organization_id
 
-  console.log('[catalog/page] user.id =', user.id, 'orgId =', orgId)
-
   const [
-    { data: products, error: productsErr },
-    { data: categories, error: categoriesErr },
-    { data: brands, error: brandsErr },
-    { data: stockLevels, error: stockErr },
+    { data: products },
+    { data: categories },
+    { data: brands },
+    { data: stockLevels },
   ] = await Promise.all([
     supabase.from('products').select(`
       id, name, status, condition, created_at, category_id, brand_id,
-      categories(id, name),
+      categories!products_category_id_fkey(id, name),
       brands(id, name),
       product_variants(id, sku, sale_price, cost_price)
     `).eq('organization_id', orgId).order('created_at', { ascending: false }),
 
     supabase.from('categories').select('id, name, slug, description, parent_id').eq('organization_id', orgId).order('name'),
 
-    supabase.from('brands').select('id, name, description').eq('organization_id', orgId).order('name'),
+    supabase.from('brands').select('id, name').eq('organization_id', orgId).order('name'),
 
     supabase.from('stock_levels').select('variant_id, quantity_available'),
   ])
-
-  console.log('[catalog/page] productsErr =', JSON.stringify(productsErr))
-  console.log('[catalog/page] products.length =', products?.length, 'raw:', JSON.stringify(products)?.slice(0, 2000))
-  console.log('[catalog/page] categoriesErr =', JSON.stringify(categoriesErr), 'count =', categories?.length)
-  console.log('[catalog/page] brandsErr =', JSON.stringify(brandsErr), 'count =', brands?.length)
-  console.log('[catalog/page] stockErr =', JSON.stringify(stockErr), 'count =', stockLevels?.length)
 
   // Merge stock into variants
   const stockMap: Record<string, number> = {}
@@ -65,7 +57,7 @@ export default async function CatalogPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       products={productsWithStock as any[]}
       categories={categories ?? []}
-      brands={brands ?? []}
+      brands={(brands ?? []).map(b => ({ ...b, description: null }))}
       orgId={orgId}
       userName={userName}
       orgName={orgName}

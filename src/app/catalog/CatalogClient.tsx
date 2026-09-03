@@ -108,15 +108,15 @@ export default function CatalogClient({ products: initProducts, categories: init
     setSaving(true); setErr(null)
     const supabase = createClient()
     if (editItem) {
-      const { error } = await supabase.from('brands').update({ name: mName.trim(), description: mDesc.trim()||null }).eq('id', editItem.id)
+      const { error } = await supabase.from('brands').update({ name: mName.trim() }).eq('id', editItem.id)
       if (error) { setSaving(false); setErr(error.message); return }
-      setBrands(bs => bs.map(b => b.id === editItem.id ? { ...b, name: mName.trim(), description: mDesc.trim()||null } : b))
+      setBrands(bs => bs.map(b => b.id === editItem.id ? { ...b, name: mName.trim() } : b))
     } else {
       const { data, error } = await supabase.from('brands')
-        .insert({ organization_id: orgId, name: mName.trim(), description: mDesc.trim()||null })
-        .select('id,name,description').single()
+        .insert({ organization_id: orgId, name: mName.trim() })
+        .select('id,name').single()
       if (error) { setSaving(false); setErr(error.message); return }
-      setBrands(bs => [...bs, data])
+      setBrands(bs => [...bs, { ...data, description: null }])
     }
     setSaving(false); closeModal()
   }
