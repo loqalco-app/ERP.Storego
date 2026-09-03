@@ -370,7 +370,10 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
         newBlockPhotos.forEach((p, i) => photoRows.push({ product_id: pid, url: p.url, is_primary: mode === 'create' && photoRows.length === 0 && i === 0, sort_order: photoRows.length, variant_id: linkedId }))
       }
     }
-    if (photoRows.length) await supabase.from('product_images').insert(photoRows)
+    if (photoRows.length) {
+      const { error: imgErr } = await supabase.from('product_images').insert(photoRows)
+      if (imgErr) { setSaving(false); setErr('El producto se guardó, pero las fotos no: ' + imgErr.message); return }
+    }
 
     // Web store category assignment
     if (webCatId) {
