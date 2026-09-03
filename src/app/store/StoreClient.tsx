@@ -15,10 +15,6 @@ interface Product {
   store_product_categories: { category_id: string }[]
 }
 
-function revalidateStore(orgId: string) {
-  fetch('/api/store/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId }) }).catch(() => {})
-}
-
 export default function StoreClient({ orgId, categories: init, products: initP, userName, orgName }: {
   orgId: string; categories: Category[]; products: Product[]; userName: string; orgName: string
 }) {
@@ -29,7 +25,6 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
   const [draggedId,  setDraggedId]  = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [assigning,  setAssigning]  = useState<Record<string, boolean>>({})
-  const [publishToggling, setPublishToggling] = useState<Record<string, boolean>>({})
 
   // ── Web store assignment via store_product_categories ──
   async function assignToWebCat(productId: string, catId: string) {
@@ -65,14 +60,6 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
     setDropTarget(null)
     await assignToWebCat(draggedId, catId)
     setDraggedId(null)
-  }
-
-  async function togglePublish(productId: string, newValue: boolean) {
-    setPublishToggling(t => ({ ...t, [productId]: true }))
-    setProds(ps => ps.map(p => p.id === productId ? { ...p, is_published: newValue } : p))
-    await createClient().from('products').update({ is_published: newValue }).eq('id', productId)
-    revalidateStore(orgId)
-    setPublishToggling(t => { const n = { ...t }; delete n[productId]; return n })
   }
 
   const roots      = cats.filter(c => !c.parent_id).sort((a, b) => a.web_sort_order - b.web_sort_order)
@@ -134,16 +121,6 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         .prod-name { font-size: 13px; font-weight: 700; color: #1A1A20; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .prod-cats { font-size: 11px; font-weight: 600; color: #059669; margin-top: 3px; }
         .prod-no-cat { font-size: 11px; color: rgba(26,26,32,0.30); margin-top: 3px; }
-        .prod-pub { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; cursor: default; }
-        .pub-lbl { font-size: 10px; font-weight: 700; color: rgba(26,26,32,0.35); }
-        .pub-lbl.on { color: #059669; }
-        .tog { position: relative; display: inline-block; width: 36px; height: 21px; flex-shrink: 0; cursor: pointer; }
-        .tog input { opacity: 0; width: 0; height: 0; }
-        .tog-track { position: absolute; inset: 0; background: rgba(0,0,0,0.14); border-radius: 50px; cursor: pointer; transition: background 0.18s; }
-        .tog input:checked + .tog-track { background: #059669; }
-        .tog input:disabled + .tog-track { opacity: 0.5; cursor: not-allowed; }
-        .tog-thumb { position: absolute; left: 2px; top: 2px; width: 17px; height: 17px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: transform 0.18s; pointer-events: none; }
-        .tog input:checked ~ .tog-thumb { transform: translateX(15px); }
 
         .empty-left { padding: 32px 20px; text-align: center; font-size: 13px; color: rgba(26,26,32,0.35); font-weight: 500; line-height: 1.6; }
         .empty-right { font-size: 13px; color: rgba(26,26,32,0.35); font-weight: 500; text-align: center; padding: 40px 20px; }
@@ -279,18 +256,6 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                                 ? <div className="prod-cats">✓ {catLabels}</div>
                                 : <div className="prod-no-cat">Sin categoría web</div>
                               }
-                            </div>
-                            <div
-                              className="prod-pub"
-                              draggable={false}
-                              onDragStart={e => e.preventDefault()}
-                              onClick={e => e.stopPropagation()}
-                            >
-                              <span className={`pub-lbl${p.is_published ? ' on' : ''}`}>{p.is_published ? 'Visible' : 'Oculto'}</span>
-                              <label className="tog" title={p.is_published ? 'Publicado — clic para ocultar' : 'Oculto — clic para publicar'}>
-                                <input type="checkbox" checked={p.is_published} disabled={!!publishToggling[p.id]} onChange={() => togglePublish(p.id, !p.is_published)} />
-                                <span className="tog-track" /><span className="tog-thumb" />
-                              </label>
                             </div>
                           </div>
                         )

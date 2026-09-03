@@ -55,11 +55,21 @@ export default function CatalogClient({ products: initProducts, categories: init
   const [publishing, setPublishing] = useState<Record<string, boolean>>({})
 
   async function togglePublish(productId: string, newValue: boolean) {
+    const prevValue = products.find(p => p.id === productId)?.is_published ?? !newValue
     setPublishing(p => ({ ...p, [productId]: true }))
     setProducts(ps => ps.map(p => p.id === productId ? { ...p, is_published: newValue } : p))
     if (viewProduct?.id === productId) setViewProduct(vp => vp ? { ...vp, is_published: newValue } : vp)
-    await createClient().from('products').update({ is_published: newValue }).eq('id', productId)
-    fetch('/api/store/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId }) }).catch(() => {})
+
+    const { data, error } = await createClient().from('products').update({ is_published: newValue }).eq('id', productId).select('id, is_published')
+
+    if (error || !data || data.length === 0) {
+      // Revert — the write didn't actually happen (RLS blocked it, or a real error)
+      setProducts(ps => ps.map(p => p.id === productId ? { ...p, is_published: prevValue } : p))
+      if (viewProduct?.id === productId) setViewProduct(vp => vp ? { ...vp, is_published: prevValue } : vp)
+      alert(error ? `No se pudo actualizar: ${error.message}` : 'No se pudo actualizar: el servidor no confirmó el cambio (posible permiso bloqueado).')
+    } else {
+      fetch('/api/store/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId }) }).catch(() => {})
+    }
     setPublishing(p => { const n = { ...p }; delete n[productId]; return n })
   }
 
