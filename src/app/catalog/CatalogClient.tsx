@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 interface Category { id: string; name: string; slug: string; description: string | null; parent_id: string | null }
 interface Brand    { id: string; name: string; description: string | null }
 interface Variant  { id: string; sku: string; sale_price: number; cost_price: number; stock_levels: { quantity_available: number }[] }
-interface Product  { id: string; name: string; status: string; condition: string; created_at: string; category_id: string | null; brand_id: string | null; categories: { id: string; name: string } | null; brands: { id: string; name: string } | null; product_variants: Variant[] }
+interface Product  { id: string; name: string; status: string; condition: string; created_at: string; category_id: string | null; brand_id: string | null; is_published: boolean; categories: { id: string; name: string } | null; brands: { id: string; name: string } | null; product_variants: Variant[] }
 
 interface Props { products: Product[]; categories: Category[]; brands: Brand[]; orgId: string; userName: string; orgName: string }
 
@@ -52,6 +52,15 @@ export default function CatalogClient({ products: initProducts, categories: init
   const [saving, setSaving]     = useState(false)
   const [err, setErr]           = useState<string|null>(null)
   const [viewProduct, setViewProduct] = useState<Product|null>(null)
+  const [publishing, setPublishing] = useState<Record<string, boolean>>({})
+
+  async function togglePublish(productId: string, newValue: boolean) {
+    setPublishing(p => ({ ...p, [productId]: true }))
+    setProducts(ps => ps.map(p => p.id === productId ? { ...p, is_published: newValue } : p))
+    if (viewProduct?.id === productId) setViewProduct(vp => vp ? { ...vp, is_published: newValue } : vp)
+    await createClient().from('products').update({ is_published: newValue }).eq('id', productId)
+    setPublishing(p => { const n = { ...p }; delete n[productId]; return n })
+  }
 
   // Reset page when search changes
   useEffect(() => { setPage(1) }, [q, perPage])
@@ -218,6 +227,19 @@ export default function CatalogClient({ products: initProducts, categories: init
         .badge{display:inline-block;padding:3px 9px;border-radius:50px;font-size:10px;font-weight:700}
         .edit-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 11px;border-radius:9px;border:none;background:rgba(29,78,216,0.08);color:#1D4ED8;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s;text-decoration:none;white-space:nowrap}
         .edit-btn:hover{background:rgba(29,78,216,0.14)}
+
+        /* Publish switch */
+        .pub-wrap{display:flex;align-items:center;gap:6px}
+        .tog{position:relative;display:inline-block;width:36px;height:21px;flex-shrink:0}
+        .tog input{opacity:0;width:0;height:0}
+        .tog-track{position:absolute;inset:0;background:rgba(0,0,0,0.14);border-radius:50px;cursor:pointer;transition:background 0.18s}
+        .tog input:checked + .tog-track{background:#059669}
+        .tog input:disabled + .tog-track{opacity:0.5;cursor:not-allowed}
+        .tog-thumb{position:absolute;left:2px;top:2px;width:17px;height:17px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:transform 0.18s;pointer-events:none}
+        .tog input:checked ~ .tog-thumb{transform:translateX(15px)}
+        .pub-lbl{font-size:10px;font-weight:700;color:rgba(26,26,32,0.35)}
+        .pub-lbl.on{color:#059669}
+        .g-pub{position:absolute;top:10px;right:10px}
 
         @media(max-width:860px){.ptbl .hide-md{display:none}}
         @media(max-width:600px){
@@ -398,6 +420,7 @@ export default function CatalogClient({ products: initProducts, categories: init
                           <th>Precio venta</th>
                           <th>Stock</th>
                           <th>Estado</th>
+                          <th>Tienda</th>
                           <th>Acción</th>
                         </tr>
                       </thead>
@@ -438,6 +461,12 @@ export default function CatalogClient({ products: initProducts, categories: init
                               </td>
                               <td>
                                 <span className="badge" style={{background:sm.bg,color:sm.color}}>{sm.label}</span>
+                              </td>
+                              <td onClick={e => e.stopPropagation()}>
+                                <label className="tog" title={p.is_published ? 'Publicado — clic para ocultar' : 'Oculto — clic para publicar'}>
+                                  <input type="checkbox" checked={p.is_published} disabled={!!publishing[p.id]} onChange={() => togglePublish(p.id, !p.is_published)} />
+                                  <span className="tog-track" /><span className="tog-thumb" />
+                                </label>
                               </td>
                               <td onClick={e => e.stopPropagation()}>
                                 <Link href={`/catalog/${p.id}/edit`} className="edit-btn">
@@ -482,6 +511,13 @@ export default function CatalogClient({ products: initProducts, categories: init
                         <div className="g-row">
                           <div className="g-price">{salePrice !== null ? `$${fmt(salePrice)}` : '—'}</div>
                           <span style={{fontSize:11,fontWeight:700,color:stockCls}}>{stock} pcs</span>
+                        </div>
+                        <div className="g-row" onClick={e => e.stopPropagation()}>
+                          <span className={`pub-lbl${p.is_published ? ' on' : ''}`}>{p.is_published ? 'Publicado' : 'Oculto'}</span>
+                          <label className="tog" title={p.is_published ? 'Publicado — clic para ocultar' : 'Oculto — clic para publicar'}>
+                            <input type="checkbox" checked={p.is_published} disabled={!!publishing[p.id]} onChange={() => togglePublish(p.id, !p.is_published)} />
+                            <span className="tog-track" /><span className="tog-thumb" />
+                          </label>
                         </div>
                       </div>
                     )
@@ -703,6 +739,19 @@ export default function CatalogClient({ products: initProducts, categories: init
                     <span className="pd-chip" style={{color:sColor}}>{stock} en stock</span>
                   </div>
                 )}
+
+                <div className="pd-card" style={{marginBottom:16}}>
+                  <div className="pd-row">
+                    <div>
+                      <div className="pd-value" style={{fontSize:14}}>Publicado en Tienda</div>
+                      <div style={{fontSize:11,color:'rgba(26,26,32,0.40)',marginTop:2}}>{p.is_published ? 'Visible para clientes en la tienda web' : 'Oculto — no aparece en la tienda web'}</div>
+                    </div>
+                    <label className="tog" title={p.is_published ? 'Clic para ocultar' : 'Clic para publicar'}>
+                      <input type="checkbox" checked={p.is_published} disabled={!!publishing[p.id]} onChange={() => togglePublish(p.id, !p.is_published)} />
+                      <span className="tog-track" /><span className="tog-thumb" />
+                    </label>
+                  </div>
+                </div>
 
                 <div className="pd-section">Variantes ({p.product_variants.length})</div>
                 <div className="pd-card">

@@ -21,7 +21,7 @@ export default async function CatalogPage() {
     { data: stockLevels },
   ] = await Promise.all([
     supabase.from('products').select(`
-      id, name, status, condition, created_at, category_id, brand_id,
+      id, name, status, condition, created_at, category_id, brand_id, is_published,
       categories!products_category_id_fkey(id, name),
       brands(id, name),
       product_variants(id, sku, sale_price, cost_price)

@@ -8,7 +8,7 @@ import Sidebar from '@/components/Sidebar'
 
 interface Category  { id: string; name: string; parent_id: string | null }
 interface Brand     { id: string; name: string }
-interface PhotoEntry { url: string; path: string; tempId: string }
+interface PhotoEntry { url: string; path: string; tempId: string; imageId?: string }
 
 interface ColorBlock {
   id: string
@@ -24,14 +24,21 @@ interface VariantData {
   sku: string
   stock: string
   isOpen: boolean
+  id?: string
 }
+
+interface ExistingSizeVariant { sizeName: string; variantId: string; sku: string; stock: number }
+interface ExistingColorGroup  { colorName: string; sizes: ExistingSizeVariant[]; photos: { id: string; url: string }[] }
+interface ExistingStandard    { variantId: string; sku: string; stock: number; photos: { id: string; url: string }[] }
 
 interface Props {
   mode: 'create' | 'edit'
   orgId: string; userName: string; orgName: string
   categories: Category[]; brands: Brand[]
   productId?: string
-  initial?: { name: string; description: string; status: string; condition: string; categoryId: string; brandId: string }
+  initial?: { name: string; description: string; status: string; condition: string; categoryId: string; brandId: string; salePrice?: number; costPrice?: number; webCategoryId?: string }
+  existingColors?: ExistingColorGroup[]
+  existingStandard?: ExistingStandard | null
 }
 
 function slugify(s: string) {
@@ -63,7 +70,7 @@ async function compressImage(file: File, maxKB = 600): Promise<File> {
   })
 }
 
-export default function CatalogProductForm({ mode, orgId, categories, brands, initial }: Props) {
+export default function CatalogProductForm({ mode, orgId, categories, brands, productId, initial, existingColors, existingStandard }: Props) {
   const router = useRouter()
 
   const [name, setName]           = useState(initial?.name ?? '')
@@ -90,25 +97,55 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
   const [newCatName, setNewCatName]     = useState(''); const [showNewCat, setShowNewCat] = useState(false); const [catErr, setCatErr] = useState<string | null>(null)
   const [newBrandName, setNewBrandName] = useState(''); const [showNewBrand, setShowNewBrand] = useState(false); const [brandErr, setBrandErr] = useState<string | null>(null)
 
-  const [colorBlocks, setColorBlocks] = useState<ColorBlock[]>([])
-  const [colorInput, setColorInput]   = useState('')
-  const [variants, setVariants]       = useState<VariantData[]>([])
+  // ── Initialize color blocks / variants from existing data (edit mode) ──
+  const [colorBlocks, setColorBlocks] = useState<ColorBlock[]>(() =>
+    (existingColors ?? []).map((ec, i) => ({
+      id: `ec-${i}`,
+      colorName: ec.colorName,
+      sizes: ec.sizes.map(s => s.sizeName).filter(Boolean),
+      photos: ec.photos.map(p => ({ url: p.url, path: '', tempId: uid(), imageId: p.id })),
+      sizeInput: '',
+    }))
+  )
+  const [colorInput, setColorInput] = useState('')
+  const [variants, setVariants] = useState<VariantData[]>(() =>
+    (existingColors ?? []).flatMap((ec, i) => ec.sizes.map(s => ({
+      colorId: `ec-${i}`,
+      sizeName: s.sizeName,
+      sku: s.sku,
+      stock: String(s.stock),
+      isOpen: false,
+      id: s.variantId,
+    })))
+  )
 
   // Global pricing (applies to all variants)
-  const [globalCost, setGlobalCost]   = useState('')
-  const [globalPrice, setGlobalPrice] = useState('')
+  const [globalCost, setGlobalCost]   = useState(initial?.costPrice ? String(initial.costPrice) : '')
+  const [globalPrice, setGlobalPrice] = useState(initial?.salePrice ? String(initial.salePrice) : '')
 
   // Standard variant (no colors)
-  const [stdSku, setStdSku]         = useState('')
-  const [stdStock, setStdStock]     = useState('')
+  const [stdVariantId]              = useState(existingStandard?.variantId)
+  const [stdSku, setStdSku]         = useState(existingStandard?.sku ?? '')
+  const [stdStock, setStdStock]     = useState(existingStandard ? String(existingStandard.stock) : '')
   const [stdOpen, setStdOpen]       = useState(true)
-  const [stdPhotos, setStdPhotos]   = useState<PhotoEntry[]>([])
+  const [stdPhotos, setStdPhotos]   = useState<PhotoEntry[]>(() =>
+    (existingStandard?.photos ?? []).map(p => ({ url: p.url, path: '', tempId: uid(), imageId: p.id }))
+  )
+
+  // Track original stock values to compute deltas for existing variants
+  const initialStockRef = useRef<Record<string, number> | null>(null)
+  if (initialStockRef.current === null) {
+    const m: Record<string, number> = {}
+    for (const ec of existingColors ?? []) for (const s of ec.sizes) m[s.variantId] = s.stock
+    if (existingStandard) m[existingStandard.variantId] = existingStandard.stock
+    initialStockRef.current = m
+  }
 
   const [uploadingFor, setUploadingFor] = useState<string | null>(null)
   const [activeTarget, setActiveTarget] = useState('std')
   const photoInputRef = useRef<HTMLInputElement>(null)
 
-  const [webCatId, setWebCatId] = useState('')
+  const [webCatId, setWebCatId] = useState(initial?.webCategoryId ?? '')
 
   const [saving, setSaving] = useState(false)
   const [err, setErr]       = useState<string | null>(null)
@@ -192,9 +229,10 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
     if (photoInputRef.current) photoInputRef.current.value = ''
   }
 
-  async function removePhoto(target: string, tempId: string, path: string) {
+  async function removePhoto(target: string, tempId: string, path: string, imageId?: string) {
     const supabase = createClient()
-    await supabase.storage.from('product-images').remove([path])
+    if (path) await supabase.storage.from('product-images').remove([path])
+    if (imageId) await supabase.from('product_images').delete().eq('id', imageId)
     if (target === 'std') setStdPhotos(p => p.filter(x => x.tempId !== tempId))
     else setColorBlocks(cb => cb.map(b => b.id === target ? { ...b, photos: b.photos.filter(x => x.tempId !== tempId) } : b))
   }
@@ -239,64 +277,100 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
     setSaving(true); setErr(null)
     const supabase = createClient()
 
-    let slug = slugify(name.trim())
-    let { data: product, error: pErr } = await supabase.from('products').insert({ organization_id: orgId, name: name.trim(), description: desc.trim() || null, slug, status, condition, category_id: categoryId || null, brand_id: brandId || null }).select('id').single()
-    if (pErr?.code === '23505' || pErr?.message?.includes('slug')) {
-      slug = slugify(name.trim()) + '-' + uid()
-      const retry = await supabase.from('products').insert({ organization_id: orgId, name: name.trim(), description: desc.trim() || null, slug, status, condition, category_id: categoryId || null, brand_id: brandId || null }).select('id').single()
-      if (retry.error) { setSaving(false); setErr(retry.error.message); return }
-      product = retry.data
-    } else if (pErr) { setSaving(false); setErr(pErr.message); return }
+    let pid: string
 
-    const pid = product!.id
+    if (mode === 'edit' && productId) {
+      const { error: upErr } = await supabase.from('products').update({
+        name: name.trim(), description: desc.trim() || null, status, condition,
+        category_id: categoryId || null, brand_id: brandId || null,
+      }).eq('id', productId)
+      if (upErr) { setSaving(false); setErr(upErr.message); return }
+      pid = productId
+    } else {
+      let slug = slugify(name.trim())
+      let { data: product, error: pErr } = await supabase.from('products').insert({ organization_id: orgId, name: name.trim(), description: desc.trim() || null, slug, status, condition, category_id: categoryId || null, brand_id: brandId || null }).select('id').single()
+      if (pErr?.code === '23505' || pErr?.message?.includes('slug')) {
+        slug = slugify(name.trim()) + '-' + uid()
+        const retry = await supabase.from('products').insert({ organization_id: orgId, name: name.trim(), description: desc.trim() || null, slug, status, condition, category_id: categoryId || null, brand_id: brandId || null }).select('id').single()
+        if (retry.error) { setSaving(false); setErr(retry.error.message); return }
+        product = retry.data
+      } else if (pErr) { setSaving(false); setErr(pErr.message); return }
+      pid = product!.id
+    }
 
-    const variantRows = hasColors
+    // Build variant definitions (existing ones carry their DB id)
+    const variantDefs = hasColors
       ? variants.map(v => {
           const block = colorBlocks.find(b => b.id === v.colorId)!
-          return { organization_id: orgId, product_id: pid, name: v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName, sku: v.sku.trim().toUpperCase(), sale_price: salePrice, cost_price: costPrice }
+          return { id: v.id, name: v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName, sku: v.sku.trim().toUpperCase(), stock: parseFloat(v.stock) || 0 }
         })
-      : [{ organization_id: orgId, product_id: pid, name: 'Estándar', sku: stdSku.trim().toUpperCase(), sale_price: salePrice, cost_price: costPrice }]
+      : [{ id: stdVariantId, name: 'Estándar', sku: stdSku.trim().toUpperCase(), stock: parseFloat(stdStock) || 0 }]
 
-    if (!variantRows.length) { setSaving(false); setErr('Agrega al menos una variante.'); return }
-    if (variantRows.some(v => !v.sku)) { setSaving(false); setErr('Todos los SKU son obligatorios.'); return }
+    if (variantDefs.some(v => !v.sku)) { setSaving(false); setErr('Todos los SKU son obligatorios.'); return }
 
-    const { data: insertedV, error: vErr } = await supabase.from('product_variants').insert(variantRows).select('id, name')
-    if (vErr) { setSaving(false); setErr(vErr.message.includes('sku') ? 'SKU duplicado, cámbialo.' : vErr.message); return }
+    const existingDefs = variantDefs.filter((v): v is typeof variantDefs[number] & { id: string } => !!v.id)
+    const newDefs       = variantDefs.filter(v => !v.id)
 
-    if (insertedV) {
-      let locId: string | null = null
-      const { data: loc } = await supabase.from('inventory_locations').select('id').eq('organization_id', orgId).eq('is_default', true).single()
-      if (loc) { locId = loc.id } else {
-        const { data: nl } = await supabase.from('inventory_locations').insert({ organization_id: orgId, name: 'Almacén principal', is_default: true }).select('id').single()
-        locId = nl?.id ?? null
-      }
-      if (locId) {
-        const userId = (await supabase.auth.getUser()).data.user?.id
-        const stockList = hasColors
-          ? variants.map((v, i) => ({ qty: parseFloat(v.stock) || 0, cost: costPrice, id: insertedV[i]?.id }))
-          : [{ qty: parseFloat(stdStock) || 0, cost: costPrice, id: insertedV[0]?.id }]
-        for (const s of stockList) {
-          if (!s.qty || !s.id) continue
-          await supabase.from('inventory_ledger').insert({ organization_id: orgId, variant_id: s.id, location_id: locId, movement_type: 'purchase', quantity: s.qty, unit_cost: s.cost, notes: 'Stock inicial', performed_by: userId })
-          await supabase.from('stock_levels').upsert({ variant_id: s.id, location_id: locId, quantity_available: s.qty }, { onConflict: 'variant_id,location_id' })
-        }
-      }
-
-      // Photos
-      const varIdByName: Record<string, string> = {}
-      for (const iv of insertedV) { if (iv.name && iv.id) varIdByName[iv.name] = iv.id }
-
-      const photoRows: { product_id: string; url: string; is_primary: boolean; sort_order: number; variant_id: string | null }[] = []
-      if (!hasColors) {
-        stdPhotos.forEach((p, i) => photoRows.push({ product_id: pid, url: p.url, is_primary: i === 0, sort_order: i, variant_id: null }))
-      } else {
-        for (const block of colorBlocks) {
-          const linkedId = Object.entries(varIdByName).find(([n]) => n === block.colorName || n.startsWith(block.colorName + ' /'))?.[1] ?? null
-          block.photos.forEach((p, i) => photoRows.push({ product_id: pid, url: p.url, is_primary: photoRows.length === 0 && i === 0, sort_order: photoRows.length, variant_id: linkedId }))
-        }
-      }
-      if (photoRows.length) await supabase.from('product_images').insert(photoRows)
+    // Update existing variants (sku/price may have changed)
+    for (const v of existingDefs) {
+      await supabase.from('product_variants').update({ sku: v.sku, sale_price: salePrice, cost_price: costPrice }).eq('id', v.id)
     }
+
+    // Insert brand new variants
+    let insertedV: { id: string; name: string }[] = []
+    if (newDefs.length) {
+      const rows = newDefs.map(v => ({ organization_id: orgId, product_id: pid, name: v.name, sku: v.sku, sale_price: salePrice, cost_price: costPrice }))
+      const { data, error: vErr } = await supabase.from('product_variants').insert(rows).select('id, name')
+      if (vErr) { setSaving(false); setErr(vErr.message.includes('sku') ? 'SKU duplicado, cámbialo.' : vErr.message); return }
+      insertedV = data ?? []
+    }
+
+    // Stock: default location
+    let locId: string | null = null
+    const { data: loc } = await supabase.from('inventory_locations').select('id').eq('organization_id', orgId).eq('is_default', true).single()
+    if (loc) { locId = loc.id } else {
+      const { data: nl } = await supabase.from('inventory_locations').insert({ organization_id: orgId, name: 'Almacén principal', is_default: true }).select('id').single()
+      locId = nl?.id ?? null
+    }
+
+    if (locId) {
+      const userId = (await supabase.auth.getUser()).data.user?.id
+
+      // New variants: create stock from scratch
+      for (let i = 0; i < newDefs.length; i++) {
+        const v = newDefs[i]; const insertedId = insertedV[i]?.id
+        if (!insertedId || !v.stock) continue
+        await supabase.from('inventory_ledger').insert({ organization_id: orgId, variant_id: insertedId, location_id: locId, movement_type: 'purchase', quantity: v.stock, unit_cost: costPrice, notes: 'Stock inicial', performed_by: userId })
+        await supabase.from('stock_levels').upsert({ variant_id: insertedId, location_id: locId, quantity_available: v.stock }, { onConflict: 'variant_id,location_id' })
+      }
+
+      // Existing variants: adjust stock only if it changed
+      for (const v of existingDefs) {
+        const before = initialStockRef.current?.[v.id] ?? 0
+        const delta = v.stock - before
+        if (delta === 0) continue
+        await supabase.from('inventory_ledger').insert({ organization_id: orgId, variant_id: v.id, location_id: locId, movement_type: 'adjustment', quantity: delta, unit_cost: costPrice, notes: 'Ajuste manual desde edición', performed_by: userId })
+        await supabase.from('stock_levels').upsert({ variant_id: v.id, location_id: locId, quantity_available: v.stock }, { onConflict: 'variant_id,location_id' })
+      }
+    }
+
+    // Photos — only insert the NEW ones (existing ones already have a DB row)
+    const varIdByName: Record<string, string> = {}
+    for (const iv of insertedV) { if (iv.name && iv.id) varIdByName[iv.name] = iv.id }
+    for (const v of existingDefs) varIdByName[v.name] = v.id
+
+    const photoRows: { product_id: string; url: string; is_primary: boolean; sort_order: number; variant_id: string | null }[] = []
+    if (!hasColors) {
+      const newStdPhotos = stdPhotos.filter(p => !p.imageId)
+      newStdPhotos.forEach((p, i) => photoRows.push({ product_id: pid, url: p.url, is_primary: mode === 'create' && i === 0, sort_order: i, variant_id: null }))
+    } else {
+      for (const block of colorBlocks) {
+        const linkedId = Object.entries(varIdByName).find(([n]) => n === block.colorName || n.startsWith(block.colorName + ' /'))?.[1] ?? null
+        const newBlockPhotos = block.photos.filter(p => !p.imageId)
+        newBlockPhotos.forEach((p, i) => photoRows.push({ product_id: pid, url: p.url, is_primary: mode === 'create' && photoRows.length === 0 && i === 0, sort_order: photoRows.length, variant_id: linkedId }))
+      }
+    }
+    if (photoRows.length) await supabase.from('product_images').insert(photoRows)
 
     // Web store category assignment
     if (webCatId) {
@@ -415,7 +489,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A20" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
           </Link>
           <div className="pf-title">{mode === 'create' ? 'Nuevo producto' : 'Editar producto'}</div>
-          <button className="save-top-btn" disabled={saving} onClick={handleSubmit as any}>
+          <button className="save-top-btn" disabled={saving} onClick={handleSubmit as unknown as () => void}>
             {saving ? 'Guardando…' : 'Guardar producto'}
           </button>
         </div>
@@ -500,7 +574,11 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                       ]
                     })}
                   </select>
-                  <div className="hint">El producto aparecerá en esta categoría de la tienda web. También puedes arrastrarlo desde Tienda → Productos.</div>
+                  <div className="hint">
+                    {mode === 'edit'
+                      ? 'Para publicar/despublicar o quitar de una categoría, usa el switch en Inventario o arrastra en Tienda → Productos.'
+                      : 'El producto aparecerá en esta categoría de la tienda web. También puedes arrastrarlo desde Tienda → Productos.'}
+                  </div>
                 </div>
               </div>
 
@@ -596,7 +674,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                       <div key={v.sizeName} className="vcard">
                         <div className="vcard-hdr" onClick={() => toggleVariant(block.id, v.sizeName)}>
                           <div className="vcard-name">{v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName}</div>
-                          {!v.isOpen && v.sku && <div className="vcard-preview">{v.sku}</div>}
+                          {!v.isOpen && v.sku && <div className="vcard-preview">{v.sku}{v.stock ? ` · ${v.stock} pz` : ''}</div>}
                           <span className={`vcard-chevron${v.isOpen ? ' open' : ''}`}>▼</span>
                         </div>
                         {v.isOpen && (
@@ -605,9 +683,10 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                               <div className="fl">SKU / Código *</div>
                               <input className="fi" type="text" value={v.sku} onChange={e => updateVariant(block.id, v.sizeName, 'sku', e.target.value.toUpperCase())} placeholder="Ej. CAM-NEG-M" />
                             </div>
-                            {mode === 'create' && (
-                              <div><div className="fl">Cantidad inicial</div><input className="fi" type="number" min="0" step="1" value={v.stock} onChange={e => updateVariant(block.id, v.sizeName, 'stock', e.target.value)} placeholder="0" /></div>
-                            )}
+                            <div>
+                              <div className="fl">{v.id ? 'Cantidad en stock' : 'Cantidad inicial'}</div>
+                              <input className="fi" type="number" min="0" step="1" value={v.stock} onChange={e => updateVariant(block.id, v.sizeName, 'stock', e.target.value)} placeholder="0" />
+                            </div>
                           </div>
                         )}
                       </div>
@@ -619,7 +698,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                       {block.photos.map(p => (
                         <div key={p.tempId} className="photo-thumb">
                           <img src={p.url} alt="" />
-                          <button type="button" className="photo-rm" onClick={() => removePhoto(block.id, p.tempId, p.path)}>×</button>
+                          <button type="button" className="photo-rm" onClick={() => removePhoto(block.id, p.tempId, p.path, p.imageId)}>×</button>
                         </div>
                       ))}
                       <button type="button" className="photo-add" onClick={() => triggerUpload(block.id)} disabled={uploadingFor === block.id}>
@@ -648,9 +727,10 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                           <div className="fl">SKU / Código *</div>
                           <input className="fi" type="text" value={stdSku} onChange={e => setStdSku(e.target.value.toUpperCase())} placeholder="Ej. PROD-001" />
                         </div>
-                        {mode === 'create' && (
-                          <div><div className="fl">Cantidad inicial</div><input className="fi" type="number" min="0" step="1" value={stdStock} onChange={e => setStdStock(e.target.value)} placeholder="0" /></div>
-                        )}
+                        <div>
+                          <div className="fl">{stdVariantId ? 'Cantidad en stock' : 'Cantidad inicial'}</div>
+                          <input className="fi" type="number" min="0" step="1" value={stdStock} onChange={e => setStdStock(e.target.value)} placeholder="0" />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -662,7 +742,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                         {stdPhotos.map(p => (
                           <div key={p.tempId} className="photo-thumb">
                             <img src={p.url} alt="" />
-                            <button type="button" className="photo-rm" onClick={() => removePhoto('std', p.tempId, p.path)}>×</button>
+                            <button type="button" className="photo-rm" onClick={() => removePhoto('std', p.tempId, p.path, p.imageId)}>×</button>
                           </div>
                         ))}
                         <button type="button" className="photo-add" onClick={() => triggerUpload('std')} disabled={uploadingFor === 'std'}>
