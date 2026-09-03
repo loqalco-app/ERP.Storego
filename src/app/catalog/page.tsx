@@ -18,18 +18,35 @@ export default async function CatalogPage() {
     { data: products },
     { data: categories },
     { data: brands },
+    { data: stockLevels },
   ] = await Promise.all([
     supabase.from('products').select(`
       id, name, status, condition, created_at, category_id, brand_id,
       categories(id, name),
       brands(id, name),
-      product_variants(id, sku, sale_price, cost_price, stock_levels(quantity_available))
+      product_variants(id, sku, sale_price, cost_price)
     `).eq('organization_id', orgId).order('created_at', { ascending: false }),
 
     supabase.from('categories').select('id, name, slug, description, parent_id').eq('organization_id', orgId).order('name'),
 
     supabase.from('brands').select('id, name, description').eq('organization_id', orgId).order('name'),
+
+    supabase.from('stock_levels').select('variant_id, quantity_available'),
   ])
+
+  // Merge stock into variants
+  const stockMap: Record<string, number> = {}
+  for (const sl of stockLevels ?? []) {
+    stockMap[sl.variant_id] = (stockMap[sl.variant_id] ?? 0) + sl.quantity_available
+  }
+
+  const productsWithStock = (products ?? []).map(p => ({
+    ...p,
+    product_variants: (p.product_variants ?? []).map((v: { id: string; sku: string; sale_price: number; cost_price: number }) => ({
+      ...v,
+      stock_levels: [{ quantity_available: stockMap[v.id] ?? 0 }],
+    })),
+  }))
 
   const userName = profile?.full_name && !profile.full_name.includes('@')
     ? profile.full_name : (user.email?.split('@')[0] ?? 'Usuario')
@@ -38,7 +55,7 @@ export default async function CatalogPage() {
   return (
     <CatalogClient
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      products={(products ?? []) as any[]}
+      products={productsWithStock as any[]}
       categories={categories ?? []}
       brands={brands ?? []}
       orgId={orgId}
