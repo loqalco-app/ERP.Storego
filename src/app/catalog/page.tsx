@@ -14,11 +14,13 @@ export default async function CatalogPage() {
 
   const orgId = profile?.organization_id
 
+  console.log('[catalog/page] user.id =', user.id, 'orgId =', orgId)
+
   const [
-    { data: products },
-    { data: categories },
-    { data: brands },
-    { data: stockLevels },
+    { data: products, error: productsErr },
+    { data: categories, error: categoriesErr },
+    { data: brands, error: brandsErr },
+    { data: stockLevels, error: stockErr },
   ] = await Promise.all([
     supabase.from('products').select(`
       id, name, status, condition, created_at, category_id, brand_id,
@@ -33,6 +35,12 @@ export default async function CatalogPage() {
 
     supabase.from('stock_levels').select('variant_id, quantity_available'),
   ])
+
+  console.log('[catalog/page] productsErr =', JSON.stringify(productsErr))
+  console.log('[catalog/page] products.length =', products?.length, 'raw:', JSON.stringify(products)?.slice(0, 2000))
+  console.log('[catalog/page] categoriesErr =', JSON.stringify(categoriesErr), 'count =', categories?.length)
+  console.log('[catalog/page] brandsErr =', JSON.stringify(brandsErr), 'count =', brands?.length)
+  console.log('[catalog/page] stockErr =', JSON.stringify(stockErr), 'count =', stockLevels?.length)
 
   // Merge stock into variants
   const stockMap: Record<string, number> = {}
