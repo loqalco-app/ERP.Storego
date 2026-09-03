@@ -15,12 +15,13 @@ const MODULE_LIST = [
   { key: 'finanzas',  label: 'Finanzas' },
   { key: 'orders',    label: 'Órdenes' },
   { key: 'catalog',   label: 'Inventario' },
+  { key: 'store',     label: 'Tienda web' },
   { key: 'customers', label: 'Clientes' },
 ] as const
 
 const DEFAULT_MODULES: Record<string, string[]> = {
-  owner:  ['dashboard','pos','finanzas','orders','catalog','customers'],
-  admin:  ['dashboard','pos','finanzas','orders','catalog','customers'],
+  owner:  ['dashboard','pos','finanzas','orders','catalog','store','customers'],
+  admin:  ['dashboard','pos','finanzas','orders','catalog','store','customers'],
   staff:  ['dashboard','pos','orders','catalog','customers'],
   viewer: ['dashboard'],
 }
