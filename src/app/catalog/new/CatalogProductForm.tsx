@@ -306,6 +306,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
       )
     }
 
+    router.refresh()
     router.push('/catalog')
   }
 
