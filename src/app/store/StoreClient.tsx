@@ -25,21 +25,19 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
 }) {
   const [tab, setTab] = useState<Tab>('categorias')
   const [cats, setCats] = useState(init)
-  const [products] = useState(initP)
+  const [prods, setProds] = useState(initP)
 
   const [modal, setModal] = useState<'new' | 'edit' | null>(null)
   const [editing, setEditing] = useState<Category | null>(null)
   const [form, setForm] = useState({ name: '', slug: '', parent_id: '', description: '', is_web_visible: true })
   const [saving, setSaving] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-
-  const [catFilter, setCatFilter] = useState<string>('none')
-  const [assigning, setAssigning] = useState<Record<string, boolean>>({})
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
 
+  // DnD state
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
-  const [prods, setProds] = useState(initP)
+  const [assigning, setAssigning] = useState<Record<string, boolean>>({})
 
   function openNew(parentId?: string) {
     setForm({ name: '', slug: '', parent_id: parentId ?? '', description: '', is_web_visible: true })
@@ -60,28 +58,20 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
     if (!form.slug.trim()) { setErr('El slug es requerido'); return }
     setSaving(true); setErr(null)
     const supabase = createClient()
-
     if (modal === 'new') {
       const siblings = cats.filter(c => (c.parent_id ?? '') === (form.parent_id ?? ''))
       const maxOrder = siblings.reduce((m, c) => Math.max(m, c.web_sort_order), -1)
       const { data, error } = await supabase.from('categories').insert({
-        organization_id: orgId,
-        name: form.name.trim(),
-        slug: slugify(form.slug),
-        parent_id: form.parent_id || null,
-        description: form.description.trim() || null,
-        is_web_visible: form.is_web_visible,
-        web_sort_order: maxOrder + 1,
+        organization_id: orgId, name: form.name.trim(), slug: slugify(form.slug),
+        parent_id: form.parent_id || null, description: form.description.trim() || null,
+        is_web_visible: form.is_web_visible, web_sort_order: maxOrder + 1,
       }).select('id, parent_id, name, slug, web_sort_order, is_web_visible, description').single()
       if (error) { setErr(error.message); setSaving(false); return }
       setCats(c => [...c, data])
     } else if (modal === 'edit' && editing) {
       const { error } = await supabase.from('categories').update({
-        name: form.name.trim(),
-        slug: slugify(form.slug),
-        parent_id: form.parent_id || null,
-        description: form.description.trim() || null,
-        is_web_visible: form.is_web_visible,
+        name: form.name.trim(), slug: slugify(form.slug), parent_id: form.parent_id || null,
+        description: form.description.trim() || null, is_web_visible: form.is_web_visible,
       }).eq('id', editing.id)
       if (error) { setErr(error.message); setSaving(false); return }
       setCats(c => c.map(x => x.id === editing.id ? {
@@ -96,15 +86,13 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
   async function deleteCategory(id: string) {
     if (cats.some(c => c.parent_id === id)) { alert('Primero elimina o mueve las subcategorías'); return }
     if (!confirm('¿Eliminar categoría? Los productos de Stock quedarán sin categoría asignada.')) return
-    const supabase = createClient()
-    await supabase.from('categories').delete().eq('id', id)
+    await createClient().from('categories').delete().eq('id', id)
     setCats(c => c.filter(x => x.id !== id))
   }
 
   async function toggleVisibility(id: string, current: boolean) {
     setToggling(t => ({ ...t, [id]: true }))
-    const supabase = createClient()
-    await supabase.from('categories').update({ is_web_visible: !current }).eq('id', id)
+    await createClient().from('categories').update({ is_web_visible: !current }).eq('id', id)
     setCats(c => c.map(x => x.id === id ? { ...x, is_web_visible: !current } : x))
     setToggling(t => { const n = { ...t }; delete n[id]; return n })
   }
@@ -124,44 +112,54 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
     setCats(c => c.map(x => x.id === id ? { ...x, web_sort_order: swap.web_sort_order } : x.id === swap.id ? { ...x, web_sort_order: cat.web_sort_order } : x))
   }
 
-  async function toggleProductCategory(productId: string, categoryId: string, isAssigned: boolean) {
-    const key = `${productId}-${categoryId}`
+  // ── Web store assignment via store_product_categories ──
+  async function assignToWebCat(productId: string, catId: string) {
+    const key = `${productId}-${catId}`
     setAssigning(a => ({ ...a, [key]: true }))
     const supabase = createClient()
-    if (isAssigned) {
-      await supabase.from('store_product_categories').delete().eq('product_id', productId).eq('category_id', categoryId)
-    } else {
-      const count = prods.find(p => p.id === productId)?.store_product_categories.length ?? 0
-      await supabase.from('store_product_categories').insert({ product_id: productId, category_id: categoryId, sort_order: count })
-    }
+    const existing = prods.find(p => p.id === productId)?.store_product_categories ?? []
+    await supabase.from('store_product_categories').upsert(
+      { product_id: productId, category_id: catId, sort_order: existing.length },
+      { onConflict: 'product_id,category_id' }
+    )
+    setProds(ps => ps.map(p => p.id === productId
+      ? { ...p, store_product_categories: p.store_product_categories.some(a => a.category_id === catId) ? p.store_product_categories : [...p.store_product_categories, { category_id: catId }] }
+      : p
+    ))
     setAssigning(a => { const n = { ...a }; delete n[key]; return n })
-    window.location.reload()
   }
 
+  async function removeFromWebCat(productId: string, catId: string) {
+    const key = `${productId}-${catId}`
+    setAssigning(a => ({ ...a, [key]: true }))
+    await createClient().from('store_product_categories').delete().eq('product_id', productId).eq('category_id', catId)
+    setProds(ps => ps.map(p => p.id === productId
+      ? { ...p, store_product_categories: p.store_product_categories.filter(a => a.category_id !== catId) }
+      : p
+    ))
+    setAssigning(a => { const n = { ...a }; delete n[key]; return n })
+  }
+
+  // DnD drop — assigns product to web category
   async function dropProduct(catId: string) {
     if (!draggedId) return
     setDropTarget(null)
-    const supabase = createClient()
-    await supabase.from('products').update({ category_id: catId }).eq('id', draggedId)
-    setProds(ps => ps.map(p => p.id === draggedId ? { ...p, category_id: catId } : p))
+    await assignToWebCat(draggedId, catId)
     setDraggedId(null)
-  }
-
-  async function removeFromCat(productId: string) {
-    const supabase = createClient()
-    await supabase.from('products').update({ category_id: null }).eq('id', productId)
-    setProds(ps => ps.map(p => p.id === productId ? { ...p, category_id: null } : p))
   }
 
   const roots = cats.filter(c => !c.parent_id).sort((a, b) => a.web_sort_order - b.web_sort_order)
   const getChildren = (parentId: string) => cats.filter(c => c.parent_id === parentId).sort((a, b) => a.web_sort_order - b.web_sort_order)
 
-  // Products for the selected category (by primary category_id OR store_product_categories)
-  const getProductsInCat = (catId: string) =>
-    products.filter(p => p.category_id === catId || p.store_product_categories.some(a => a.category_id === catId))
-  const getProductsNotInCat = (catId: string) =>
-    products.filter(p => p.category_id !== catId && !p.store_product_categories.some(a => a.category_id === catId))
-  const uncategorized = products.filter(p => !p.category_id && p.store_product_categories.length === 0)
+  function prodsByCat(catId: string) {
+    return prods.filter(p => p.store_product_categories.some(a => a.category_id === catId))
+  }
+  function isAssigned(productId: string, catId: string) {
+    return prods.find(p => p.id === productId)?.store_product_categories.some(a => a.category_id === catId) ?? false
+  }
+  function getCatLabels(p: Product) {
+    return p.store_product_categories.map(a => cats.find(c => c.id === a.category_id)?.name).filter(Boolean).join(', ')
+  }
 
   return (
     <>
@@ -181,9 +179,7 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         .content { padding: 0 16px 120px; }
         @media(min-width:768px){ .content { padding: 0 32px 64px; } }
         .card { background: #ECEEF2; border-radius: 24px; overflow: hidden; box-shadow: 6px 6px 18px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.95), inset 0 1px 0 rgba(255,255,255,0.7); margin-bottom: 16px; }
-        .row { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-top: 1px solid rgba(0,0,0,0.05); }
-        .row:first-child { border-top: none; }
-        /* Independent category cards */
+        /* Cat cards */
         .cat-grid { display: flex; flex-direction: column; gap: 10px; }
         .cat-card { background: #ECEEF2; border-radius: 20px; box-shadow: 6px 6px 18px rgba(0,0,0,0.08), -4px -4px 12px rgba(255,255,255,0.95), inset 0 1px 0 rgba(255,255,255,0.7); overflow: hidden; }
         .cat-card-row { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
@@ -201,30 +197,10 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         .empty { padding: 40px 24px; text-align: center; color: rgba(26,26,32,0.35); font-size: 14px; font-weight: 500; line-height: 1.6; }
         .top-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
         .count-label { font-size: 13px; color: rgba(26,26,32,0.35); font-weight: 500; }
-        .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(26,26,32,0.35); margin-bottom: 8px; margin-top: 20px; }
-        .section-title:first-child { margin-top: 0; }
-
-        /* Visibility dot toggle */
         .vis-btn { width: 28px; height: 28px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: opacity 0.12s; background: transparent; }
         .vis-dot { width: 10px; height: 10px; border-radius: 50%; }
         .vis-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        /* Filter bar */
-        .filter-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-        .filter-chip { padding: 6px 14px; border-radius: 50px; border: 1.5px solid rgba(0,0,0,0.10); font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; background: transparent; color: rgba(26,26,32,0.50); transition: all 0.12s; }
-        .filter-chip.active { background: #1A1A20; color: #fff; border-color: #1A1A20; }
-
-        /* Product rows — each as independent card */
-        .prod-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #ECEEF2; border-radius: 18px; box-shadow: 4px 4px 12px rgba(0,0,0,0.07), -3px -3px 8px rgba(255,255,255,0.90), inset 0 1px 0 rgba(255,255,255,0.65); }
-        .prod-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
-        .prod-thumb { width: 40px; height: 40px; border-radius: 10px; background: rgba(0,0,0,0.06); flex-shrink: 0; object-fit: cover; }
-        .cat-add-btn { padding: 7px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid #1A1A20; background: #1A1A20; color: #CAFF3A; font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: opacity 0.12s; }
-        .cat-add-btn:hover { opacity: 0.8; }
-        .cat-add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .cat-remove-btn { padding: 7px 14px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; border: 1.5px solid rgba(220,38,38,0.25); background: rgba(220,38,38,0.06); color: #DC2626; font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: opacity 0.12s; }
-        .cat-remove-btn:hover { opacity: 0.7; }
-        .cat-remove-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        .primary-badge { font-size: 10px; font-weight: 700; background: rgba(29,78,216,0.10); color: #1D4ED8; border-radius: 6px; padding: 2px 7px; flex-shrink: 0; }
+        .info-banner { background: rgba(29,78,216,0.06); border: 1px solid rgba(29,78,216,0.15); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1D4ED8; font-weight: 500; line-height: 1.5; }
 
         /* Modal */
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 200; display: flex; align-items: flex-end; justify-content: center; }
@@ -250,31 +226,46 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         .btn-cancel { flex: 1; padding: 14px; border-radius: 14px; border: 1.5px solid rgba(0,0,0,0.10); background: transparent; font-size: 15px; font-weight: 700; color: rgba(26,26,32,0.50); cursor: pointer; font-family: inherit; }
         .btn-save   { flex: 2; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(145deg,#1D4ED8,#2563EB); font-size: 15px; font-weight: 700; color: white; cursor: pointer; font-family: inherit; }
         .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
-        .info-banner { background: rgba(29,78,216,0.06); border: 1px solid rgba(29,78,216,0.15); border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #1D4ED8; font-weight: 500; line-height: 1.5; }
 
-        /* ── Drag & Drop layout ── */
-        .dnd-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        @media(max-width:900px){ .dnd-layout { grid-template-columns: 1fr; } }
-        .dnd-col-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(26,26,32,0.35); margin-bottom: 4px; }
-        .dnd-hint { font-size: 12px; color: rgba(26,26,32,0.38); margin-bottom: 12px; }
-        .dnd-cat-zone { background: #ECEEF2; border-radius: 18px; padding: 14px; margin-bottom: 10px; box-shadow: 5px 5px 15px rgba(0,0,0,0.07),-3px -3px 9px rgba(255,255,255,0.90); }
-        .dnd-cat-hdr { font-size: 14px; font-weight: 800; color: #1A1A20; margin-bottom: 10px; }
-        .dnd-subcat-zone { margin-top: 8px; padding: 10px 12px; background: rgba(0,0,0,0.03); border-radius: 13px; }
-        .dnd-subcat-hdr { font-size: 12px; font-weight: 700; color: rgba(26,26,32,0.55); margin-bottom: 8px; }
-        .dnd-assigned-prod { display: flex; align-items: center; gap: 8px; padding: 7px 8px; background: rgba(255,255,255,0.60); border-radius: 10px; margin-bottom: 5px; }
-        .dnd-thumb { width: 32px; height: 32px; border-radius: 7px; object-fit: cover; background: rgba(0,0,0,0.07); flex-shrink: 0; }
-        .dnd-prod-name { font-size: 12px; font-weight: 600; color: #1A1A20; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .dnd-rm { background: none; border: none; cursor: pointer; color: rgba(26,26,32,0.30); font-size: 16px; padding: 0 2px; line-height: 1; flex-shrink: 0; }
-        .dnd-rm:hover { color: #DC2626; }
-        .dnd-drop-zone { border: 2px dashed rgba(0,0,0,0.12); border-radius: 10px; padding: 10px; text-align: center; font-size: 12px; font-weight: 600; color: rgba(26,26,32,0.30); transition: all 0.15s; cursor: default; margin-top: 6px; }
-        .dnd-drop-zone.over { border-color: #2563EB; background: rgba(29,78,216,0.06); color: #2563EB; }
-        .dnd-prod-card { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #ECEEF2; border-radius: 16px; margin-bottom: 8px; box-shadow: 4px 4px 12px rgba(0,0,0,0.07),-3px -3px 8px rgba(255,255,255,0.90); cursor: grab; transition: opacity 0.15s, box-shadow 0.15s; user-select: none; }
-        .dnd-prod-card:hover { box-shadow: 6px 6px 18px rgba(0,0,0,0.10),-4px -4px 12px rgba(255,255,255,0.95); }
-        .dnd-prod-card.dragging { opacity: 0.45; cursor: grabbing; }
-        .dnd-drag-handle { font-size: 14px; color: rgba(26,26,32,0.20); flex-shrink: 0; letter-spacing: -2px; }
-        .dnd-prod-thumb { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; background: rgba(0,0,0,0.07); flex-shrink: 0; }
-        .dnd-cat-badge { font-size: 11px; font-weight: 600; color: #059669; margin-top: 2px; }
-        .dnd-no-cat { font-size: 11px; color: rgba(26,26,32,0.30); font-weight: 500; margin-top: 2px; }
+        /* ── DnD Productos tab ── */
+        .dnd-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+        @media(max-width:860px){ .dnd-layout { grid-template-columns: 1fr; } }
+
+        .dnd-col-hdr { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: rgba(26,26,32,0.35); margin-bottom: 10px; }
+        .dnd-hint { font-size: 12px; color: rgba(26,26,32,0.40); margin-bottom: 14px; line-height: 1.5; }
+
+        /* Left: category zones */
+        .cat-zone { background: #ECEEF2; border-radius: 18px; padding: 14px; margin-bottom: 12px; box-shadow: 5px 5px 15px rgba(0,0,0,0.07),-3px -3px 9px rgba(255,255,255,0.90); }
+        .cat-zone-hdr { font-size: 14px; font-weight: 800; color: #1A1A20; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .cat-zone-count { font-size: 11px; font-weight: 700; background: rgba(29,78,216,0.10); color: #1D4ED8; border-radius: 50px; padding: 2px 8px; }
+        .subcat-zone { margin-top: 8px; padding: 10px 12px; background: rgba(0,0,0,0.03); border-radius: 13px; }
+        .subcat-zone-hdr { font-size: 12px; font-weight: 700; color: rgba(26,26,32,0.52); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+
+        /* Assigned product row inside a category */
+        .assigned-prod { display: flex; align-items: center; gap: 8px; padding: 7px 8px; background: rgba(255,255,255,0.65); border-radius: 10px; margin-bottom: 5px; }
+        .ap-thumb { width: 30px; height: 30px; border-radius: 7px; object-fit: cover; background: rgba(0,0,0,0.07); flex-shrink: 0; }
+        .ap-name { font-size: 12px; font-weight: 600; color: #1A1A20; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+        .ap-rm { background: none; border: none; cursor: pointer; color: rgba(26,26,32,0.25); padding: 2px 4px; line-height: 1; font-size: 15px; flex-shrink: 0; border-radius: 6px; }
+        .ap-rm:hover { color: #DC2626; background: rgba(220,38,38,0.07); }
+
+        /* Drop zone */
+        .drop-zone { border: 2px dashed rgba(0,0,0,0.12); border-radius: 10px; padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: rgba(26,26,32,0.28); transition: all 0.15s; margin-top: 6px; cursor: default; min-height: 42px; display: flex; align-items: center; justify-content: center; }
+        .drop-zone.over { border-color: #2563EB; background: rgba(29,78,216,0.06); color: #2563EB; }
+
+        /* Right: product pool */
+        .prod-pool { display: flex; flex-direction: column; gap: 8px; }
+        .prod-card { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #ECEEF2; border-radius: 16px; box-shadow: 4px 4px 12px rgba(0,0,0,0.07),-3px -3px 8px rgba(255,255,255,0.90); cursor: grab; user-select: none; transition: opacity 0.15s, transform 0.12s, box-shadow 0.15s; }
+        .prod-card:hover { box-shadow: 6px 6px 18px rgba(0,0,0,0.10),-4px -4px 12px rgba(255,255,255,0.95); }
+        .prod-card.dragging { opacity: 0.40; cursor: grabbing; transform: scale(0.97); }
+        .prod-drag-handle { color: rgba(26,26,32,0.18); flex-shrink: 0; display: flex; flex-direction: column; gap: 3px; padding: 2px; }
+        .drag-dot-row { display: flex; gap: 3px; }
+        .drag-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; }
+        .prod-thumb { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; background: rgba(0,0,0,0.07); flex-shrink: 0; }
+        .prod-name { font-size: 13px; font-weight: 700; color: #1A1A20; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        .prod-cats { font-size: 11px; font-weight: 600; color: #059669; margin-top: 3px; }
+        .prod-no-cat { font-size: 11px; color: rgba(26,26,32,0.30); margin-top: 3px; font-weight: 500; }
+
+        .empty-pool { font-size: 13px; color: rgba(26,26,32,0.35); font-weight: 500; text-align: center; padding: 40px 20px; }
       `}</style>
 
       <div className="shell">
@@ -305,21 +296,20 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                 </div>
 
                 {cats.length === 0 ? (
-                  <div className="card"><div className="empty">Aún no hay categorías.<br/>Créalas aquí o en el módulo de <strong>Stock</strong> — se sincronizan automáticamente.</div></div>
+                  <div className="card"><div className="empty">Aún no hay categorías.<br/>Créalas aquí o en el módulo de <strong>Stock</strong>.</div></div>
                 ) : (
                   <div className="cat-grid">
                     {roots.map(root => {
-                      const children = getChildren(root.id)
+                      const subs = getChildren(root.id)
                       return (
                         <div key={root.id} className="cat-card">
-                          {/* Root */}
                           <div className="cat-card-row">
-                            <button className="vis-btn" title={root.is_web_visible ? 'Visible — clic para ocultar' : 'Oculto — clic para mostrar'} disabled={!!toggling[root.id]} onClick={() => toggleVisibility(root.id, root.is_web_visible)}>
+                            <button className="vis-btn" disabled={!!toggling[root.id]} onClick={() => toggleVisibility(root.id, root.is_web_visible)} title={root.is_web_visible ? 'Visible' : 'Oculto'}>
                               <div className="vis-dot" style={{ background: root.is_web_visible ? '#059669' : '#D1D5DB' }} />
                             </button>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div className="row-name">{root.name}</div>
-                              <div className="row-sub"><span className="slug-tag">/{root.slug}</span>{children.length > 0 && ` · ${children.length} sub`}</div>
+                              <div className="row-sub"><span className="slug-tag">/{root.slug}</span>{subs.length > 0 && ` · ${subs.length} sub`}</div>
                             </div>
                             <button className="add-sub-btn" onClick={() => openNew(root.id)}>+ Sub</button>
                             <button className="icon-btn" onClick={() => moveOrder(root.id, -1)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg></button>
@@ -327,11 +317,9 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                             <button className="icon-btn" onClick={() => openEdit(root)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                             <button className="icon-btn danger" onClick={() => deleteCategory(root.id)}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
                           </div>
-
-                          {/* Subcategories */}
-                          {children.length > 0 && (
+                          {subs.length > 0 && (
                             <div className="sub-list">
-                              {children.map(sub => (
+                              {subs.map(sub => (
                                 <div key={sub.id} className="sub-card">
                                   <button className="vis-btn" disabled={!!toggling[sub.id]} onClick={() => toggleVisibility(sub.id, sub.is_web_visible)}>
                                     <div className="vis-dot" style={{ width: 8, height: 8, background: sub.is_web_visible ? '#059669' : '#D1D5DB' }} />
@@ -360,63 +348,74 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
             {tab === 'productos' && (
               cats.length === 0
                 ? <div className="card"><div className="empty">Primero crea categorías en la tab Categorías</div></div>
-                : <div className="dnd-layout">
+                : (
+                  <div className="dnd-layout">
 
-                    {/* LEFT: Category drop zones */}
-                    <div className="dnd-left">
-                      <div className="dnd-col-lbl">Categorías</div>
-                      <div className="dnd-hint">Arrastra productos aquí para asignarlos</div>
+                    {/* LEFT: Category zones — what's already assigned */}
+                    <div>
+                      <div className="dnd-col-hdr">Categorías de la tienda</div>
+                      <div className="dnd-hint">Arrastra un producto desde la derecha para asignarlo. El × lo quita de la categoría.</div>
+
                       {roots.map(root => {
-                        const children = getChildren(root.id)
-                        const rootProds = prods.filter(p => p.category_id === root.id)
+                        const subs = getChildren(root.id)
+                        const rootProds = prodsByCat(root.id)
                         const isOver = dropTarget === root.id
                         return (
-                          <div key={root.id} className="dnd-cat-zone">
-                            <div className="dnd-cat-hdr">{root.name}</div>
+                          <div key={root.id} className="cat-zone">
+                            <div className="cat-zone-hdr">
+                              {root.name}
+                              <span className="cat-zone-count">{rootProds.length}</span>
+                            </div>
 
                             {rootProds.map(p => {
                               const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
+                              const key = `${p.id}-${root.id}`
                               return (
-                                <div key={p.id} className="dnd-assigned-prod">
-                                  {thumb ? <img className="dnd-thumb" src={thumb} alt="" /> : <div className="dnd-thumb" />}
-                                  <div className="dnd-prod-name" style={{ flex: 1, minWidth: 0 }}>{p.name}</div>
-                                  <button className="dnd-rm" onClick={() => removeFromCat(p.id)} title="Quitar de categoría">×</button>
+                                <div key={p.id} className="assigned-prod">
+                                  {thumb ? <img className="ap-thumb" src={thumb} alt="" /> : <div className="ap-thumb" />}
+                                  <div className="ap-name">{p.name}</div>
+                                  <button className="ap-rm" disabled={!!assigning[key]} onClick={() => removeFromWebCat(p.id, root.id)} title="Quitar de esta categoría">×</button>
                                 </div>
                               )
                             })}
 
                             <div
-                              className={`dnd-drop-zone${isOver ? ' over' : ''}`}
+                              className={`drop-zone${isOver ? ' over' : ''}`}
                               onDragOver={e => { e.preventDefault(); setDropTarget(root.id) }}
                               onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null) }}
                               onDrop={() => dropProduct(root.id)}
                             >
-                              {isOver ? '◎  Suelta aquí' : '+ Arrastra producto aquí'}
+                              {isOver ? '◎  Suelta aquí' : 'Arrastra un producto aquí'}
                             </div>
 
-                            {children.map(sub => {
-                              const subProds = prods.filter(p => p.category_id === sub.id)
+                            {subs.map(sub => {
+                              const subProds = prodsByCat(sub.id)
                               const isOverSub = dropTarget === sub.id
                               return (
-                                <div key={sub.id} className="dnd-subcat-zone">
-                                  <div className="dnd-subcat-hdr">↳ {sub.name}</div>
+                                <div key={sub.id} className="subcat-zone">
+                                  <div className="subcat-zone-hdr">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{flexShrink:0}}><polyline points="9 18 15 12 9 6"/></svg>
+                                    {sub.name}
+                                    <span className="cat-zone-count" style={{fontSize:10}}>{subProds.length}</span>
+                                  </div>
                                   {subProds.map(p => {
                                     const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
+                                    const key = `${p.id}-${sub.id}`
                                     return (
-                                      <div key={p.id} className="dnd-assigned-prod">
-                                        {thumb ? <img className="dnd-thumb" src={thumb} alt="" /> : <div className="dnd-thumb" />}
-                                        <div className="dnd-prod-name" style={{ flex: 1, minWidth: 0 }}>{p.name}</div>
-                                        <button className="dnd-rm" onClick={() => removeFromCat(p.id)}>×</button>
+                                      <div key={p.id} className="assigned-prod">
+                                        {thumb ? <img className="ap-thumb" src={thumb} alt="" /> : <div className="ap-thumb" />}
+                                        <div className="ap-name">{p.name}</div>
+                                        <button className="ap-rm" disabled={!!assigning[key]} onClick={() => removeFromWebCat(p.id, sub.id)}>×</button>
                                       </div>
                                     )
                                   })}
                                   <div
-                                    className={`dnd-drop-zone${isOverSub ? ' over' : ''}`}
+                                    className={`drop-zone${isOverSub ? ' over' : ''}`}
                                     onDragOver={e => { e.preventDefault(); setDropTarget(sub.id) }}
                                     onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null) }}
                                     onDrop={() => dropProduct(sub.id)}
                                   >
-                                    {isOverSub ? '◎  Suelta aquí' : '+ Arrastra aquí'}
+                                    {isOverSub ? '◎  Suelta aquí' : 'Arrastra aquí'}
                                   </div>
                                 </div>
                               )
@@ -426,38 +425,50 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                       })}
                     </div>
 
-                    {/* RIGHT: Products pool */}
-                    <div className="dnd-right">
-                      <div className="dnd-col-lbl">Todos los productos</div>
-                      <div className="dnd-hint">Arrastra a una categoría de la izquierda</div>
-                      {prods.length === 0
-                        ? <div style={{ fontSize: 13, color: 'rgba(26,26,32,0.35)', marginTop: 16 }}>No hay productos aún — agrégalos desde Stock</div>
-                        : prods.map(p => {
+                    {/* RIGHT: Product pool — all products from Stock */}
+                    <div>
+                      <div className="dnd-col-hdr">Todos los productos</div>
+                      <div className="dnd-hint">
+                        {prods.length} producto{prods.length !== 1 ? 's' : ''} en Stock. Arrastra a una categoría de la izquierda.
+                      </div>
+                      {prods.length === 0 ? (
+                        <div className="empty-pool">No hay productos aún —<br/>créalos desde <strong>Stock → Inventario</strong></div>
+                      ) : (
+                        <div className="prod-pool">
+                          {prods.map(p => {
                             const thumb = p.product_images.find(i => i.is_primary)?.url ?? p.product_images[0]?.url
-                            const cat = cats.find(c => c.id === p.category_id)
+                            const catLabels = getCatLabels(p)
                             const isDragging = draggedId === p.id
                             return (
                               <div
                                 key={p.id}
-                                className={`dnd-prod-card${isDragging ? ' dragging' : ''}`}
+                                className={`prod-card${isDragging ? ' dragging' : ''}`}
                                 draggable
                                 onDragStart={() => setDraggedId(p.id)}
                                 onDragEnd={() => { setDraggedId(null); setDropTarget(null) }}
                               >
-                                <div className="dnd-drag-handle">⋮⋮</div>
-                                {thumb ? <img className="dnd-prod-thumb" src={thumb} alt="" /> : <div className="dnd-prod-thumb" />}
+                                <div className="prod-drag-handle">
+                                  <div className="drag-dot-row"><div className="drag-dot"/><div className="drag-dot"/></div>
+                                  <div className="drag-dot-row"><div className="drag-dot"/><div className="drag-dot"/></div>
+                                  <div className="drag-dot-row"><div className="drag-dot"/><div className="drag-dot"/></div>
+                                </div>
+                                {thumb ? <img className="prod-thumb" src={thumb} alt="" /> : <div className="prod-thumb" />}
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <div className="dnd-prod-name">{p.name}</div>
-                                  {cat && <div className="dnd-cat-badge">{cat.name}</div>}
-                                  {!cat && <div className="dnd-no-cat">Sin categoría</div>}
+                                  <div className="prod-name">{p.name}</div>
+                                  {catLabels
+                                    ? <div className="prod-cats">✓ {catLabels}</div>
+                                    : <div className="prod-no-cat">Sin categoría web</div>
+                                  }
                                 </div>
                               </div>
                             )
-                          })
-                      }
+                          })}
+                        </div>
+                      )}
                     </div>
 
                   </div>
+                )
             )}
           </div>
         </main>
@@ -465,27 +476,24 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
 
       <BottomNav active="store" />
 
-      {/* ── MODAL CATEGORÍA ── */}
+      {/* Modal categoría */}
       {modal && (
         <div className="overlay" onClick={e => e.target === e.currentTarget && closeModal()}>
           <div className="modal">
             <div className="modal-title">
-              {modal === 'new' ? (form.parent_id ? `Nueva subcategoría` : 'Nueva categoría') : 'Editar categoría'}
+              {modal === 'new' ? (form.parent_id ? 'Nueva subcategoría' : 'Nueva categoría') : 'Editar categoría'}
             </div>
             {form.parent_id && modal === 'new' && (
-              <div className="field-hint" style={{ marginBottom: 14, fontSize: 12, color: 'rgba(26,26,32,0.45)', fontWeight: 500 }}>
+              <div style={{ marginBottom: 14, fontSize: 12, color: 'rgba(26,26,32,0.45)', fontWeight: 500 }}>
                 Subcategoría de: <strong>{cats.find(c => c.id === form.parent_id)?.name}</strong>
               </div>
             )}
             {err && <div className="alert-err">{err}</div>}
-
             <div className="field-lbl">Nombre *</div>
             <input className="field-input" type="text" value={form.name} onChange={e => handleNameChange(e.target.value)} placeholder="Ej: Mujer, Calzado, Tops..." autoFocus />
-
             <div className="field-lbl">Slug (URL) *</div>
             <input className="field-input" type="text" value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} placeholder="mujer, calzado, tops..." />
-            <div className="field-hint">Se usa en la URL de la tienda: northea.cc/<em>{form.slug || 'mujer'}</em></div>
-
+            <div className="field-hint" style={{marginTop:-10,marginBottom:12,fontSize:11,color:'rgba(26,26,32,0.38)'}}>URL: northea.cc/<em>{form.slug || 'slug'}</em></div>
             {modal === 'edit' && editing?.parent_id && (
               <>
                 <div className="field-lbl">Subcategoría de</div>
@@ -496,7 +504,6 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                 </select>
               </>
             )}
-
             <div className="toggle-row">
               <span className="toggle-label">Visible en la tienda</span>
               <label className="tog-wrap">
@@ -504,7 +511,6 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
                 <span className="tog-track" /><span className="tog-thumb" />
               </label>
             </div>
-
             <div className="modal-actions">
               <button className="btn-cancel" onClick={closeModal}>Cancelar</button>
               <button className="btn-save" onClick={saveCategory} disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</button>

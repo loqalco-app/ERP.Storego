@@ -108,6 +108,8 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
   const [activeTarget, setActiveTarget] = useState('std')
   const photoInputRef = useRef<HTMLInputElement>(null)
 
+  const [webCatId, setWebCatId] = useState('')
+
   const [saving, setSaving] = useState(false)
   const [err, setErr]       = useState<string | null>(null)
 
@@ -296,6 +298,14 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
       if (photoRows.length) await supabase.from('product_images').insert(photoRows)
     }
 
+    // Web store category assignment
+    if (webCatId) {
+      await supabase.from('store_product_categories').upsert(
+        { product_id: pid, category_id: webCatId, sort_order: 0 },
+        { onConflict: 'product_id,category_id' }
+      )
+    }
+
     router.push('/catalog')
   }
 
@@ -472,6 +482,24 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                       {brandErr && <div style={{ marginTop: 5, fontSize: 12, color: '#991b1b', fontWeight: 600 }}>⚠ {brandErr}</div>}
                     </>
                   ) : <span className="create-link" onClick={() => setShowNewBrand(true)}>+ Nueva marca</span>}
+                </div>
+              </div>
+
+              <div className="sec-lbl">Tienda web</div>
+              <div className="card">
+                <div className="field">
+                  <div className="fl">Categoría en la tienda web</div>
+                  <select className="fsel" value={webCatId} onChange={e => setWebCatId(e.target.value)}>
+                    <option value="">No publicar en tienda (por ahora)</option>
+                    {cats.filter(c => !c.parent_id).map(root => {
+                      const subs2 = cats.filter(c => c.parent_id === root.id)
+                      return [
+                        <option key={root.id} value={root.id}>{root.name}</option>,
+                        ...subs2.map(s => <option key={s.id} value={s.id}>↳ {s.name}</option>)
+                      ]
+                    })}
+                  </select>
+                  <div className="hint">El producto aparecerá en esta categoría de la tienda web. También puedes arrastrarlo desde Tienda → Productos.</div>
                 </div>
               </div>
 
