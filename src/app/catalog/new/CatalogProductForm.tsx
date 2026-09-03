@@ -22,8 +22,6 @@ interface VariantData {
   colorId: string
   sizeName: string
   sku: string
-  cost_price: string
-  sale_price: string
   stock: string
   isOpen: boolean
 }
@@ -96,10 +94,12 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
   const [colorInput, setColorInput]   = useState('')
   const [variants, setVariants]       = useState<VariantData[]>([])
 
+  // Global pricing (applies to all variants)
+  const [globalCost, setGlobalCost]   = useState('')
+  const [globalPrice, setGlobalPrice] = useState('')
+
   // Standard variant (no colors)
   const [stdSku, setStdSku]         = useState('')
-  const [stdCost, setStdCost]       = useState('')
-  const [stdPrice, setStdPrice]     = useState('')
   const [stdStock, setStdStock]     = useState('')
   const [stdOpen, setStdOpen]       = useState(true)
   const [stdPhotos, setStdPhotos]   = useState<PhotoEntry[]>([])
@@ -120,7 +120,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
     setColorBlocks(cb => [...cb, { id: blockId, colorName: v, sizes: [], photos: [], sizeInput: '' }])
     // Create a no-size variant for this color right away
     const skuHint = slugify(v).toUpperCase().slice(0, 14)
-    setVariants(vs => [...vs, { colorId: blockId, sizeName: '', sku: skuHint, cost_price: '', sale_price: '', stock: '', isOpen: true }])
+    setVariants(vs => [...vs, { colorId: blockId, sizeName: '', sku: skuHint, stock: '', isOpen: true }])
     setColorInput('')
   }
 
@@ -139,7 +139,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
     // If this is the first size, remove the no-size variant and replace with size variants
     setVariants(vs => {
       const withoutNoSize = vs.filter(v => !(v.colorId === blockId && v.sizeName === ''))
-      return [...withoutNoSize, { colorId: blockId, sizeName: sz, sku: skuHint, cost_price: '', sale_price: '', stock: '', isOpen: true }]
+      return [...withoutNoSize, { colorId: blockId, sizeName: sz, sku: skuHint, stock: '', isOpen: true }]
     })
   }
 
@@ -153,7 +153,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
       // If no sizes left, re-add no-size variant
       if (newSizes.length === 0) {
         const skuHint = slugify(block.colorName).toUpperCase().slice(0, 14)
-        return [...filtered, { colorId: blockId, sizeName: '', sku: skuHint, cost_price: '', sale_price: '', stock: '', isOpen: true }]
+        return [...filtered, { colorId: blockId, sizeName: '', sku: skuHint, stock: '', isOpen: true }]
       }
       return filtered
     })
@@ -240,12 +240,16 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
     const pid = product!.id
     const hasColors = colorBlocks.length > 0
 
+    const salePrice = parseFloat(globalPrice) || 0
+    const costPrice = parseFloat(globalCost)  || 0
+    if (!salePrice) { setSaving(false); setErr('El precio de venta es obligatorio.'); return }
+
     const variantRows = hasColors
       ? variants.map(v => {
           const block = colorBlocks.find(b => b.id === v.colorId)!
-          return { organization_id: orgId, product_id: pid, name: v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName, sku: v.sku.trim().toUpperCase(), sale_price: parseFloat(v.sale_price) || 0, cost_price: parseFloat(v.cost_price) || 0 }
+          return { organization_id: orgId, product_id: pid, name: v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName, sku: v.sku.trim().toUpperCase(), sale_price: salePrice, cost_price: costPrice }
         })
-      : [{ organization_id: orgId, product_id: pid, name: 'Estándar', sku: stdSku.trim().toUpperCase(), sale_price: parseFloat(stdPrice) || 0, cost_price: parseFloat(stdCost) || 0 }]
+      : [{ organization_id: orgId, product_id: pid, name: 'Estándar', sku: stdSku.trim().toUpperCase(), sale_price: salePrice, cost_price: costPrice }]
 
     if (!variantRows.length) { setSaving(false); setErr('Agrega al menos una variante.'); return }
     if (variantRows.some(v => !v.sku)) { setSaving(false); setErr('Todos los SKU son obligatorios.'); return }
@@ -263,8 +267,8 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
       if (locId) {
         const userId = (await supabase.auth.getUser()).data.user?.id
         const stockList = hasColors
-          ? variants.map((v, i) => ({ qty: parseFloat(v.stock) || 0, cost: parseFloat(v.cost_price) || 0, id: insertedV[i]?.id }))
-          : [{ qty: parseFloat(stdStock) || 0, cost: parseFloat(stdCost) || 0, id: insertedV[0]?.id }]
+          ? variants.map((v, i) => ({ qty: parseFloat(v.stock) || 0, cost: costPrice, id: insertedV[i]?.id }))
+          : [{ qty: parseFloat(stdStock) || 0, cost: costPrice, id: insertedV[0]?.id }]
         for (const s of stockList) {
           if (!s.qty || !s.id) continue
           await supabase.from('inventory_ledger').insert({ organization_id: orgId, variant_id: s.id, location_id: locId, movement_type: 'purchase', quantity: s.qty, unit_cost: s.cost, notes: 'Stock inicial', performed_by: userId })
@@ -467,6 +471,23 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                 </div>
               </div>
 
+              <div className="sec-lbl">Precio</div>
+              <div className="card">
+                <div className="field">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <div className="fl">Costo de adquisición</div>
+                      <input className="fi" type="number" min="0" step="0.01" value={globalCost} onChange={e => setGlobalCost(e.target.value)} placeholder="0.00" />
+                    </div>
+                    <div>
+                      <div className="fl">Precio de venta *</div>
+                      <input className="fi" type="number" min="0" step="0.01" value={globalPrice} onChange={e => setGlobalPrice(e.target.value)} placeholder="0.00" />
+                    </div>
+                  </div>
+                  <div className="hint">Se aplica igual a todas las variantes del producto</div>
+                </div>
+              </div>
+
               <div className="sec-lbl">Estado</div>
               <div className="card">
                 <div className="field">
@@ -551,10 +572,6 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                               <div className="fl">SKU / Código *</div>
                               <input className="fi" type="text" value={v.sku} onChange={e => updateVariant(block.id, v.sizeName, 'sku', e.target.value.toUpperCase())} placeholder="Ej. CAM-NEG-M" />
                             </div>
-                            <div className="v2col">
-                              <div><div className="fl">Costo</div><input className="fi" type="number" min="0" step="0.01" value={v.cost_price} onChange={e => updateVariant(block.id, v.sizeName, 'cost_price', e.target.value)} placeholder="0.00" /></div>
-                              <div><div className="fl">Precio venta *</div><input className="fi" type="number" min="0" step="0.01" value={v.sale_price} onChange={e => updateVariant(block.id, v.sizeName, 'sale_price', e.target.value)} placeholder="0.00" /></div>
-                            </div>
                             {mode === 'create' && (
                               <div><div className="fl">Cantidad inicial</div><input className="fi" type="number" min="0" step="1" value={v.stock} onChange={e => updateVariant(block.id, v.sizeName, 'stock', e.target.value)} placeholder="0" /></div>
                             )}
@@ -597,10 +614,6 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, in
                         <div>
                           <div className="fl">SKU / Código *</div>
                           <input className="fi" type="text" value={stdSku} onChange={e => setStdSku(e.target.value.toUpperCase())} placeholder="Ej. PROD-001" />
-                        </div>
-                        <div className="v2col">
-                          <div><div className="fl">Costo</div><input className="fi" type="number" min="0" step="0.01" value={stdCost} onChange={e => setStdCost(e.target.value)} placeholder="0.00" /></div>
-                          <div><div className="fl">Precio venta *</div><input className="fi" type="number" min="0" step="0.01" value={stdPrice} onChange={e => setStdPrice(e.target.value)} placeholder="0.00" /></div>
                         </div>
                         {mode === 'create' && (
                           <div><div className="fl">Cantidad inicial</div><input className="fi" type="number" min="0" step="1" value={stdStock} onChange={e => setStdStock(e.target.value)} placeholder="0" /></div>
