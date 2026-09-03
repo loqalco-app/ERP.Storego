@@ -51,15 +51,24 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
-        {/* Fix iOS PWA: establece --app-h antes del primer paint para que position:fixed quede correcto */}
+        {/* Fix iOS PWA: captura --app-h y --safe-bottom una sola vez para que el BottomNav nunca salte */}
         <script dangerouslySetInnerHTML={{
           __html: `
             (function(){
-              function setH(){document.documentElement.style.setProperty('--app-h',window.innerHeight+'px')}
-              setH();
-              window.addEventListener('resize',setH);
-              /* Fuerza repaint en iOS PWA al recuperar focus */
-              window.addEventListener('focus',function(){setTimeout(setH,100)});
+              var root = document.documentElement;
+              function setVars(){
+                root.style.setProperty('--app-h', window.innerHeight + 'px');
+                /* Lee safe-area-inset-bottom una sola vez y la fija como variable estable */
+                var tmp = document.createElement('div');
+                tmp.style.cssText = 'position:fixed;bottom:0;height:env(safe-area-inset-bottom,0px);pointer-events:none;visibility:hidden';
+                document.body.appendChild(tmp);
+                var safeB = tmp.getBoundingClientRect().height || 0;
+                document.body.removeChild(tmp);
+                root.style.setProperty('--safe-bottom', safeB + 'px');
+              }
+              setVars();
+              window.addEventListener('resize', setVars);
+              window.addEventListener('focus', function(){ setTimeout(setVars, 100); });
             })();
           `
         }} />

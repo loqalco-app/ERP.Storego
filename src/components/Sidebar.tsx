@@ -184,12 +184,12 @@ export default function Sidebar({ active }: Props) {
         .nav-bar{
           position:fixed;bottom:0;left:0;right:0;z-index:199;
           display:flex;align-items:flex-end;justify-content:center;
-          padding:0 16px max(env(safe-area-inset-bottom,0px),10px);
+          padding:0 16px max(var(--safe-bottom,0px),10px);
           pointer-events:none;
           -webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0);
           will-change:transform
         }
-        @media(min-width:480px){.nav-bar{padding:0 20px max(env(safe-area-inset-bottom,0px),16px)}}
+        @media(min-width:480px){.nav-bar{padding:0 20px max(var(--safe-bottom,0px),16px)}}
 
         /* ── Floating pill ── */
         .nav-pill{
@@ -261,7 +261,7 @@ export default function Sidebar({ active }: Props) {
         }
         .pc-dropdown{
           position:fixed;
-          bottom:calc(max(env(safe-area-inset-bottom,0px),10px) + 84px);
+          bottom:calc(max(var(--safe-bottom,0px),10px) + 84px);
           right:16px;
           background:var(--bg,#ECEEF2);border-radius:var(--r-lg,20px);
           box-shadow:0 -8px 32px rgba(0,0,0,0.14),0 4px 16px rgba(0,0,0,0.08);
