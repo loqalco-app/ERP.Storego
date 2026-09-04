@@ -391,6 +391,8 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
       )
     }
 
+    fetch('/api/store/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId }) }).catch(() => {})
+
     router.refresh()
     router.push('/catalog')
   }
