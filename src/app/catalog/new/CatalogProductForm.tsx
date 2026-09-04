@@ -372,7 +372,13 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     }
     if (photoRows.length) {
       const { error: imgErr } = await supabase.from('product_images').insert(photoRows)
-      if (imgErr) { setSaving(false); setErr('El producto se guardó, pero las fotos no: ' + imgErr.message); return }
+      if (imgErr) {
+        setSaving(false)
+        const msg = 'El producto se guardó, pero las fotos no se pudieron guardar: ' + imgErr.message
+        setErr(msg)
+        alert(msg)
+        return
+      }
     }
 
     // Web store category assignment
