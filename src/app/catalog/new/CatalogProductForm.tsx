@@ -219,7 +219,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
       const compressed = await compressImage(raw)
       const path = `${orgId}/${uid()}.webp`
       const { error } = await supabase.storage.from('product-images').upload(path, compressed, { contentType: 'image/webp' })
-      if (error) { setErr('Error subiendo foto: ' + error.message); continue }
+      if (error) { const msg = 'Error subiendo foto: ' + error.message; setErr(msg); alert(msg); continue }
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
       const entry: PhotoEntry = { url: publicUrl, path, tempId: uid() }
       if (target === 'std') setStdPhotos(p => [...p, entry])
@@ -277,6 +277,8 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     setSaving(true); setErr(null)
     const supabase = createClient()
 
+    function fail(msg: string) { setSaving(false); setErr(msg); alert(msg) }
+
     let pid: string
 
     if (mode === 'edit' && productId) {
@@ -284,7 +286,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
         name: name.trim(), description: desc.trim() || null, status, condition,
         category_id: categoryId || null, brand_id: brandId || null,
       }).eq('id', productId)
-      if (upErr) { setSaving(false); setErr(upErr.message); return }
+      if (upErr) { fail('No se pudo guardar el producto: ' + upErr.message); return }
       pid = productId
     } else {
       let slug = slugify(name.trim())
@@ -292,9 +294,9 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
       if (pErr?.code === '23505' || pErr?.message?.includes('slug')) {
         slug = slugify(name.trim()) + '-' + uid()
         const retry = await supabase.from('products').insert({ organization_id: orgId, name: name.trim(), description: desc.trim() || null, slug, status, condition, category_id: categoryId || null, brand_id: brandId || null }).select('id').single()
-        if (retry.error) { setSaving(false); setErr(retry.error.message); return }
+        if (retry.error) { fail('No se pudo crear el producto: ' + retry.error.message); return }
         product = retry.data
-      } else if (pErr) { setSaving(false); setErr(pErr.message); return }
+      } else if (pErr) { fail('No se pudo crear el producto: ' + pErr.message); return }
       pid = product!.id
     }
 
@@ -306,14 +308,15 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
         })
       : [{ id: stdVariantId, name: 'Estándar', sku: stdSku.trim().toUpperCase(), stock: parseFloat(stdStock) || 0 }]
 
-    if (variantDefs.some(v => !v.sku)) { setSaving(false); setErr('Todos los SKU son obligatorios.'); return }
+    if (variantDefs.some(v => !v.sku)) { fail('Todos los SKU son obligatorios — revisa las variantes de colores/tallas.'); return }
 
     const existingDefs = variantDefs.filter((v): v is typeof variantDefs[number] & { id: string } => !!v.id)
     const newDefs       = variantDefs.filter(v => !v.id)
 
     // Update existing variants (sku/price may have changed)
     for (const v of existingDefs) {
-      await supabase.from('product_variants').update({ sku: v.sku, sale_price: salePrice, cost_price: costPrice }).eq('id', v.id)
+      const { error: vuErr } = await supabase.from('product_variants').update({ sku: v.sku, sale_price: salePrice, cost_price: costPrice }).eq('id', v.id)
+      if (vuErr) { fail(`No se pudo actualizar la variante ${v.sku}: ` + vuErr.message); return }
     }
 
     // Insert brand new variants
@@ -321,7 +324,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     if (newDefs.length) {
       const rows = newDefs.map(v => ({ organization_id: orgId, product_id: pid, name: v.name, sku: v.sku, sale_price: salePrice, cost_price: costPrice }))
       const { data, error: vErr } = await supabase.from('product_variants').insert(rows).select('id, name')
-      if (vErr) { setSaving(false); setErr(vErr.message.includes('sku') ? 'SKU duplicado, cámbialo.' : vErr.message); return }
+      if (vErr) { fail(vErr.message.includes('sku') ? 'SKU duplicado, cámbialo.' : 'No se pudo crear la variante: ' + vErr.message); return }
       insertedV = data ?? []
     }
 
@@ -370,15 +373,14 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
         newBlockPhotos.forEach((p, i) => photoRows.push({ product_id: pid, url: p.url, is_primary: mode === 'create' && photoRows.length === 0 && i === 0, sort_order: photoRows.length, variant_id: linkedId }))
       }
     }
+    const totalPhotosInState = hasColors ? colorBlocks.reduce((n, b) => n + b.photos.length, 0) : stdPhotos.length
     if (photoRows.length) {
       const { error: imgErr } = await supabase.from('product_images').insert(photoRows)
-      if (imgErr) {
-        setSaving(false)
-        const msg = 'El producto se guardó, pero las fotos no se pudieron guardar: ' + imgErr.message
-        setErr(msg)
-        alert(msg)
-        return
-      }
+      if (imgErr) { fail('El producto se guardó, pero las fotos no se pudieron guardar: ' + imgErr.message); return }
+    } else if (totalPhotosInState > 0) {
+      // There ARE photos showing in the UI, but none were queued to insert — every
+      // one already has an imageId (already saved) or something is mismatched.
+      alert(`Aviso: hay ${totalPhotosInState} foto(s) en pantalla pero ninguna se envió a guardar (ya tenían imageId o no se encontró su variante). Si esperabas fotos nuevas, vuelve a intentar subirlas.`)
     }
 
     // Web store category assignment
