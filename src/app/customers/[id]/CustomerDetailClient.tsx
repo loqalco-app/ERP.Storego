@@ -219,6 +219,7 @@ export default function CustomerDetailClient({ customer, orders, addresses }: Pr
           </div>
 
           {/* Addresses */}
+          <div style={{ fontSize: 10, background: '#fee', padding: 8, wordBreak: 'break-all' }}>DEBUG addresses prop: {JSON.stringify(addresses)}</div>
           <div className="sec-card">
             <div className="sec-hd">
               <div className="sec-title">Dirección</div>
