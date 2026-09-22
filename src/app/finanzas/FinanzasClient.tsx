@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
+import DateRangeCalendar from '@/components/DateRangeCalendar'
 import { createClient } from '@/lib/supabase/client'
 
 interface OrderItem { product_name: string; variant_name: string; quantity: number; unit_price: number; cost_price: number }
@@ -18,6 +19,15 @@ const CATS: Record<string, string> = {
   nomina: 'Nómina',
   servicio: 'Servicio',
   otro: 'Otro',
+}
+
+const CAT_META: Record<string, { color: string; bg: string; icon: ReactNode }> = {
+  gasto_operativo:   { color: '#D97706', bg: 'rgba(217,119,6,0.10)',  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M4 3v14a2 2 0 0 0 2 2h9"/></svg> },
+  compra_inventario: { color: '#DC2626', bg: 'rgba(220,38,38,0.10)',  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg> },
+  reembolso:         { color: '#7C3AED', bg: 'rgba(124,58,237,0.10)', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> },
+  nomina:            { color: '#0891B2', bg: 'rgba(8,145,178,0.10)',  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
+  servicio:          { color: '#2563EB', bg: 'rgba(37,99,235,0.10)', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
+  otro:              { color: '#6B7280', bg: 'rgba(107,114,128,0.10)',icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg> },
 }
 
 const PERIODOS = [
@@ -50,10 +60,6 @@ export default function FinanzasClient({
   const [savingExp, setSavingExp] = useState(false)
   const [expError, setExpError] = useState('')
 
-  // Selector personalizado
-  const [showCustom, setShowCustom]   = useState(periodo === 'personalizado')
-  const [customDesde, setCustomDesde] = useState(desde)
-  const [customHasta, setCustomHasta] = useState(hasta)
 
   // ── KPIs ─────────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
@@ -132,14 +138,23 @@ export default function FinanzasClient({
   }
 
   function changePeriodo(p: string) {
-    if (p === 'personalizado') { setShowCustom(true); return }
-    setShowCustom(false)
     router.push(`/finanzas?periodo=${p}`)
   }
 
-  function applyCustomRange() {
-    if (!customDesde || !customHasta) return
-    router.push(`/finanzas?periodo=personalizado&desde=${customDesde}&hasta=${customHasta}`)
+  function applyCustomRange(d: string, h: string) {
+    router.push(`/finanzas?periodo=personalizado&desde=${d}&hasta=${h}`)
+  }
+
+  function exportExpensesCSV() {
+    const header = ['Fecha', 'Categoría', 'Descripción', 'Monto']
+    const rows = expenses.map(e => [e.date, CATS[e.category] ?? e.category, e.description, String(e.amount)])
+    const csv = [header, ...rows].map(r => r.map(f => `"${String(f).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `gastos_${desde}_a_${hasta}.csv`
+    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const hasCMV = kpis.cmv > 0
@@ -149,17 +164,10 @@ export default function FinanzasClient({
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-        .periodo-select{appearance:none;-webkit-appearance:none;background:rgba(0,0,0,0.04) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(10,10,14,0.45)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E") no-repeat right 10px center;border:1.5px solid rgba(0,0,0,0.08);border-radius:50px;padding:7px 30px 7px 14px;font-size:12px;font-weight:700;color:rgba(10,10,14,0.65);font-family:inherit;cursor:pointer;outline:none;min-width:0;flex-shrink:0;transition:border-color .15s}
-        .periodo-select:focus{border-color:#2563EB}
+        .periodo-pills{display:flex;gap:4px;background:rgba(0,0,0,0.04);border-radius:14px;padding:3px}
+        .periodo-pill{padding:6px 12px;border-radius:11px;border:none;background:transparent;font-size:12px;font-weight:700;color:rgba(10,10,14,0.45);cursor:pointer;font-family:inherit;white-space:nowrap}
+        .periodo-pill.on{background:#ECEEF2;color:#1D4ED8;box-shadow:2px 2px 6px rgba(0,0,0,0.08),-1px -1px 4px rgba(255,255,255,0.9)}
         .fin-date{font-size:11px;font-weight:600;color:rgba(10,10,14,0.35);white-space:nowrap;flex-shrink:0}
-
-
-        .custom-range{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-        .custom-input{padding:8px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;background:rgba(0,0,0,0.03);font-size:13px;font-family:inherit;color:#0A0A0E;outline:none;flex:1;min-width:120px}
-        .custom-input:focus{border-color:#2563EB}
-        .custom-sep{font-size:12px;font-weight:600;color:rgba(10,10,14,0.40);flex-shrink:0}
-        .custom-apply{padding:8px 18px;border-radius:50px;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
-        .periodo-lbl{font-size:11px;color:rgba(10,10,14,0.38);font-weight:600;margin-bottom:20px}
 
         /* ── CASCADA FINANCIERA ── */
         .cascade{background:var(--bg,#ECEEF2);border-radius:24px;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9);padding:20px;margin-bottom:24px}
@@ -203,7 +211,38 @@ export default function FinanzasClient({
         /* section header */
         .sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
         .sec-title{font-size:11px;font-weight:800;color:rgba(10,10,14,0.40);text-transform:uppercase;letter-spacing:.07em}
-        .sec-btn{padding:6px 14px;border-radius:50px;border:1.5px solid rgba(37,99,235,0.25);background:rgba(37,99,235,0.06);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#1D4ED8}
+        .sec-btn{padding:6px 14px;border-radius:50px;border:1.5px solid rgba(37,99,235,0.25);background:rgba(37,99,235,0.06);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:#1D4ED8;display:flex;align-items:center;gap:6px}
+        .sec-btn-outline{border-color:rgba(0,0,0,0.10);background:transparent;color:rgba(10,10,14,0.55)}
+        .sec-btn-outline:disabled{opacity:.4;cursor:not-allowed}
+
+        /* category summary cards */
+        .cat-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+        .cat-card{background:var(--bg,#ECEEF2);border-radius:18px;padding:14px;box-shadow:4px 4px 12px rgba(0,0,0,0.06),-3px -3px 8px rgba(255,255,255,0.90)}
+        .cat-card-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+        .cat-card-lbl{font-size:11px;font-weight:700;color:rgba(10,10,14,0.50);margin-bottom:4px}
+        .cat-card-amt{font-size:17px;font-weight:900;color:#0A0A0E;letter-spacing:-.3px;margin-bottom:10px}
+        .cat-card-bar-track{height:5px;border-radius:3px;background:rgba(0,0,0,0.06);overflow:hidden;margin-bottom:6px}
+        .cat-card-bar{height:100%;border-radius:3px;transition:width .5s}
+        .cat-card-pct{font-size:10px;font-weight:700;color:rgba(10,10,14,0.35)}
+
+        /* structured expense table */
+        .exp-table{background:var(--bg,#ECEEF2);border-radius:20px;overflow:hidden;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9)}
+        .exp-thead{display:grid;grid-template-columns:90px 150px 1fr 110px 32px;gap:10px;padding:10px 16px;font-size:10px;font-weight:800;color:rgba(10,10,14,0.35);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid rgba(0,0,0,0.06)}
+        @media(max-width:768px){.exp-thead{display:none}}
+        .exp-row{display:grid;grid-template-columns:90px 150px 1fr 110px 32px;gap:10px;align-items:center;padding:12px 16px;border-top:1px solid rgba(0,0,0,0.04)}
+        .exp-row:first-child{border-top:none}
+        @media(max-width:768px){
+          .exp-row{grid-template-columns:1fr auto;grid-template-rows:auto auto;row-gap:6px}
+          .exp-cell-date{grid-column:1;order:3;font-size:10px}
+          .exp-cell-desc{grid-column:1/3;order:1;font-weight:700}
+          .exp-row span:nth-child(2){order:2}
+          .exp-cell-amt{order:4;text-align:right!important}
+          .exp-row .del-btn{order:5}
+        }
+        .exp-cell-date{font-size:12px;font-weight:600;color:rgba(10,10,14,0.55)}
+        .exp-cat-badge{display:inline-flex;padding:3px 9px;border-radius:50px;font-size:10.5px;font-weight:700;white-space:nowrap}
+        .exp-cell-desc{font-size:13px;font-weight:600;color:#0A0A0E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .exp-cell-amt{font-size:13px;font-weight:800;color:#DC2626;text-align:right}
 
         /* tables */
         .fin-table{background:var(--bg,#ECEEF2);border-radius:20px;overflow:hidden;box-shadow:6px 6px 16px rgba(0,0,0,0.07),-4px -4px 12px rgba(255,255,255,0.9);margin-bottom:20px}
@@ -238,13 +277,14 @@ export default function FinanzasClient({
         <div className="page-hd">
           <div className="page-hd-row">
             <div className="page-title">Finanzas</div>
-            <select
-              className="periodo-select"
-              value={periodo}
-              onChange={e => changePeriodo(e.target.value)}
-            >
-              {PERIODOS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
-            </select>
+            <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+              <div className="periodo-pills">
+                {PERIODOS.filter(p => p.key !== 'personalizado').map(p => (
+                  <button key={p.key} className={`periodo-pill${periodo===p.key?' on':''}`} onClick={() => changePeriodo(p.key)}>{p.label}</button>
+                ))}
+              </div>
+              <DateRangeCalendar desde={desde} hasta={hasta} onApply={applyCustomRange} />
+            </div>
           </div>
           <div className="page-hd-tabs">
             {([['resumen','Resumen'],['productos','Productos'],['gastos','Gastos'],['cobros','Cobros']] as const).map(([k,l]) => (
@@ -252,16 +292,6 @@ export default function FinanzasClient({
             ))}
           </div>
         </div>
-
-        {/* Rango personalizado */}
-        {showCustom && (
-          <div className="custom-range">
-            <input className="custom-input" type="date" value={customDesde} onChange={e => setCustomDesde(e.target.value)} />
-            <span className="custom-sep">al</span>
-            <input className="custom-input" type="date" value={customHasta} onChange={e => setCustomHasta(e.target.value)} />
-            <button className="custom-apply" onClick={applyCustomRange}>Aplicar</button>
-          </div>
-        )}
 
         {/* ── TAB: RESUMEN ── */}
         {tab === 'resumen' && <>
@@ -426,9 +456,15 @@ export default function FinanzasClient({
         {tab === 'gastos' && <>
         <div className="sec-hd">
           <div className="sec-title">Gastos y egresos</div>
-          <button className="sec-btn" onClick={() => setShowExpForm(v => !v)}>
-            {showExpForm ? 'Cancelar' : '+ Agregar gasto'}
-          </button>
+          <div style={{display:'flex',gap:8}}>
+            <button className="sec-btn sec-btn-outline" onClick={exportExpensesCSV} disabled={expenses.length === 0}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar CSV
+            </button>
+            <button className="sec-btn" onClick={() => setShowExpForm(v => !v)}>
+              {showExpForm ? 'Cancelar' : '+ Agregar gasto'}
+            </button>
+          </div>
         </div>
         {showExpForm && (
           <div className="exp-form">
@@ -449,31 +485,45 @@ export default function FinanzasClient({
             </div>
           </div>
         )}
+
         {gastosPorCat.length > 0 && (
-          <div className="fin-table" style={{marginBottom:12}}>
-            {gastosPorCat.map(([cat, total]) => (
-              <div key={cat} className="fin-row">
-                <div style={{flex:1}}><div className="fin-row-name">{CATS[cat] ?? cat}</div></div>
-                <div className="fin-amt" style={{color:'#DC2626'}}>{fmt(total)}</div>
-              </div>
-            ))}
+          <div className="cat-card-grid">
+            {gastosPorCat.map(([cat, total]) => {
+              const meta = CAT_META[cat] ?? CAT_META.otro
+              const pct = kpis.gastosTotales === 0 ? 0 : Math.round(total / kpis.gastosTotales * 100)
+              return (
+                <div key={cat} className="cat-card">
+                  <div className="cat-card-icon" style={{background:meta.bg,color:meta.color}}>{meta.icon}</div>
+                  <div className="cat-card-lbl">{CATS[cat] ?? cat}</div>
+                  <div className="cat-card-amt">{fmt(total)}</div>
+                  <div className="cat-card-bar-track"><div className="cat-card-bar" style={{width:`${pct}%`,background:meta.color}} /></div>
+                  <div className="cat-card-pct">{pct}% del total</div>
+                </div>
+              )
+            })}
           </div>
         )}
-        <div className="fin-table">
+
+        <div className="exp-table">
+          <div className="exp-thead">
+            <span>Fecha</span><span>Categoría</span><span>Descripción</span><span style={{textAlign:'right'}}>Monto</span><span />
+          </div>
           {expenses.length === 0 ? (
             <div className="fin-empty">Sin gastos registrados en este periodo</div>
-          ) : expenses.map(e => (
-            <div key={e.id} className="fin-row">
-              <div style={{flex:1,minWidth:0}}>
-                <div className="fin-row-name">{e.description}</div>
-                <div className="fin-row-sub">{CATS[e.category] ?? e.category} · {e.date}</div>
+          ) : expenses.map(e => {
+            const meta = CAT_META[e.category] ?? CAT_META.otro
+            return (
+              <div key={e.id} className="exp-row">
+                <span className="exp-cell-date">{e.date}</span>
+                <span><span className="exp-cat-badge" style={{background:meta.bg,color:meta.color}}>{CATS[e.category] ?? e.category}</span></span>
+                <span className="exp-cell-desc">{e.description}</span>
+                <span className="exp-cell-amt">{fmt(e.amount)}</span>
+                <button className="del-btn" onClick={() => deleteExpense(e.id)} title="Eliminar">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
               </div>
-              <div className="fin-amt" style={{color:'#DC2626',marginRight:8}}>{fmt(e.amount)}</div>
-              <button className="del-btn" onClick={() => deleteExpense(e.id)}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-          ))}
+            )
+          })}
         </div>
         </>}
 
