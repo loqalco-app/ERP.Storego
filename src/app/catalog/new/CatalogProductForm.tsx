@@ -153,13 +153,17 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
 
   // ── Color helpers ──
 
+  function skuPrefix() {
+    return slugify(name).toUpperCase().slice(0, 6) || 'PROD'
+  }
+
   function addColor() {
     const v = colorInput.trim()
     if (!v || colorBlocks.some(b => b.colorName === v)) return
     const blockId = uid()
     setColorBlocks(cb => [...cb, { id: blockId, colorName: v, sizes: [], photos: [], sizeInput: '' }])
     // Create a no-size variant for this color right away
-    const skuHint = slugify(v).toUpperCase().slice(0, 14)
+    const skuHint = `${skuPrefix()}-${slugify(v).toUpperCase().slice(0, 10)}`
     setVariants(vs => [...vs, { colorId: blockId, sizeName: '', sku: skuHint, stock: '', isOpen: true }])
     setColorInput('')
   }
@@ -175,7 +179,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     const sz = block.sizeInput.trim()
     if (!sz || block.sizes.includes(sz)) return
     setColorBlocks(cb => cb.map(b => b.id === blockId ? { ...b, sizes: [...b.sizes, sz], sizeInput: '' } : b))
-    const skuHint = slugify(block.colorName + ' ' + sz).toUpperCase().slice(0, 14)
+    const skuHint = `${skuPrefix()}-${slugify(block.colorName + ' ' + sz).toUpperCase().slice(0, 10)}`
     // If this is the first size, remove the no-size variant and replace with size variants
     setVariants(vs => {
       const withoutNoSize = vs.filter(v => !(v.colorId === blockId && v.sizeName === ''))
@@ -192,7 +196,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
       const filtered = vs.filter(v => !(v.colorId === blockId && v.sizeName === sz))
       // If no sizes left, re-add no-size variant
       if (newSizes.length === 0) {
-        const skuHint = slugify(block.colorName).toUpperCase().slice(0, 14)
+        const skuHint = `${skuPrefix()}-${slugify(block.colorName).toUpperCase().slice(0, 10)}`
         return [...filtered, { colorId: blockId, sizeName: '', sku: skuHint, stock: '', isOpen: true }]
       }
       return filtered
@@ -326,8 +330,21 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     if (newDefs.length) {
       const rows = newDefs.map(v => ({ organization_id: orgId, product_id: pid, name: v.name, sku: v.sku, sale_price: salePrice, cost_price: costPrice, regular_price: regularPrice }))
       const { data, error: vErr } = await supabase.from('product_variants').insert(rows).select('id, name')
-      if (vErr) { fail(vErr.message.includes('sku') ? 'SKU duplicado, cámbialo.' : 'No se pudo crear la variante: ' + vErr.message); return }
-      insertedV = data ?? []
+      if (vErr) {
+        if (vErr.message.includes('sku')) {
+          // Auto-generated SKU collided with another product's variant — retry
+          // once with a short unique suffix instead of failing on the user.
+          const suffix = uid().toUpperCase()
+          const retryRows = rows.map(r => ({ ...r, sku: `${r.sku}-${suffix}` }))
+          const retry = await supabase.from('product_variants').insert(retryRows).select('id, name')
+          if (retry.error) { fail('No se pudo crear la variante (SKU duplicado incluso tras reintentar): ' + retry.error.message); return }
+          insertedV = retry.data ?? []
+        } else {
+          fail('No se pudo crear la variante: ' + vErr.message); return
+        }
+      } else {
+        insertedV = data ?? []
+      }
     }
 
     // Stock: default location
