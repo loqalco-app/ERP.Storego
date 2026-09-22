@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
   }
 
   const streetLine = shipping.address_line1!.trim() + (shipping.address_line2?.trim() ? `, ${shipping.address_line2!.trim()}` : '')
-  const { data: existingAddresses, error: addrSelectErr } = await client
+  const { data: existingAddresses } = await client
     .from('customer_addresses')
     .select('id, street, city, zip_code')
     .eq('customer_id', customerId)
@@ -139,9 +139,8 @@ export async function POST(req: NextRequest) {
   const sameAddress = (existingAddresses ?? []).some(a =>
     a.street === streetLine && a.city === shipping.city!.trim() && a.zip_code === shipping.zip!.trim())
 
-  let addrInsertErr: string | null = null
   if (!sameAddress) {
-    const { error } = await client.from('customer_addresses').insert({
+    await client.from('customer_addresses').insert({
       customer_id: customerId,
       label: 'Envío',
       street: streetLine,
@@ -151,9 +150,7 @@ export async function POST(req: NextRequest) {
       country: 'MX',
       is_default: (existingAddresses ?? []).length === 0,
     })
-    if (error) { addrInsertErr = error.message; console.error('[checkout] customer_addresses insert failed:', error) }
   }
-  if (addrSelectErr) console.error('[checkout] customer_addresses select failed:', addrSelectErr)
 
   // 4. Create the order + line items + payment + shipping snapshot.
   const { data: order, error: oErr } = await client
@@ -203,7 +200,7 @@ export async function POST(req: NextRequest) {
     notifyNewOrder(orgId, { folio: order.folio, total, customerName: customerIn.full_name!.trim() }),
   ])
 
-  return json({ order_id: order.id, folio: order.folio, total, _debug_addr_error: addrInsertErr })
+  return json({ order_id: order.id, folio: order.folio, total })
 }
 
 export const dynamic = 'force-dynamic'
