@@ -8,11 +8,25 @@ function getClient() {
   )
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': process.env.STORE_ORIGIN ?? '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+}
+
+function json(body: unknown, status = 200) {
+  return NextResponse.json(body, { status, headers: corsHeaders })
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders })
+}
+
 // POST /api/store/reserve
 // Body: { org_id?, session_id, variant_id, quantity }
 export async function POST(req: NextRequest) {
   let body: { org_id?: string; session_id?: string; variant_id?: string; quantity?: number }
-  try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }) }
+  try { body = await req.json() } catch { return json({ error: 'invalid_json' }, 400) }
 
   const orgId     = body.org_id ?? process.env.STORE_ORG_ID
   const sessionId = body.session_id
@@ -20,7 +34,7 @@ export async function POST(req: NextRequest) {
   const quantity  = body.quantity
 
   if (!orgId || !sessionId || !variantId || !quantity || quantity < 1) {
-    return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
+    return json({ error: 'missing_fields' }, 400)
   }
 
   const client = getClient()
@@ -33,7 +47,7 @@ export async function POST(req: NextRequest) {
 
   const available = stock?.quantity_disponible ?? 0
   if (available < quantity) {
-    return NextResponse.json({ error: 'insufficient_stock', available }, { status: 409 })
+    return json({ error: 'insufficient_stock', available }, 409)
   }
 
   // Release any existing pending reservation for this session + variant
@@ -53,10 +67,10 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error || !reservation) {
-    return NextResponse.json({ error: 'reserve_failed' }, { status: 500 })
+    return json({ error: 'reserve_failed' }, 500)
   }
 
-  return NextResponse.json({ reservation_id: reservation.id, expires_at: reservation.expires_at, quantity })
+  return json({ reservation_id: reservation.id, expires_at: reservation.expires_at, quantity })
 }
 
 export const dynamic = 'force-dynamic'
