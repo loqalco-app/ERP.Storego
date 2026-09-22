@@ -35,12 +35,15 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
   if (!customer) notFound()
 
+  const addrResult = await supabase.from('customer_addresses').select('*').eq('customer_id', id)
+
   return (
     <CustomerDetailClient
       customer={customer as any}
       orders={(orders ?? []) as any}
       addresses={(addresses ?? []) as any}
       orgId={orgId}
+      debugInfo={{ customerId: id, orgId, addrData: addrResult.data, addrError: addrResult.error }}
     />
   )
 }
