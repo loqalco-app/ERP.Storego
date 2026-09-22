@@ -1,4 +1,4 @@
-const CACHE = 'store-erp-v4'
+const CACHE = 'store-erp-v5'
 const STATIC_ASSETS = [
   '/manifest.json',
   '/icons/icon-192.png',
@@ -55,5 +55,31 @@ self.addEventListener('fetch', e => {
         return res
       })
       .catch(() => caches.match(e.request))
+  )
+})
+
+// Push: new web sale notification
+self.addEventListener('push', e => {
+  let data = { title: 'NORTHÉA', body: 'Tienes una nueva notificación', url: '/orders' }
+  try { data = e.data.json() } catch { /* ignore */ }
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: data.url || '/orders' },
+    })
+  )
+})
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close()
+  const url = e.notification.data?.url || '/orders'
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then(clients => {
+      const existing = clients.find(c => c.url.includes(url))
+      if (existing) return existing.focus()
+      return self.clients.openWindow(url)
+    })
   )
 })

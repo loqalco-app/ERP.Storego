@@ -99,6 +99,10 @@ export default function Sidebar({ active }: Props) {
   const [displayName,  setDisplayName]  = useState(() => readCache('_erp_dn', ''))
   const [mobileOpen,   setMobileOpen]   = useState(false)
   const [desktopOpen,  setDesktopOpen]  = useState(false)
+  const [orgId,        setOrgId]        = useState('')
+  const [pushState,    setPushState]    = useState<'idle' | 'on' | 'unsupported'>(() =>
+    (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) ? 'idle' : 'unsupported'
+  )
 
   const desktopWrapRef = useRef<HTMLDivElement>(null)
 
@@ -108,9 +112,11 @@ export default function Sidebar({ active }: Props) {
       if (!data.user) return
       const { data: profile } = await sb
         .from('user_profiles')
-        .select('full_name, role, allowed_modules')
+        .select('full_name, role, allowed_modules, organization_id')
         .eq('id', data.user.id)
         .single()
+      const org = (profile as { organization_id?: string } | null)?.organization_id
+      if (org) setOrgId(org)
       const name = profile?.full_name
         || data.user.user_metadata?.full_name
         || data.user.user_metadata?.name
@@ -147,6 +153,45 @@ export default function Sidebar({ active }: Props) {
     return () => document.removeEventListener('mousedown', handler)
   }, [desktopOpen])
 
+  useEffect(() => {
+    if (pushState === 'unsupported') return
+    navigator.serviceWorker.ready.then(reg => reg.pushManager.getSubscription()).then(sub => {
+      if (sub) setPushState('on')
+    }).catch(() => {})
+  }, [pushState])
+
+  function urlBase64ToUint8Array(base64: string) {
+    const padding = '='.repeat((4 - base64.length % 4) % 4)
+    const base64Safe = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
+    const raw = atob(base64Safe)
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
+  }
+
+  async function enablePush() {
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    if (!vapidKey || pushState === 'unsupported') return
+    try {
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') return
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidKey),
+      })
+      const json = sub.toJSON()
+      const sb = createClient()
+      const { data: userData } = await sb.auth.getUser()
+      await sb.from('push_subscriptions').upsert({
+        organization_id: orgId,
+        endpoint: json.endpoint!,
+        p256dh: json.keys!.p256dh,
+        auth: json.keys!.auth,
+        created_by: userData.user?.id ?? null,
+      }, { onConflict: 'endpoint' })
+      setPushState('on')
+    } catch { /* permission denied or subscribe failed — silently ignore */ }
+  }
+
   async function signOut() {
     const sb = createClient()
     await sb.auth.signOut()
@@ -159,6 +204,12 @@ export default function Sidebar({ active }: Props) {
 
   const menuLinks = (close: () => void) => (
     <>
+      {pushState !== 'unsupported' && (
+        <button className="pc-menu-item" onClick={() => { enablePush(); close() }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          {pushState === 'on' ? 'Notificaciones activas' : 'Activar notificaciones'}
+        </button>
+      )}
       <Link href="/settings" className="pc-menu-item" onClick={close}>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/></svg>
         Mi perfil
@@ -310,6 +361,14 @@ export default function Sidebar({ active }: Props) {
         }
         .desk-chip-name{font-size:13px;font-weight:700;color:var(--text-1,#1A1A20)}
 
+        .bell-btn{
+          position:relative;display:flex;align-items:center;justify-content:center;
+          width:36px;height:36px;border-radius:50%;border:none;background:none;
+          color:var(--text-1,#0A0A0E);opacity:.55;cursor:pointer;transition:opacity .14s,background .14s
+        }
+        .bell-btn:hover{opacity:.85;background:rgba(0,0,0,0.05)}
+        .bell-dot{position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:#16A34A;box-shadow:0 0 0 2px var(--bg,#ECEEF2)}
+
         /* Dropdown desktop — baja del chip */
         .desk-dropdown{
           position:absolute;top:calc(100% + 8px);right:0;
@@ -337,6 +396,12 @@ export default function Sidebar({ active }: Props) {
       {/* ── Header fijo desktop (≥768px) ── */}
       <div className="desk-header">
         <span className="desk-brand">NORTHÉA</span>
+        {pushState !== 'unsupported' && (
+          <button className="bell-btn" onClick={enablePush} aria-label={pushState === 'on' ? 'Notificaciones activas' : 'Activar notificaciones'} title={pushState === 'on' ? 'Notificaciones activas' : 'Activar notificaciones de nuevas ventas'}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            {pushState === 'on' && <span className="bell-dot" />}
+          </button>
+        )}
         <div className="desk-chip-wrap" ref={desktopWrapRef}>
           <button className="desk-chip" aria-label="Mi perfil" onClick={() => setDesktopOpen(v => !v)}>
             <div className="desk-chip-av">{initials}</div>
