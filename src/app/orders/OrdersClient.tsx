@@ -115,6 +115,21 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
     syncSelected({ ...selected, status: 'pagado' })
   }
 
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function deleteOrder(id: string, folio: string) {
+    if (!confirm(`¿Eliminar la orden ${folio} permanentemente? Esta acción no se puede deshacer.`)) return
+    setDeletingId(id)
+    await supabase.from('order_items').delete().eq('order_id', id)
+    await supabase.from('order_payments').delete().eq('order_id', id)
+    await supabase.from('order_shipping').delete().eq('order_id', id)
+    const { error } = await supabase.from('orders').delete().eq('id', id)
+    setDeletingId(null)
+    if (error) { alert('No se pudo eliminar la orden: ' + error.message); return }
+    setOrders(prev => prev.filter(o => o.id !== id))
+    if (selected?.id === id) setSelected(null)
+  }
+
   return (
     <>
       <style>{`
@@ -132,6 +147,12 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
         .ord-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
         .ord-total{font-size:14px;font-weight:800;color:#0A0A0E}
         .badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:50px;white-space:nowrap}
+        .ord-del-btn{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.22);padding:6px;flex-shrink:0;display:flex}
+        .ord-del-btn:hover:not(:disabled){color:#DC2626}
+        .ord-del-btn:disabled{opacity:0.3;cursor:not-allowed}
+        .delete-order-btn{width:100%;padding:13px;border-radius:16px;border:1.5px solid rgba(220,38,38,0.25);background:rgba(220,38,38,0.06);color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px;margin-bottom:8px}
+        .delete-order-btn:hover:not(:disabled){background:rgba(220,38,38,0.12)}
+        .delete-order-btn:disabled{opacity:0.5;cursor:not-allowed}
         .empty{padding:48px 20px;text-align:center;color:rgba(10,10,14,0.35);font-size:14px;font-weight:600}
         /* DETAIL SHEET */
         .detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.40);z-index:800;display:flex;justify-content:flex-end}
@@ -220,6 +241,14 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
                     <span className="badge" style={{ color: st.color, background: st.bg }}>{st.label}</span>
                   </div>
                 </div>
+                <button
+                  className="ord-del-btn"
+                  onClick={e => { e.stopPropagation(); deleteOrder(o.id, o.folio) }}
+                  disabled={deletingId === o.id}
+                  title="Eliminar orden"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                </button>
               </div>
             )
           })}
@@ -384,6 +413,14 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
                     </div>
                   </div>
                 )}
+
+                <button
+                  className="delete-order-btn"
+                  onClick={() => deleteOrder(selected.id, selected.folio)}
+                  disabled={deletingId === selected.id}
+                >
+                  {deletingId === selected.id ? 'Eliminando…' : 'Eliminar orden'}
+                </button>
               </div>
             </div>
           </div>

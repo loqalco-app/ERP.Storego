@@ -116,7 +116,7 @@ export default function DateRangeCalendar({ desde, hasta, onApply }: Props) {
         .drc-wrap{position:relative}
         .drc-trigger{display:flex;align-items:center;gap:8px;padding:8px 14px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:12.5px;font-weight:700;color:#0A0A0E;cursor:pointer;font-family:inherit;white-space:nowrap}
         .drc-trigger:hover{border-color:#2563EB}
-        .drc-pop{position:absolute;top:calc(100% + 8px);left:0;z-index:50;background:#ECEEF2;border-radius:20px;box-shadow:0 12px 32px rgba(0,0,0,0.18);padding:16px;display:flex;flex-direction:column;gap:12px;width:min(560px,92vw)}
+        .drc-pop{position:absolute;top:calc(100% + 8px);right:0;z-index:50;background:#ECEEF2;border-radius:20px;box-shadow:0 12px 32px rgba(0,0,0,0.18);padding:16px;display:flex;flex-direction:column;gap:12px;width:min(560px,92vw);max-width:calc(100vw - 24px)}
         .drc-quick-row{display:flex;gap:6px;flex-wrap:wrap}
         .drc-quick{padding:6px 12px;border-radius:50px;border:1.5px solid rgba(0,0,0,0.08);background:transparent;font-size:11.5px;font-weight:700;color:rgba(10,10,14,0.55);cursor:pointer;font-family:inherit}
         .drc-quick:hover{border-color:#2563EB;color:#2563EB}
