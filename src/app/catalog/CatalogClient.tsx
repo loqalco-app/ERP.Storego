@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 /* ── Types ── */
 interface Category { id: string; name: string; slug: string; description: string | null; parent_id: string | null }
 interface Brand    { id: string; name: string; description: string | null }
-interface Variant  { id: string; sku: string; sale_price: number; cost_price: number; stock_levels: { quantity_available: number }[] }
+interface Variant  { id: string; sku: string; sale_price: number; cost_price: number; regular_price: number | null; stock_levels: { quantity_available: number }[] }
 interface Product  { id: string; name: string; status: string; condition: string; created_at: string; category_id: string | null; brand_id: string | null; is_published: boolean; categories: { id: string; name: string } | null; brands: { id: string; name: string } | null; product_variants: Variant[] }
 
 interface Props { products: Product[]; categories: Category[]; brands: Brand[]; orgId: string; userName: string; orgName: string }
@@ -17,6 +17,11 @@ function slugify(s: string) { return s.toLowerCase().normalize('NFD').replace(/[
 function totalStock(variants: Variant[]) { return variants.reduce((s,v) => s + v.stock_levels.reduce((a,sl) => a + sl.quantity_available, 0), 0) }
 function minPrice(variants: Variant[]) { if (!variants.length) return null; return Math.min(...variants.map(v => v.sale_price)) }
 function minCost(variants: Variant[])  { if (!variants.length) return null; return Math.min(...variants.map(v => v.cost_price ?? 0)) }
+function discountPct(variants: Variant[]) {
+  const v = variants[0]
+  if (!v?.regular_price || v.regular_price <= v.sale_price) return null
+  return Math.round((1 - v.sale_price / v.regular_price) * 100)
+}
 function fmt(n: number) { return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 const STATUS_META: Record<string,{ label:string; bg:string; color:string }> = {
   active:   { label:'Activo',    bg:'rgba(5,150,105,0.10)',   color:'#065f46' },
@@ -251,6 +256,10 @@ export default function CatalogClient({ products: initProducts, categories: init
         .pub-lbl{font-size:10px;font-weight:700;color:rgba(26,26,32,0.35)}
         .pub-lbl.on{color:#059669}
         .g-pub{position:absolute;top:10px;right:10px}
+        .disc-badge{display:inline-flex;align-items:center;background:#DC2626;color:white;font-weight:800;font-size:10px;border-radius:6px;padding:2px 6px;letter-spacing:.02em;flex-shrink:0}
+        .disc-badge-lg{font-size:11px;padding:3px 8px;border-radius:7px}
+        .price-regular{font-size:11px;color:rgba(26,26,32,0.35);text-decoration:line-through;font-weight:600;margin-right:5px}
+        .g-disc{position:absolute;top:10px;left:10px}
 
         @media(max-width:860px){.ptbl .hide-md{display:none}}
         @media(max-width:600px){
@@ -461,7 +470,10 @@ export default function CatalogClient({ products: initProducts, categories: init
                                 <div className="p-cost">{costPrice !== null && costPrice > 0 ? `$${fmt(costPrice)}` : <span style={{opacity:.35}}>—</span>}</div>
                               </td>
                               <td>
-                                <div className="p-sale">{salePrice !== null ? `$${fmt(salePrice)}` : <span style={{opacity:.35}}>—</span>}</div>
+                                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                  <div className="p-sale">{salePrice !== null ? `$${fmt(salePrice)}` : <span style={{opacity:.35}}>—</span>}</div>
+                                  {discountPct(p.product_variants) !== null && <span className="disc-badge">-{discountPct(p.product_variants)}%</span>}
+                                </div>
                                 {p.product_variants.length > 1 && <div className="p-sub">{p.product_variants.length} vars</div>}
                               </td>
                               <td>
@@ -508,7 +520,8 @@ export default function CatalogClient({ products: initProducts, categories: init
                     const sm        = STATUS_META[p.status] ?? STATUS_META.draft
                     const stockCls  = stock === 0 ? '#DC2626' : stock < 5 ? '#D97706' : '#059669'
                     return (
-                      <div key={p.id} className="g-card" onClick={() => setViewProduct(p)}>
+                      <div key={p.id} className="g-card" style={{position:'relative'}} onClick={() => setViewProduct(p)}>
+                        {discountPct(p.product_variants) !== null && <span className="disc-badge g-disc">-{discountPct(p.product_variants)}%</span>}
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
                           <div className="g-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.50)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
@@ -520,7 +533,12 @@ export default function CatalogClient({ products: initProducts, categories: init
                           {cat && <div className="g-cat">{cat}</div>}
                         </div>
                         <div className="g-row">
-                          <div className="g-price">{salePrice !== null ? `$${fmt(salePrice)}` : '—'}</div>
+                          <div style={{display:'flex',alignItems:'baseline',gap:5}}>
+                            {p.product_variants[0]?.regular_price && p.product_variants[0].regular_price > (salePrice ?? 0) && (
+                              <span className="price-regular">${fmt(p.product_variants[0].regular_price)}</span>
+                            )}
+                            <div className="g-price">{salePrice !== null ? `$${fmt(salePrice)}` : '—'}</div>
+                          </div>
                           <span style={{fontSize:11,fontWeight:700,color:stockCls}}>{stock} pcs</span>
                         </div>
                         <div className="g-row" onClick={e => e.stopPropagation()}>
@@ -775,7 +793,13 @@ export default function CatalogClient({ products: initProducts, categories: init
                           <div style={{fontSize:11,color:'rgba(26,26,32,0.40)',marginTop:2}}>{vStock} en stock</div>
                         </div>
                         <div style={{textAlign:'right'}}>
-                          <div style={{fontSize:15,fontWeight:800,color:'#1D4ED8'}}>${fmt(v.sale_price)}</div>
+                          <div style={{display:'flex',alignItems:'baseline',gap:6,justifyContent:'flex-end'}}>
+                            {v.regular_price && v.regular_price > v.sale_price && <span className="price-regular">${fmt(v.regular_price)}</span>}
+                            <div style={{fontSize:15,fontWeight:800,color:'#1D4ED8'}}>${fmt(v.sale_price)}</div>
+                            {v.regular_price && v.regular_price > v.sale_price && (
+                              <span className="disc-badge disc-badge-lg">-{Math.round((1 - v.sale_price / v.regular_price) * 100)}%</span>
+                            )}
+                          </div>
                           {v.cost_price > 0 && <div style={{fontSize:11,color:'rgba(26,26,32,0.40)',marginTop:1}}>Costo ${fmt(v.cost_price)}</div>}
                         </div>
                       </div>

@@ -24,7 +24,7 @@ export default async function EditCatalogProductPage({ params }: { params: Promi
   ] = await Promise.all([
     supabase.from('products').select(`
       id, name, description, status, condition, category_id, brand_id,
-      product_variants(id, name, sku, sale_price, cost_price),
+      product_variants(id, name, sku, sale_price, cost_price, regular_price),
       product_images(id, url, is_primary, sort_order, variant_id)
     `).eq('id', id).eq('organization_id', orgId).single(),
     supabase.from('categories').select('id, name, parent_id').eq('organization_id', orgId).order('name'),
@@ -39,7 +39,7 @@ export default async function EditCatalogProductPage({ params }: { params: Promi
   for (const sl of stockLevels ?? []) stockMap[sl.variant_id] = (stockMap[sl.variant_id] ?? 0) + sl.quantity_available
 
   type Img = { id: string; url: string; variant_id: string | null }
-  type Variant = { id: string; name: string; sku: string; sale_price: number; cost_price: number }
+  type Variant = { id: string; name: string; sku: string; sale_price: number; cost_price: number; regular_price: number | null }
   const images = (product.product_images ?? []) as Img[]
   const variantsRaw = (product.product_variants ?? []) as Variant[]
 
@@ -73,6 +73,7 @@ export default async function EditCatalogProductPage({ params }: { params: Promi
 
   const salePrice = variantsRaw[0]?.sale_price ?? 0
   const costPrice = variantsRaw[0]?.cost_price ?? 0
+  const regularPrice = variantsRaw[0]?.regular_price ?? undefined
 
   return (
     <CatalogProductForm
@@ -86,7 +87,7 @@ export default async function EditCatalogProductPage({ params }: { params: Promi
       initial={{
         name: product.name, description: product.description ?? '', status: product.status, condition: product.condition,
         categoryId: product.category_id ?? '', brandId: product.brand_id ?? '',
-        salePrice, costPrice, webCategoryId: webCats?.[0]?.category_id ?? '',
+        salePrice, costPrice, regularPrice, webCategoryId: webCats?.[0]?.category_id ?? '',
       }}
       existingColors={existingColors}
       existingStandard={existingStandard}

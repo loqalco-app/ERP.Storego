@@ -19,7 +19,7 @@ const getCatalog = (orgId: string) =>
           .from('products')
           .select(`
             id, name, slug, description, created_at, category_id,
-            product_variants(id, name, sku, sale_price, status),
+            product_variants(id, name, sku, sale_price, regular_price, status),
             product_images(url, is_primary, sort_order, alt_text),
             store_product_categories(category_id)
           `)

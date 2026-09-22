@@ -22,7 +22,7 @@ export async function GET(
     .from('products')
     .select(`
       id, name, slug, description, created_at, category_id,
-      product_variants(id, name, sku, sale_price, status),
+      product_variants(id, name, sku, sale_price, regular_price, status),
       product_images(url, is_primary, sort_order, alt_text),
       store_product_categories(category_id)
     `)
@@ -44,7 +44,7 @@ export async function GET(
   const stockMap: Record<string, number> = {}
   for (const s of stock ?? []) stockMap[s.variant_id] = s.quantity_disponible
 
-  const variants = (product.product_variants as { id: string; name: string; sku: string; sale_price: number; status: string }[]).map(v => ({
+  const variants = (product.product_variants as { id: string; name: string; sku: string; sale_price: number; regular_price: number | null; status: string }[]).map(v => ({
     ...v,
     quantity_disponible: stockMap[v.id] ?? 0,
     in_stock: (stockMap[v.id] ?? 0) > 0,

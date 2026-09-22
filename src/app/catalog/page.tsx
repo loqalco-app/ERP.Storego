@@ -24,7 +24,7 @@ export default async function CatalogPage() {
       id, name, status, condition, created_at, category_id, brand_id, is_published,
       categories!products_category_id_fkey(id, name),
       brands(id, name),
-      product_variants(id, sku, sale_price, cost_price)
+      product_variants(id, sku, sale_price, cost_price, regular_price)
     `).eq('organization_id', orgId).order('created_at', { ascending: false }),
 
     supabase.from('categories').select('id, name, slug, description, parent_id').eq('organization_id', orgId).order('name'),
@@ -42,7 +42,7 @@ export default async function CatalogPage() {
 
   const productsWithStock = (products ?? []).map(p => ({
     ...p,
-    product_variants: (p.product_variants ?? []).map((v: { id: string; sku: string; sale_price: number; cost_price: number }) => ({
+    product_variants: (p.product_variants ?? []).map((v: { id: string; sku: string; sale_price: number; cost_price: number; regular_price: number | null }) => ({
       ...v,
       stock_levels: [{ quantity_available: stockMap[v.id] ?? 0 }],
     })),

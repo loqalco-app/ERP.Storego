@@ -36,7 +36,7 @@ interface Props {
   orgId: string; userName: string; orgName: string
   categories: Category[]; brands: Brand[]
   productId?: string
-  initial?: { name: string; description: string; status: string; condition: string; categoryId: string; brandId: string; salePrice?: number; costPrice?: number; webCategoryId?: string }
+  initial?: { name: string; description: string; status: string; condition: string; categoryId: string; brandId: string; salePrice?: number; costPrice?: number; regularPrice?: number; webCategoryId?: string }
   existingColors?: ExistingColorGroup[]
   existingStandard?: ExistingStandard | null
 }
@@ -120,8 +120,9 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
   )
 
   // Global pricing (applies to all variants)
-  const [globalCost, setGlobalCost]   = useState(initial?.costPrice ? String(initial.costPrice) : '')
-  const [globalPrice, setGlobalPrice] = useState(initial?.salePrice ? String(initial.salePrice) : '')
+  const [globalCost, setGlobalCost]     = useState(initial?.costPrice ? String(initial.costPrice) : '')
+  const [globalPrice, setGlobalPrice]   = useState(initial?.salePrice ? String(initial.salePrice) : '')
+  const [globalRegular, setGlobalRegular] = useState(initial?.regularPrice ? String(initial.regularPrice) : '')
 
   // Standard variant (no colors)
   const [stdVariantId]              = useState(existingStandard?.variantId)
@@ -268,6 +269,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
 
     const salePrice = parseFloat(globalPrice) || 0
     const costPrice = parseFloat(globalCost)  || 0
+    const regularPrice = parseFloat(globalRegular) || null
     if (!salePrice) { setErr('El precio de venta es obligatorio.'); return }
 
     const hasColors = colorBlocks.length > 0
@@ -315,14 +317,14 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
 
     // Update existing variants (sku/price may have changed)
     for (const v of existingDefs) {
-      const { error: vuErr } = await supabase.from('product_variants').update({ sku: v.sku, sale_price: salePrice, cost_price: costPrice }).eq('id', v.id)
+      const { error: vuErr } = await supabase.from('product_variants').update({ sku: v.sku, sale_price: salePrice, cost_price: costPrice, regular_price: regularPrice }).eq('id', v.id)
       if (vuErr) { fail(`No se pudo actualizar la variante ${v.sku}: ` + vuErr.message); return }
     }
 
     // Insert brand new variants
     let insertedV: { id: string; name: string }[] = []
     if (newDefs.length) {
-      const rows = newDefs.map(v => ({ organization_id: orgId, product_id: pid, name: v.name, sku: v.sku, sale_price: salePrice, cost_price: costPrice }))
+      const rows = newDefs.map(v => ({ organization_id: orgId, product_id: pid, name: v.name, sku: v.sku, sale_price: salePrice, cost_price: costPrice, regular_price: regularPrice }))
       const { data, error: vErr } = await supabase.from('product_variants').insert(rows).select('id, name')
       if (vErr) { fail(vErr.message.includes('sku') ? 'SKU duplicado, cámbialo.' : 'No se pudo crear la variante: ' + vErr.message); return }
       insertedV = data ?? []
@@ -609,6 +611,21 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
                     </div>
                   </div>
                   <div className="hint">Se aplica igual a todas las variantes del producto</div>
+                </div>
+                <div className="field">
+                  <div className="fl">Precio regular (opcional)</div>
+                  <input className="fi" type="number" min="0" step="0.01" value={globalRegular} onChange={e => setGlobalRegular(e.target.value)} placeholder="Ej. como en tiendas departamentales" />
+                  <div className="hint">
+                    Si es mayor al precio de venta, el producto se muestra con etiqueta de descuento en la tienda.
+                    {(() => {
+                      const reg = parseFloat(globalRegular); const sale = parseFloat(globalPrice)
+                      if (!reg || !sale || reg <= sale) return null
+                      const pct = Math.round((1 - sale / reg) * 100)
+                      return <span style={{display:'inline-flex',alignItems:'center',gap:6,marginLeft:8}}>
+                        <span style={{background:'#DC2626',color:'white',fontWeight:800,fontSize:11,borderRadius:6,padding:'2px 7px'}}>-{pct}%</span>
+                      </span>
+                    })()}
+                  </div>
                 </div>
               </div>
 
