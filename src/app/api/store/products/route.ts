@@ -40,12 +40,16 @@ const getCatalog = (orgId: string) =>
       if (catErr) throw catErr
 
       // Attach a flat list of category ids each product belongs to (primary + extra assignments)
-      const productsWithCats = (products ?? []).map(p => {
-        const extra = (p.store_product_categories ?? []).map((a: { category_id: string }) => a.category_id)
-        const categoryIds = Array.from(new Set([p.category_id, ...extra].filter(Boolean))) as string[]
-        const { store_product_categories: _omit, ...rest } = p
-        return { ...rest, category_ids: categoryIds }
-      })
+      const productsWithCats = (products ?? [])
+        // A product with no variants, or none with a real price, is incomplete
+        // (e.g. an orphaned duplicate from a past bug) — never show it publicly.
+        .filter(p => (p.product_variants ?? []).some((v: { sale_price: number }) => Number(v.sale_price) > 0))
+        .map(p => {
+          const extra = (p.store_product_categories ?? []).map((a: { category_id: string }) => a.category_id)
+          const categoryIds = Array.from(new Set([p.category_id, ...extra].filter(Boolean))) as string[]
+          const { store_product_categories: _omit, ...rest } = p
+          return { ...rest, category_ids: categoryIds }
+        })
 
       const featured = productsWithCats
         .filter(p => p.is_featured)

@@ -31,7 +31,8 @@ export async function GET(
     .eq('is_published', true)
     .single()
 
-  if (error || !product) {
+  const hasValidVariant = (product?.product_variants ?? []).some((v: { sale_price: number }) => Number(v.sale_price) > 0)
+  if (error || !product || !hasValidVariant) {
     return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
 
