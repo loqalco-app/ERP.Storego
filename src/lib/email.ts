@@ -67,7 +67,7 @@ export async function sendOrderConfirmationEmail(params: {
   </div>`
 
   return resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? 'NORTHÉA <pedidos@northea.cc>',
+    from: process.env.RESEND_FROM_EMAIL ?? 'NORTHÉA <pedidos@updates.northea.cc>',
     to: params.to,
     subject: `Confirmamos tu compra #${params.folio} — NORTHÉA`,
     html,
