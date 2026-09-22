@@ -145,16 +145,91 @@ export default function FinanzasClient({
     router.push(`/finanzas?periodo=personalizado&desde=${d}&hasta=${h}`)
   }
 
-  function exportExpensesCSV() {
-    const header = ['Fecha', 'Categoría', 'Descripción', 'Monto']
-    const rows = expenses.map(e => [e.date, CATS[e.category] ?? e.category, e.description, String(e.amount)])
+  // ── Export modal ─────────────────────────────────────────────────────────────
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportSections, setExportSections] = useState({ resumen: true, productos: false, gastos: false, cobros: false })
+  const [exportDesde, setExportDesde] = useState(desde)
+  const [exportHasta, setExportHasta] = useState(hasta)
+  const [exporting, setExporting] = useState(false)
+
+  function openExportModal() {
+    setExportSections({ resumen: tab === 'resumen', productos: tab === 'productos', gastos: tab === 'gastos', cobros: tab === 'cobros' })
+    setExportDesde(desde); setExportHasta(hasta)
+    setShowExportModal(true)
+  }
+
+  function downloadCSV(filename: string, header: string[], rows: (string | number)[][]) {
     const csv = [header, ...rows].map(r => r.map(f => `"${String(f).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url; a.download = `gastos_${desde}_a_${hasta}.csv`
+    a.href = url; a.download = filename
     document.body.appendChild(a); a.click(); document.body.removeChild(a)
     URL.revokeObjectURL(url)
+  }
+
+  async function runExport() {
+    setExporting(true)
+    let expOrders = orders
+    let expExpenses = expenses
+
+    // If the chosen export range differs from what's loaded, fetch fresh data for it
+    if (exportDesde !== desde || exportHasta !== hasta) {
+      const desdeTs = `${exportDesde}T00:00:00`
+      const hastaTs = `${exportHasta}T23:59:59`
+      const [{ data: o }, { data: e }] = await Promise.all([
+        supabase.from('orders').select(`
+          id, folio, status, total, created_at,
+          customers(full_name),
+          order_items(product_name, variant_name, quantity, unit_price, cost_price),
+          order_payments(method, amount)
+        `).eq('organization_id', orgId).neq('status', 'cancelado').gte('created_at', desdeTs).lte('created_at', hastaTs).order('created_at', { ascending: false }),
+        supabase.from('finance_expenses').select('id, date, category, description, amount, created_at').eq('organization_id', orgId).gte('date', exportDesde).lte('date', exportHasta).order('date', { ascending: false }),
+      ])
+      expOrders = (o ?? []) as unknown as Order[]
+      expExpenses = (e ?? []) as Expense[]
+    }
+
+    const rangeLabel = `${exportDesde}_a_${exportHasta}`
+    const ventasNetas = expOrders.reduce((s, o) => s + Number(o.total), 0)
+    const cmv = expOrders.reduce((s, o) => s + (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0), 0)
+    const utilidadBruta = ventasNetas - cmv
+    const gastosTotalesExp = expExpenses.reduce((s, e) => s + Number(e.amount), 0)
+    const ingresosNetos = utilidadBruta - gastosTotalesExp
+
+    if (exportSections.resumen) {
+      downloadCSV(`resumen_${rangeLabel}.csv`, ['Concepto', 'Monto'], [
+        ['Ventas netas', ventasNetas.toFixed(2)],
+        ['Costo de mercancía (CMV)', cmv.toFixed(2)],
+        ['Utilidad bruta', utilidadBruta.toFixed(2)],
+        ['Gastos operativos', gastosTotalesExp.toFixed(2)],
+        ['Ingresos netos', ingresosNetos.toFixed(2)],
+      ])
+    }
+    if (exportSections.productos) {
+      const map: Record<string, { name: string; qty: number; revenue: number; cost: number }> = {}
+      expOrders.forEach(o => (o.order_items ?? []).forEach(i => {
+        const k = i.product_name + (i.variant_name ? ' · ' + i.variant_name : '')
+        if (!map[k]) map[k] = { name: k, qty: 0, revenue: 0, cost: 0 }
+        map[k].qty += i.quantity
+        map[k].revenue += i.unit_price * i.quantity
+        map[k].cost += Number(i.cost_price || 0) * i.quantity
+      }))
+      const rows = Object.values(map).sort((a, b) => b.revenue - a.revenue)
+        .map(p => [p.name, p.qty, p.revenue.toFixed(2), p.cost.toFixed(2), (p.revenue - p.cost).toFixed(2)])
+      downloadCSV(`productos_${rangeLabel}.csv`, ['Producto', 'Cantidad', 'Ingresos', 'Costo', 'Utilidad'], rows)
+    }
+    if (exportSections.gastos) {
+      const rows = expExpenses.map(e => [e.date, CATS[e.category] ?? e.category, e.description, Number(e.amount).toFixed(2)])
+      downloadCSV(`gastos_${rangeLabel}.csv`, ['Fecha', 'Categoría', 'Descripción', 'Monto'], rows)
+    }
+    if (exportSections.cobros) {
+      const rows = cxc.map(a => [a.folio, a.customers?.full_name ?? 'Sin cliente', Number(a.total).toFixed(2), a.pagado.toFixed(2), a.pendiente.toFixed(2)])
+      downloadCSV(`cobros_pendientes_${rangeLabel}.csv`, ['Folio', 'Cliente', 'Total', 'Pagado', 'Pendiente'], rows)
+    }
+
+    setExporting(false)
+    setShowExportModal(false)
   }
 
   const hasCMV = kpis.cmv > 0
@@ -269,6 +344,21 @@ export default function FinanzasClient({
         .del-btn:hover{color:#DC2626}
 
         .no-cmv{background:rgba(217,119,6,0.06);border:1.5px solid rgba(217,119,6,0.18);border-radius:16px;padding:12px 16px;font-size:12px;font-weight:600;color:#92400E;margin-bottom:16px;line-height:1.5}
+
+        /* export button + modal */
+        .export-btn{display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:14px;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0}
+        .exp-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.40);z-index:900;display:flex;align-items:center;justify-content:center;padding:16px}
+        .exp-modal{background:#ECEEF2;border-radius:24px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,0.25)}
+        .exp-modal-title{font-size:18px;font-weight:800;color:#0A0A0E;margin-bottom:4px}
+        .exp-modal-sub{font-size:12px;color:rgba(10,10,14,0.45);margin-bottom:18px}
+        .exp-check-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;background:rgba(0,0,0,0.03);margin-bottom:8px;cursor:pointer}
+        .exp-check-row input{width:17px;height:17px;accent-color:#2563EB;cursor:pointer}
+        .exp-check-lbl{font-size:13px;font-weight:700;color:#0A0A0E}
+        .exp-modal-section{font-size:11px;font-weight:700;color:rgba(10,10,14,0.38);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 8px}
+        .exp-modal-actions{display:flex;gap:10px;margin-top:20px}
+        .exp-modal-cancel{flex:1;padding:12px;border-radius:14px;border:1.5px solid rgba(0,0,0,0.10);background:transparent;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.55)}
+        .exp-modal-go{flex:2;padding:12px;border-radius:14px;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
+        .exp-modal-go:disabled{opacity:.5;cursor:not-allowed}
       `}</style>
 
       <Sidebar active="finanzas" />
@@ -284,6 +374,10 @@ export default function FinanzasClient({
                 ))}
               </div>
               <DateRangeCalendar desde={desde} hasta={hasta} onApply={applyCustomRange} />
+              <button className="export-btn" onClick={openExportModal}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Exportar
+              </button>
             </div>
           </div>
           <div className="page-hd-tabs">
@@ -456,15 +550,9 @@ export default function FinanzasClient({
         {tab === 'gastos' && <>
         <div className="sec-hd">
           <div className="sec-title">Gastos y egresos</div>
-          <div style={{display:'flex',gap:8}}>
-            <button className="sec-btn sec-btn-outline" onClick={exportExpensesCSV} disabled={expenses.length === 0}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Exportar CSV
-            </button>
-            <button className="sec-btn" onClick={() => setShowExpForm(v => !v)}>
-              {showExpForm ? 'Cancelar' : '+ Agregar gasto'}
-            </button>
-          </div>
+          <button className="sec-btn" onClick={() => setShowExpForm(v => !v)}>
+            {showExpForm ? 'Cancelar' : '+ Agregar gasto'}
+          </button>
         </div>
         {showExpForm && (
           <div className="exp-form">
@@ -557,6 +645,37 @@ export default function FinanzasClient({
         </>}
 
       </div>
+
+      {showExportModal && (
+        <div className="exp-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowExportModal(false) }}>
+          <div className="exp-modal">
+            <div className="exp-modal-title">Exportar a CSV</div>
+            <div className="exp-modal-sub">Elige qué secciones exportar y el periodo. Se descarga un archivo por sección.</div>
+
+            <div className="exp-modal-section">Secciones</div>
+            {([['resumen','Resumen'],['productos','Productos más vendidos'],['gastos','Gastos y egresos'],['cobros','Cuentas por cobrar']] as const).map(([k, l]) => (
+              <label key={k} className="exp-check-row">
+                <input type="checkbox" checked={exportSections[k]} onChange={e => setExportSections(s => ({ ...s, [k]: e.target.checked }))} />
+                <span className="exp-check-lbl">{l}</span>
+              </label>
+            ))}
+
+            <div className="exp-modal-section">Periodo a exportar</div>
+            <DateRangeCalendar desde={exportDesde} hasta={exportHasta} onApply={(d, h) => { setExportDesde(d); setExportHasta(h) }} />
+
+            <div className="exp-modal-actions">
+              <button className="exp-modal-cancel" onClick={() => setShowExportModal(false)}>Cancelar</button>
+              <button
+                className="exp-modal-go"
+                disabled={exporting || !Object.values(exportSections).some(Boolean)}
+                onClick={runExport}
+              >
+                {exporting ? 'Exportando…' : 'Exportar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
