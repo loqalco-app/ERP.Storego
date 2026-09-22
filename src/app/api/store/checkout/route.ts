@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   // 1. Look up real prices/names server-side — never trust client-sent prices.
   const { data: variants, error: vErr } = await client
     .from('product_variants')
-    .select('id, name, sku, sale_price, cost_price, product_id, products(name)')
+    .select('id, name, sku, sale_price, cost_price, product_id, products(name, product_images(url, is_primary, sort_order))')
     .in('id', variantIds)
     .eq('organization_id', orgId)
 
@@ -84,17 +84,25 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  type VariantRow = { id: string; name: string; sku: string; sale_price: number; cost_price: number; product_id: string; products: { name: string } | { name: string }[] | null }
+  type ProductImg = { url: string; is_primary: boolean; sort_order: number }
+  type ProductRel = { name: string; product_images: ProductImg[] }
+  type VariantRow = { id: string; name: string; sku: string; sale_price: number; cost_price: number; product_id: string; products: ProductRel | ProductRel[] | null }
   const variantById = new Map((variants as VariantRow[]).map(v => [v.id, v]))
+
+  function primaryImageUrl(images: ProductImg[] | undefined): string | null {
+    if (!images || images.length === 0) return null
+    const sorted = [...images].sort((a, b) => (b.is_primary ? 1 : -1) - (a.is_primary ? 1 : -1) || a.sort_order - b.sort_order)
+    return sorted[0]?.url ?? null
+  }
 
   const orderItemsPayload = items.map(item => {
     const v = variantById.get(item.variant_id)!
-    const productName = Array.isArray(v.products) ? v.products[0]?.name : v.products?.name
+    const productRel = Array.isArray(v.products) ? v.products[0] : v.products
     const unitPrice = Number(v.sale_price)
     return {
       variant_id: v.id,
       product_id: v.product_id,
-      product_name: productName ?? '',
+      product_name: productRel?.name ?? '',
       variant_name: v.name,
       sku: v.sku,
       quantity: item.quantity,
@@ -102,6 +110,7 @@ export async function POST(req: NextRequest) {
       cost_price: Number(v.cost_price),
       discount_amount: 0,
       subtotal: unitPrice * item.quantity,
+      image_url: primaryImageUrl(productRel?.product_images),
     }
   })
 
@@ -192,7 +201,7 @@ export async function POST(req: NextRequest) {
       to: email,
       customerName: customerIn.full_name!.trim(),
       folio: order.folio,
-      items: orderItemsPayload.map(i => ({ name: i.product_name, variantLabel: i.variant_name === 'Estándar' ? '' : i.variant_name, quantity: i.quantity, unitPrice: i.unit_price, subtotal: i.subtotal })),
+      items: orderItemsPayload.map(i => ({ name: i.product_name, variantLabel: i.variant_name === 'Estándar' ? '' : i.variant_name, quantity: i.quantity, unitPrice: i.unit_price, subtotal: i.subtotal, imageUrl: i.image_url })),
       total,
       shipping: { address_line1: shipping.address_line1!.trim(), address_line2: shipping.address_line2?.trim() || null, city: shipping.city!.trim(), state: shipping.state!.trim(), zip: shipping.zip!.trim() },
       siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? '',
