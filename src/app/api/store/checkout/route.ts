@@ -111,12 +111,15 @@ export async function POST(req: NextRequest) {
   const email = customerIn.email!.trim().toLowerCase()
   const { data: existingCustomer } = await client
     .from('customers')
-    .select('id')
+    .select('id, phone')
     .eq('organization_id', orgId)
     .eq('email', email)
     .maybeSingle()
 
   let customerId = existingCustomer?.id as string | undefined
+  if (customerId && !existingCustomer?.phone && customerIn.phone?.trim()) {
+    await client.from('customers').update({ phone: customerIn.phone.trim() }).eq('id', customerId)
+  }
   if (!customerId) {
     const { data: newCustomer, error: cErr } = await client
       .from('customers')
@@ -127,16 +130,27 @@ export async function POST(req: NextRequest) {
     customerId = newCustomer.id
   }
 
-  await client.from('customer_addresses').insert({
-    customer_id: customerId,
-    label: 'Envío',
-    street: shipping.address_line1!.trim() + (shipping.address_line2?.trim() ? `, ${shipping.address_line2!.trim()}` : ''),
-    city: shipping.city!.trim(),
-    state: shipping.state!.trim(),
-    zip_code: shipping.zip!.trim(),
-    country: 'MX',
-    is_default: true,
-  })
+  const streetLine = shipping.address_line1!.trim() + (shipping.address_line2?.trim() ? `, ${shipping.address_line2!.trim()}` : '')
+  const { data: existingAddresses } = await client
+    .from('customer_addresses')
+    .select('id, street, city, zip_code')
+    .eq('customer_id', customerId)
+
+  const sameAddress = (existingAddresses ?? []).some(a =>
+    a.street === streetLine && a.city === shipping.city!.trim() && a.zip_code === shipping.zip!.trim())
+
+  if (!sameAddress) {
+    await client.from('customer_addresses').insert({
+      customer_id: customerId,
+      label: 'Envío',
+      street: streetLine,
+      city: shipping.city!.trim(),
+      state: shipping.state!.trim(),
+      zip_code: shipping.zip!.trim(),
+      country: 'MX',
+      is_default: (existingAddresses ?? []).length === 0,
+    })
+  }
 
   // 4. Create the order + line items + payment + shipping snapshot.
   const { data: order, error: oErr } = await client

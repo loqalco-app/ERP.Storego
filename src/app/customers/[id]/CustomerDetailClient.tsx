@@ -8,8 +8,9 @@ interface OrderItem { id: string; product_name: string; variant_name: string; qu
 interface OrderPayment { id: string; method: string; amount: number }
 interface Order { id: string; folio: string; status: string; subtotal: number; discount_amount: number; total: number; created_at: string; order_items: OrderItem[]; order_payments: OrderPayment[] }
 interface Customer { id: string; full_name: string; email: string | null; phone: string | null; tax_id: string | null; notes: string | null; status: string; credit_limit: number; balance_owing: number; tags: string[]; created_at: string }
+interface Address { id: string; label: string | null; street: string; neighborhood: string | null; city: string; state: string; zip_code: string; country: string | null; is_default: boolean }
 
-interface Props { customer: Customer; orders: Order[]; orgId: string }
+interface Props { customer: Customer; orders: Order[]; addresses: Address[]; orgId: string }
 
 function initials(name: string) { return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?' }
 const AVATAR_COLORS = ['linear-gradient(135deg,#1D4ED8,#3B82F6)','linear-gradient(135deg,#7C3AED,#A78BFA)','linear-gradient(135deg,#059669,#34D399)','linear-gradient(135deg,#DC2626,#F87171)','linear-gradient(135deg,#D97706,#FCD34D)','linear-gradient(135deg,#0891B2,#67E8F9)']
@@ -33,7 +34,7 @@ const PAY_METHOD: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tar
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) }
 function fmtMoney(n: number) { return '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2 }) }
 
-export default function CustomerDetailClient({ customer, orders }: Props) {
+export default function CustomerDetailClient({ customer, orders, addresses }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
   const totalSpent = orders.reduce((s, o) => s + Number(o.total), 0)
@@ -214,6 +215,27 @@ export default function CustomerDetailClient({ customer, orders }: Props) {
                 <div className="info-lbl">Notas</div>
                 <div className="info-val" style={{ fontSize: 13, fontWeight: 400, whiteSpace: 'pre-wrap' }}>{customer.notes}</div>
               </div>
+            )}
+          </div>
+
+          {/* Addresses */}
+          <div className="sec-card">
+            <div className="sec-hd">
+              <div className="sec-title">Dirección</div>
+              {addresses.length > 0 && <div className="sec-count">{addresses.length}</div>}
+            </div>
+            {addresses.length === 0 ? (
+              <div className="ord-empty">Sin dirección registrada</div>
+            ) : (
+              addresses.map(a => (
+                <div className="info-row" key={a.id} style={{ alignItems: 'flex-start' }}>
+                  <div className="info-lbl">{a.label || 'Envío'}{a.is_default ? ' ★' : ''}</div>
+                  <div className="info-val" style={{ fontSize: 13, fontWeight: 400, lineHeight: 1.6 }}>
+                    {a.street}{a.neighborhood ? `, ${a.neighborhood}` : ''}<br />
+                    {a.city}, {a.state} {a.zip_code}{a.country ? ` · ${a.country}` : ''}
+                  </div>
+                </div>
+              ))
             )}
           </div>
 

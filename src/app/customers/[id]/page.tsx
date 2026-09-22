@@ -16,7 +16,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const orgId = profile?.organization_id
   if (!orgId) redirect('/dashboard')
 
-  const [{ data: customer }, { data: orders }] = await Promise.all([
+  const [{ data: customer }, { data: orders }, { data: addresses }] = await Promise.all([
     supabase
       .from('customers')
       .select('id, full_name, email, phone, tax_id, notes, status, credit_limit, balance_owing, tags, created_at')
@@ -26,6 +26,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       .select('id, folio, status, subtotal, discount_amount, total, created_at, order_items(id, product_name, variant_name, quantity, unit_price, discount_amount, subtotal), order_payments(id, method, amount)')
       .eq('customer_id', id).eq('organization_id', orgId)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('customer_addresses')
+      .select('id, label, street, neighborhood, city, state, zip_code, country, is_default, created_at')
+      .eq('customer_id', id)
+      .order('is_default', { ascending: false }),
   ])
 
   if (!customer) notFound()
@@ -34,6 +39,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     <CustomerDetailClient
       customer={customer as any}
       orders={(orders ?? []) as any}
+      addresses={(addresses ?? []) as any}
       orgId={orgId}
     />
   )
