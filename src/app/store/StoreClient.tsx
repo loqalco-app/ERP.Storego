@@ -10,6 +10,7 @@ interface Category {
 }
 interface Product {
   id: string; name: string; slug: string | null; is_published: boolean
+  is_featured: boolean; home_sort_order: number
   category_id: string | null
   product_images: { url: string; is_primary: boolean }[]
   store_product_categories: { category_id: string }[]
@@ -18,6 +19,7 @@ interface Product {
 export default function StoreClient({ orgId, categories: init, products: initP, userName, orgName }: {
   orgId: string; categories: Category[]; products: Product[]; userName: string; orgName: string
 }) {
+  const [tab, setTab] = useState<'productos' | 'home'>('productos')
   const [cats]  = useState(init)
   const [prods, setProds] = useState(initP)
 
@@ -25,6 +27,36 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
   const [draggedId,  setDraggedId]  = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [assigning,  setAssigning]  = useState<Record<string, boolean>>({})
+  const [featuring,  setFeaturing]  = useState<Record<string, boolean>>({})
+
+  function revalidateStore() {
+    fetch('/api/store/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId }) }).catch(() => {})
+  }
+
+  async function toggleFeatured(productId: string, newValue: boolean) {
+    setFeaturing(f => ({ ...f, [productId]: true }))
+    const maxOrder = prods.reduce((m, p) => Math.max(m, p.home_sort_order), -1)
+    const newOrder = newValue ? maxOrder + 1 : 0
+    setProds(ps => ps.map(p => p.id === productId ? { ...p, is_featured: newValue, home_sort_order: newOrder } : p))
+    await createClient().from('products').update({ is_featured: newValue, home_sort_order: newOrder }).eq('id', productId)
+    revalidateStore()
+    setFeaturing(f => { const n = { ...f }; delete n[productId]; return n })
+  }
+
+  async function moveFeatured(productId: string, dir: -1 | 1) {
+    const featured = prods.filter(p => p.is_featured).sort((a, b) => a.home_sort_order - b.home_sort_order)
+    const idx = featured.findIndex(p => p.id === productId)
+    const swapIdx = idx + dir
+    if (swapIdx < 0 || swapIdx >= featured.length) return
+    const a = featured[idx], b = featured[swapIdx]
+    setProds(ps => ps.map(p => p.id === a.id ? { ...p, home_sort_order: b.home_sort_order } : p.id === b.id ? { ...p, home_sort_order: a.home_sort_order } : p))
+    const supabase = createClient()
+    await Promise.all([
+      supabase.from('products').update({ home_sort_order: b.home_sort_order }).eq('id', a.id),
+      supabase.from('products').update({ home_sort_order: a.home_sort_order }).eq('id', b.id),
+    ])
+    revalidateStore()
+  }
 
   // ── Web store assignment via store_product_categories ──
   async function assignToWebCat(productId: string, catId: string) {
@@ -74,12 +106,26 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         body { background: #ECEEF2; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
         .shell { display: flex; min-height: 100dvh; }
         .main  { flex: 1; overflow-y: auto; }
-        .topbar { display: flex; align-items: center; gap: 12px; padding: 20px 20px 0; }
+        .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 20px 0; }
         @media(min-width:768px){ .topbar { padding: 20px 40px 0; } }
         .page-title { font-size: 24px; font-weight: 800; color: #1A1A20; }
         .page-sub { font-size: 13px; color: rgba(26,26,32,0.38); font-weight: 500; margin-top: 2px; }
         .content { padding: 16px 16px 120px; }
         @media(min-width:768px){ .content { padding: 20px 32px 64px; } }
+        .live-link { display: flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 14px; background: #1A1A20; color: #CAFF3A; font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
+        .tab-row { display: flex; gap: 4px; padding: 16px 20px 0; }
+        @media(min-width:768px){ .tab-row { padding: 16px 40px 0; } }
+        .tab-pill { padding: 6px 16px; border-radius: 50px; border: 1.5px solid transparent; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; background: transparent; color: rgba(26,26,32,0.40); }
+        .tab-pill.active { background: #1A1A20; color: #fff; border-color: #1A1A20; }
+        .tab-pill:not(.active):hover { background: rgba(0,0,0,0.04); color: #1A1A20; }
+        .icon-btn { width: 26px; height: 26px; border-radius: 8px; border: none; background: rgba(0,0,0,0.05); cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(26,26,32,0.45); flex-shrink: 0; }
+        .icon-btn:hover:not(:disabled) { background: rgba(0,0,0,0.10); color: #1A1A20; }
+        .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .star-btn { background: none; border: none; cursor: pointer; padding: 3px; display: flex; flex-shrink: 0; }
+        .star-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .feat-row { display: flex; align-items: center; gap: 8px; padding: 9px 10px; background: rgba(255,255,255,0.65); border-radius: 12px; margin-bottom: 8px; box-shadow: 3px 3px 8px rgba(0,0,0,0.05); }
+        .feat-order { font-size: 12px; font-weight: 800; color: #1D4ED8; width: 18px; text-align: center; flex-shrink: 0; }
+        .feat-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 
         /* ── Two-column DnD layout ── */
         .dnd-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
@@ -132,12 +178,77 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
           <div className="topbar">
             <div>
               <div className="page-title">Tienda web</div>
-              <div className="page-sub">Arrastra productos a las categorías para publicarlos en la tienda</div>
+              <div className="page-sub">{tab === 'productos' ? 'Arrastra productos a las categorías para publicarlos en la tienda' : 'Elige y ordena qué se ve primero en el Home de la tienda'}</div>
             </div>
+            <a href="https://northea.cc" target="_blank" rel="noopener noreferrer" className="live-link">
+              Ver sitio en vivo
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </div>
+
+          <div className="tab-row">
+            <button className={`tab-pill${tab === 'productos' ? ' active' : ''}`} onClick={() => setTab('productos')}>Productos</button>
+            <button className={`tab-pill${tab === 'home' ? ' active' : ''}`} onClick={() => setTab('home')}>Home</button>
           </div>
 
           <div className="content">
-            {cats.length === 0 ? (
+            {tab === 'home' ? (
+              <div className="dnd-layout">
+                <div>
+                  <div className="col-hdr">Destacados en Home</div>
+                  <div className="col-hint">Estos productos son los que se ven primero en el Home de la tienda, en este orden. Si no marcas ninguno, se muestran todos los publicados.</div>
+                  {prods.filter(p => p.is_featured).sort((a, b) => a.home_sort_order - b.home_sort_order).length === 0 ? (
+                    <div className="empty-left">Sin destacados todavía.<br/>Marca productos de la lista de la derecha con la estrella.</div>
+                  ) : (
+                    prods.filter(p => p.is_featured).sort((a, b) => a.home_sort_order - b.home_sort_order).map((p, i, arr) => {
+                      const thumb = p.product_images.find(img => img.is_primary)?.url ?? p.product_images[0]?.url
+                      return (
+                        <div key={p.id} className="feat-row">
+                          <span className="feat-order">{i + 1}</span>
+                          {thumb ? <img className="ap-thumb" src={thumb} alt="" /> : <div className="ap-thumb" />}
+                          <span className="ap-name">{p.name}</span>
+                          <div className="feat-actions">
+                            <button className="icon-btn" disabled={i === 0} onClick={() => moveFeatured(p.id, -1)} title="Subir">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+                            </button>
+                            <button className="icon-btn" disabled={i === arr.length - 1} onClick={() => moveFeatured(p.id, 1)} title="Bajar">
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                            </button>
+                            <button className="ap-rm" disabled={!!featuring[p.id]} onClick={() => toggleFeatured(p.id, false)} title="Quitar de Home">×</button>
+                          </div>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+
+                <div>
+                  <div className="col-hdr">Todos los productos publicados</div>
+                  <div className="col-hint">Clic en la estrella para destacar en el Home.</div>
+                  {prods.filter(p => p.is_published).length === 0 ? (
+                    <div className="empty-right">No hay productos publicados aún.</div>
+                  ) : (
+                    <div className="prod-pool">
+                      {prods.filter(p => p.is_published).map(p => {
+                        const thumb = p.product_images.find(img => img.is_primary)?.url ?? p.product_images[0]?.url
+                        return (
+                          <div key={p.id} className="prod-card" style={{ cursor: 'default' }}>
+                            <button className="star-btn" disabled={!!featuring[p.id]} onClick={() => toggleFeatured(p.id, !p.is_featured)} title={p.is_featured ? 'Quitar de Home' : 'Destacar en Home'}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill={p.is_featured ? '#D97706' : 'none'} stroke={p.is_featured ? '#D97706' : 'rgba(26,26,32,0.30)'} strokeWidth="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            </button>
+                            {thumb ? <img className="prod-thumb" src={thumb} alt="" /> : <div className="prod-thumb" />}
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div className="prod-name">{p.name}</div>
+                              {p.is_featured && <div className="prod-cats">✓ En Home</div>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : cats.length === 0 ? (
               <div style={{background:'#ECEEF2',borderRadius:20,boxShadow:'5px 5px 15px rgba(0,0,0,0.07),-3px -3px 9px rgba(255,255,255,0.90)',padding:32,textAlign:'center'}}>
                 <div style={{fontSize:14,fontWeight:600,color:'rgba(26,26,32,0.40)',lineHeight:1.6}}>
                   Aún no hay categorías.<br/>

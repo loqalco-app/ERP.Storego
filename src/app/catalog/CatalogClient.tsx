@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 interface Category { id: string; name: string; slug: string; description: string | null; parent_id: string | null }
 interface Brand    { id: string; name: string; description: string | null }
 interface Variant  { id: string; sku: string; sale_price: number; cost_price: number; regular_price: number | null; stock_levels: { quantity_available: number }[] }
-interface Product  { id: string; name: string; status: string; condition: string; created_at: string; category_id: string | null; brand_id: string | null; is_published: boolean; categories: { id: string; name: string } | null; brands: { id: string; name: string } | null; product_variants: Variant[] }
+interface Product  { id: string; name: string; status: string; condition: string; created_at: string; category_id: string | null; brand_id: string | null; is_published: boolean; is_featured: boolean; categories: { id: string; name: string } | null; brands: { id: string; name: string } | null; product_variants: Variant[] }
 
 interface Props { products: Product[]; categories: Category[]; brands: Brand[]; orgId: string; userName: string; orgName: string }
 
@@ -58,25 +58,28 @@ export default function CatalogClient({ products: initProducts, categories: init
   const [err, setErr]           = useState<string|null>(null)
   const [viewProduct, setViewProduct] = useState<Product|null>(null)
   const [publishing, setPublishing] = useState<Record<string, boolean>>({})
+  const [featuring,  setFeaturing]  = useState<Record<string, boolean>>({})
 
-  async function togglePublish(productId: string, newValue: boolean) {
-    const prevValue = products.find(p => p.id === productId)?.is_published ?? !newValue
-    setPublishing(p => ({ ...p, [productId]: true }))
-    setProducts(ps => ps.map(p => p.id === productId ? { ...p, is_published: newValue } : p))
-    if (viewProduct?.id === productId) setViewProduct(vp => vp ? { ...vp, is_published: newValue } : vp)
+  async function toggleField(field: 'is_published' | 'is_featured', productId: string, newValue: boolean, busyMap: React.Dispatch<React.SetStateAction<Record<string, boolean>>>) {
+    const prevValue = products.find(p => p.id === productId)?.[field] ?? !newValue
+    busyMap(p => ({ ...p, [productId]: true }))
+    setProducts(ps => ps.map(p => p.id === productId ? { ...p, [field]: newValue } : p))
+    if (viewProduct?.id === productId) setViewProduct(vp => vp ? { ...vp, [field]: newValue } : vp)
 
-    const { data, error } = await createClient().from('products').update({ is_published: newValue }).eq('id', productId).select('id, is_published')
+    const { data, error } = await createClient().from('products').update({ [field]: newValue }).eq('id', productId).select(`id, ${field}`)
 
     if (error || !data || data.length === 0) {
-      // Revert — the write didn't actually happen (RLS blocked it, or a real error)
-      setProducts(ps => ps.map(p => p.id === productId ? { ...p, is_published: prevValue } : p))
-      if (viewProduct?.id === productId) setViewProduct(vp => vp ? { ...vp, is_published: prevValue } : vp)
+      setProducts(ps => ps.map(p => p.id === productId ? { ...p, [field]: prevValue } : p))
+      if (viewProduct?.id === productId) setViewProduct(vp => vp ? { ...vp, [field]: prevValue } : vp)
       alert(error ? `No se pudo actualizar: ${error.message}` : 'No se pudo actualizar: el servidor no confirmó el cambio (posible permiso bloqueado).')
     } else {
       fetch('/api/store/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId }) }).catch(() => {})
     }
-    setPublishing(p => { const n = { ...p }; delete n[productId]; return n })
+    busyMap(p => { const n = { ...p }; delete n[productId]; return n })
   }
+
+  const togglePublish = (productId: string, newValue: boolean) => toggleField('is_published', productId, newValue, setPublishing)
+  const toggleFeature  = (productId: string, newValue: boolean) => toggleField('is_featured', productId, newValue, setFeaturing)
 
   // Reset page when search changes
   useEffect(() => { setPage(1) }, [q, perPage])
@@ -256,6 +259,9 @@ export default function CatalogClient({ products: initProducts, categories: init
         .pub-lbl{font-size:10px;font-weight:700;color:rgba(26,26,32,0.35)}
         .pub-lbl.on{color:#059669}
         .g-pub{position:absolute;top:10px;right:10px}
+        .star-btn{background:none;border:none;cursor:pointer;padding:3px;display:flex;flex-shrink:0}
+        .star-btn:disabled{opacity:0.4;cursor:not-allowed}
+        .g-star{position:absolute;top:10px;left:10px;background:rgba(255,255,255,0.92);border-radius:50%;padding:5px;display:flex;box-shadow:0 2px 6px rgba(0,0,0,0.12)}
         .disc-badge{display:inline-flex;align-items:center;background:#DC2626;color:white;font-weight:800;font-size:10px;border-radius:6px;padding:2px 6px;letter-spacing:.02em;flex-shrink:0}
         .disc-badge-lg{font-size:11px;padding:3px 8px;border-radius:7px}
         .price-regular{font-size:11px;color:rgba(26,26,32,0.35);text-decoration:line-through;font-weight:600;margin-right:5px}
@@ -460,8 +466,18 @@ export default function CatalogClient({ products: initProducts, categories: init
                                 </div>
                               </td>
                               <td>
-                                <div className="p-name">{p.name}</div>
-                                <div className="p-meta">{cat ?? ''}</div>
+                                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                                  <button
+                                    className="star-btn" onClick={e => { e.stopPropagation(); toggleFeature(p.id, !p.is_featured) }} disabled={!!featuring[p.id]}
+                                    title={p.is_featured ? 'Destacado en Home — clic para quitar' : 'Clic para destacar en el Home de la tienda'}
+                                  >
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill={p.is_featured ? '#D97706' : 'none'} stroke={p.is_featured ? '#D97706' : 'rgba(26,26,32,0.30)'} strokeWidth="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                                  </button>
+                                  <div>
+                                    <div className="p-name">{p.name}</div>
+                                    <div className="p-meta">{cat ?? ''}</div>
+                                  </div>
+                                </div>
                               </td>
                               <td className="hide-md">
                                 <div className="p-cat">{cat ?? <span style={{opacity:.35}}>—</span>}</div>
@@ -523,8 +539,16 @@ export default function CatalogClient({ products: initProducts, categories: init
                       <div key={p.id} className="g-card" style={{position:'relative'}} onClick={() => setViewProduct(p)}>
                         {discountPct(p.product_variants) !== null && <span className="disc-badge g-disc">-{discountPct(p.product_variants)}%</span>}
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
-                          <div className="g-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.50)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <div className="g-icon">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.50)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                            </div>
+                            <button
+                              className="star-btn" onClick={e => { e.stopPropagation(); toggleFeature(p.id, !p.is_featured) }} disabled={!!featuring[p.id]}
+                              title={p.is_featured ? 'Destacado en Home — clic para quitar' : 'Clic para destacar en el Home'}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill={p.is_featured ? '#D97706' : 'none'} stroke={p.is_featured ? '#D97706' : 'rgba(26,26,32,0.30)'} strokeWidth="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            </button>
                           </div>
                           <span className="badge" style={{background:sm.bg,color:sm.color,flexShrink:0}}>{sm.label}</span>
                         </div>
@@ -779,6 +803,15 @@ export default function CatalogClient({ products: initProducts, categories: init
                       <input type="checkbox" checked={p.is_published} disabled={!!publishing[p.id]} onChange={() => togglePublish(p.id, !p.is_published)} />
                       <span className="tog-track" /><span className="tog-thumb" />
                     </label>
+                  </div>
+                  <div className="pd-row">
+                    <div>
+                      <div className="pd-value" style={{fontSize:14}}>Destacado en Home</div>
+                      <div style={{fontSize:11,color:'rgba(26,26,32,0.40)',marginTop:2}}>{p.is_featured ? 'Aparece en el Home de la tienda' : 'No aparece en el Home a menos que actives otros destacados'}</div>
+                    </div>
+                    <button className="star-btn" onClick={() => toggleFeature(p.id, !p.is_featured)} disabled={!!featuring[p.id]} title={p.is_featured ? 'Clic para quitar de Home' : 'Clic para destacar en Home'}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill={p.is_featured ? '#D97706' : 'none'} stroke={p.is_featured ? '#D97706' : 'rgba(26,26,32,0.30)'} strokeWidth="1.6"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    </button>
                   </div>
                 </div>
 

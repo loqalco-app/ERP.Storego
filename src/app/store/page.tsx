@@ -27,7 +27,7 @@ export default async function StorePage() {
     supabase
       .from('products')
       .select(`
-        id, name, slug, is_published, category_id,
+        id, name, slug, is_published, is_featured, home_sort_order, category_id,
         product_images(url, is_primary),
         store_product_categories(category_id)
       `)

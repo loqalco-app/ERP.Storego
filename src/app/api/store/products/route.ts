@@ -18,7 +18,7 @@ const getCatalog = (orgId: string) =>
         client
           .from('products')
           .select(`
-            id, name, slug, description, created_at, category_id,
+            id, name, slug, description, created_at, category_id, is_featured, home_sort_order,
             product_variants(id, name, sku, sale_price, regular_price, status),
             product_images(url, is_primary, sort_order, alt_text),
             store_product_categories(category_id)
@@ -47,7 +47,11 @@ const getCatalog = (orgId: string) =>
         return { ...rest, category_ids: categoryIds }
       })
 
-      return { products: productsWithCats, categories: categories ?? [] }
+      const featured = productsWithCats
+        .filter(p => p.is_featured)
+        .sort((a, b) => a.home_sort_order - b.home_sort_order)
+
+      return { products: productsWithCats, categories: categories ?? [], featured }
     },
     [`store-catalog-${orgId}`],
     { revalidate: 60, tags: [`catalog-${orgId}`] },
@@ -59,7 +63,7 @@ export async function GET(req: NextRequest) {
   if (!orgId) return NextResponse.json({ error: 'org_id required' }, { status: 400 })
 
   try {
-    const { products, categories } = await getCatalog(orgId)()
+    const { products, categories, featured } = await getCatalog(orgId)()
 
     let filtered = products
     if (categorySlug) {
@@ -67,7 +71,7 @@ export async function GET(req: NextRequest) {
       filtered = cat ? products.filter(p => p.category_ids.includes(cat.id)) : []
     }
 
-    return NextResponse.json({ products: filtered, categories }, {
+    return NextResponse.json({ products: filtered, categories, featured }, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
         'Access-Control-Allow-Origin': process.env.STORE_ORIGIN ?? '*',
