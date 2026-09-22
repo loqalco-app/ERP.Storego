@@ -36,8 +36,8 @@ const getCatalog = (orgId: string) =>
           .order('web_sort_order'),
       ])
 
-      if (error) { console.error('[store/products] products query error:', JSON.stringify(error)); throw error }
-      if (catErr) { console.error('[store/products] categories query error:', JSON.stringify(catErr)); throw catErr }
+      if (error) throw error
+      if (catErr) throw catErr
 
       // Attach a flat list of category ids each product belongs to (primary + extra assignments)
       const productsWithCats = (products ?? []).map(p => {
@@ -77,8 +77,7 @@ export async function GET(req: NextRequest) {
         'Access-Control-Allow-Origin': process.env.STORE_ORIGIN ?? '*',
       },
     })
-  } catch (e) {
-    console.error('[store/products] fetch_failed:', e instanceof Error ? e.message : JSON.stringify(e))
+  } catch {
     return NextResponse.json({ error: 'fetch_failed' }, { status: 500 })
   }
 }
