@@ -9,7 +9,8 @@ import { createClient } from '@/lib/supabase/client'
 interface Category { id: string; name: string; slug: string; description: string | null; parent_id: string | null }
 interface Brand    { id: string; name: string; description: string | null }
 interface Variant  { id: string; sku: string; sale_price: number; cost_price: number; regular_price: number | null; stock_levels: { quantity_available: number }[] }
-interface Product  { id: string; name: string; status: string; condition: string; created_at: string; category_id: string | null; brand_id: string | null; is_published: boolean; is_featured: boolean; categories: { id: string; name: string } | null; brands: { id: string; name: string } | null; product_variants: Variant[] }
+interface ProductImage { url: string; is_primary: boolean; sort_order: number }
+interface Product  { id: string; name: string; status: string; condition: string; created_at: string; category_id: string | null; brand_id: string | null; is_published: boolean; is_featured: boolean; categories: { id: string; name: string } | null; brands: { id: string; name: string } | null; product_variants: Variant[]; product_images: ProductImage[] }
 
 interface Props { products: Product[]; categories: Category[]; brands: Brand[]; orgId: string; userName: string; orgName: string }
 
@@ -23,6 +24,10 @@ function discountPct(variants: Variant[]) {
   return Math.round((1 - v.sale_price / v.regular_price) * 100)
 }
 function fmt(n: number) { return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+function primaryPhoto(images: ProductImage[]) {
+  if (!images?.length) return null
+  return [...images].sort((a, b) => (b.is_primary ? 1 : -1) || a.sort_order - b.sort_order)[0]?.url ?? null
+}
 const STATUS_META: Record<string,{ label:string; bg:string; color:string }> = {
   active:   { label:'Activo',    bg:'rgba(5,150,105,0.10)',   color:'#065f46' },
   draft:    { label:'Borrador',  bg:'rgba(202,138,4,0.10)',   color:'#92400e' },
@@ -80,6 +85,25 @@ export default function CatalogClient({ products: initProducts, categories: init
 
   const togglePublish = (productId: string, newValue: boolean) => toggleField('is_published', productId, newValue, setPublishing)
   const toggleFeature  = (productId: string, newValue: boolean) => toggleField('is_featured', productId, newValue, setFeaturing)
+
+  const [deleting, setDeleting] = useState<Record<string, boolean>>({})
+
+  async function deleteProduct(product: Product) {
+    if (!confirm(`¿Eliminar "${product.name}" permanentemente? Se borran también sus variantes, fotos y stock. Esta acción no se puede deshacer.`)) return
+    setDeleting(d => ({ ...d, [product.id]: true }))
+    const supabase = createClient()
+    // store_product_categories isn't tracked with a guaranteed cascade — clear it explicitly first
+    await supabase.from('store_product_categories').delete().eq('product_id', product.id)
+    const { error } = await supabase.from('products').delete().eq('id', product.id)
+    if (error) {
+      setDeleting(d => { const n = { ...d }; delete n[product.id]; return n })
+      alert('No se pudo eliminar el producto: ' + error.message)
+      return
+    }
+    setProducts(ps => ps.filter(p => p.id !== product.id))
+    if (viewProduct?.id === product.id) setViewProduct(null)
+    fetch('/api/store/revalidate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orgId }) }).catch(() => {})
+  }
 
   // Reset page when search changes
   useEffect(() => { setPage(1) }, [q, perPage])
@@ -162,11 +186,20 @@ export default function CatalogClient({ products: initProducts, categories: init
     setProducts(ps => ps.map(p => p.brand_id === id ? { ...p, brand_id: null, brands: null } : p))
   }
 
+  // Category filter (root or subcategory id, or 'all')
+  const [catFilter, setCatFilter] = useState<string>('all')
+  useEffect(() => { setPage(1) }, [catFilter])
+
   // Derived data
-  const filtered = useMemo(() => products.filter(p =>
-    p.name.toLowerCase().includes(q.toLowerCase()) ||
-    p.product_variants.some(v => v.sku.toLowerCase().includes(q.toLowerCase()))
-  ), [products, q])
+  const filtered = useMemo(() => {
+    const childIds = catFilter !== 'all' ? categories.filter(c => c.parent_id === catFilter).map(c => c.id) : []
+    return products.filter(p => {
+      const matchesQ = p.name.toLowerCase().includes(q.toLowerCase()) ||
+        p.product_variants.some(v => v.sku.toLowerCase().includes(q.toLowerCase()))
+      const matchesCat = catFilter === 'all' || p.category_id === catFilter || childIds.includes(p.category_id ?? '')
+      return matchesQ && matchesCat
+    })
+  }, [products, q, catFilter, categories])
 
   const totalPages  = Math.max(1, Math.ceil(filtered.length / perPage))
   const safePage    = Math.min(page, totalPages)
@@ -246,6 +279,9 @@ export default function CatalogClient({ products: initProducts, categories: init
         .badge{display:inline-block;padding:3px 9px;border-radius:50px;font-size:10px;font-weight:700}
         .edit-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 11px;border-radius:9px;border:none;background:rgba(29,78,216,0.08);color:#1D4ED8;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s;text-decoration:none;white-space:nowrap}
         .edit-btn:hover{background:rgba(29,78,216,0.14)}
+        .del-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;border:none;background:rgba(220,38,38,0.08);color:#DC2626;cursor:pointer;flex-shrink:0}
+        .del-icon-btn:hover:not(:disabled){background:rgba(220,38,38,0.16)}
+        .del-icon-btn:disabled{opacity:0.4;cursor:not-allowed}
 
         /* Publish switch */
         .pub-wrap{display:flex;align-items:center;gap:6px}
@@ -400,6 +436,18 @@ export default function CatalogClient({ products: initProducts, categories: init
                 <input className="search-input" placeholder="Buscar producto o SKU..." value={q} onChange={e => setQ(e.target.value)} />
               </div>
 
+              {/* Category filter */}
+              <select className="per-page-sel" value={catFilter} onChange={e => setCatFilter(e.target.value)}>
+                <option value="all">Todas las categorías</option>
+                {roots.map(r => {
+                  const subs = children(r.id)
+                  return [
+                    <option key={r.id} value={r.id}>{r.name}</option>,
+                    ...subs.map(s => <option key={s.id} value={s.id}>↳ {s.name}</option>),
+                  ]
+                })}
+              </select>
+
               {/* Entries per page */}
               <select className="per-page-sel" value={perPage} onChange={e => { setPerPage(Number(e.target.value) as 6|12|20|50); setPage(1) }}>
                 {PER_PAGE_OPTIONS.map(n => <option key={n} value={n}>{n} por página</option>)}
@@ -458,11 +506,15 @@ export default function CatalogClient({ products: initProducts, categories: init
                           const cat       = (p.categories as unknown as { name: string } | null)?.name
                           const sm        = STATUS_META[p.status] ?? STATUS_META.draft
                           const stockCls  = stock === 0 ? 's-zero' : stock < 5 ? 's-low' : 's-ok'
+                          const photo = primaryPhoto(p.product_images)
                           return (
                             <tr key={p.id} onClick={() => setViewProduct(p)}>
                               <td>
                                 <div className="p-icon">
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.50)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                                  {photo
+                                    ? <img src={photo} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:9}} />
+                                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.50)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                                  }
                                 </div>
                               </td>
                               <td>
@@ -508,10 +560,15 @@ export default function CatalogClient({ products: initProducts, categories: init
                                 </label>
                               </td>
                               <td onClick={e => e.stopPropagation()}>
-                                <Link href={`/catalog/${p.id}/edit`} className="edit-btn">
-                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                  Editar
-                                </Link>
+                                <div style={{display:'flex',gap:6,justifyContent:'center'}}>
+                                  <Link href={`/catalog/${p.id}/edit`} className="edit-btn">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                    Editar
+                                  </Link>
+                                  <button className="del-icon-btn" disabled={!!deleting[p.id]} onClick={() => deleteProduct(p)} title="Eliminar producto">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           )
@@ -541,7 +598,10 @@ export default function CatalogClient({ products: initProducts, categories: init
                         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}>
                           <div style={{display:'flex',alignItems:'center',gap:6}}>
                             <div className="g-icon">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.50)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                              {primaryPhoto(p.product_images)
+                                ? <img src={primaryPhoto(p.product_images)!} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:13}} />
+                                : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(29,78,216,0.50)" strokeWidth="1.8" strokeLinecap="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                              }
                             </div>
                             <button
                               className="star-btn" onClick={e => { e.stopPropagation(); toggleFeature(p.id, !p.is_featured) }} disabled={!!featuring[p.id]}
@@ -567,10 +627,15 @@ export default function CatalogClient({ products: initProducts, categories: init
                         </div>
                         <div className="g-row" onClick={e => e.stopPropagation()}>
                           <span className={`pub-lbl${p.is_published ? ' on' : ''}`}>{p.is_published ? 'Publicado' : 'Oculto'}</span>
-                          <label className="tog" title={p.is_published ? 'Publicado — clic para ocultar' : 'Oculto — clic para publicar'}>
-                            <input type="checkbox" checked={p.is_published} disabled={!!publishing[p.id]} onChange={() => togglePublish(p.id, !p.is_published)} />
-                            <span className="tog-track" /><span className="tog-thumb" />
-                          </label>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <label className="tog" title={p.is_published ? 'Publicado — clic para ocultar' : 'Oculto — clic para publicar'}>
+                              <input type="checkbox" checked={p.is_published} disabled={!!publishing[p.id]} onChange={() => togglePublish(p.id, !p.is_published)} />
+                              <span className="tog-track" /><span className="tog-thumb" />
+                            </label>
+                            <button className="del-icon-btn" disabled={!!deleting[p.id]} onClick={() => deleteProduct(p)} title="Eliminar producto">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     )
@@ -850,6 +915,9 @@ export default function CatalogClient({ products: initProducts, categories: init
               </div>
 
               <div className="pd-footer">
+                <button className="del-icon-btn" style={{width:44,height:44,borderRadius:14,flexShrink:0}} disabled={!!deleting[p.id]} onClick={() => deleteProduct(p)} title="Eliminar producto">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                </button>
                 <button style={{flex:1,padding:'13px',borderRadius:14,border:'1.5px solid rgba(0,0,0,0.10)',background:'transparent',fontSize:14,fontWeight:700,color:'rgba(26,26,32,0.50)',cursor:'pointer',fontFamily:'inherit'}} onClick={() => setViewProduct(null)}>Cerrar</button>
                 <Link href={`/catalog/${p.id}/edit`} className="pd-edit-btn">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
