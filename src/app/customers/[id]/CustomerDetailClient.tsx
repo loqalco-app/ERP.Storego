@@ -10,7 +10,7 @@ interface Order { id: string; folio: string; status: string; subtotal: number; d
 interface Customer { id: string; full_name: string; email: string | null; phone: string | null; tax_id: string | null; notes: string | null; status: string; credit_limit: number; balance_owing: number; tags: string[]; created_at: string }
 interface Address { id: string; label: string | null; street: string; neighborhood: string | null; city: string; state: string; zip_code: string; country: string | null; is_default: boolean }
 
-interface Props { customer: Customer; orders: Order[]; addresses: Address[]; orgId: string; debugInfo?: unknown }
+interface Props { customer: Customer; orders: Order[]; addresses: Address[]; orgId: string }
 
 function initials(name: string) { return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?' }
 const AVATAR_COLORS = ['linear-gradient(135deg,#1D4ED8,#3B82F6)','linear-gradient(135deg,#7C3AED,#A78BFA)','linear-gradient(135deg,#059669,#34D399)','linear-gradient(135deg,#DC2626,#F87171)','linear-gradient(135deg,#D97706,#FCD34D)','linear-gradient(135deg,#0891B2,#67E8F9)']
@@ -34,7 +34,7 @@ const PAY_METHOD: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tar
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) }
 function fmtMoney(n: number) { return '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2 }) }
 
-export default function CustomerDetailClient({ customer, orders, addresses, debugInfo }: Props) {
+export default function CustomerDetailClient({ customer, orders, addresses }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
   const totalSpent = orders.reduce((s, o) => s + Number(o.total), 0)
@@ -219,7 +219,6 @@ export default function CustomerDetailClient({ customer, orders, addresses, debu
           </div>
 
           {/* Addresses */}
-          <div style={{ fontSize: 10, background: '#fee', padding: 8, wordBreak: 'break-all' }}>DEBUG: {JSON.stringify(debugInfo)}</div>
           <div className="sec-card">
             <div className="sec-hd">
               <div className="sec-title">Dirección</div>

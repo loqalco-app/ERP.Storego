@@ -35,20 +35,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
   if (!customer) notFound()
 
-  const addrResult = await supabase.from('customer_addresses').select('*').eq('customer_id', id)
-  const { data: siblings } = await supabase
-    .from('customers')
-    .select('id, full_name, email, phone, created_at')
-    .eq('organization_id', orgId)
-    .ilike('full_name', '%Jonathan%')
-
   return (
     <CustomerDetailClient
       customer={customer as any}
       orders={(orders ?? []) as any}
       addresses={(addresses ?? []) as any}
       orgId={orgId}
-      debugInfo={{ customerId: id, orgId, addrData: addrResult.data, addrError: addrResult.error, siblings }}
     />
   )
 }
