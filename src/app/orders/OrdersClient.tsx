@@ -150,14 +150,27 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function deleteOrder(id: string, folio: string) {
-    if (!confirm(`¿Eliminar la orden ${folio} permanentemente? Esta acción no se puede deshacer.`)) return
+    if (!confirm(`¿Eliminar la orden ${folio} permanentemente? Sus artículos regresarán al inventario. Esta acción no se puede deshacer.`)) return
     setDeletingId(id)
+
+    // Grab what was sold before wiping the order, so we can put it back in stock.
+    const { data: items } = await supabase.from('order_items').select('variant_id, quantity').eq('order_id', id)
+
     await supabase.from('order_items').delete().eq('order_id', id)
     await supabase.from('order_payments').delete().eq('order_id', id)
     await supabase.from('order_shipping').delete().eq('order_id', id)
     const { error } = await supabase.from('orders').delete().eq('id', id)
+    if (error) { setDeletingId(null); alert('No se pudo eliminar la orden: ' + error.message); return }
+
+    if (items && items.length > 0) {
+      await supabase.from('inventory_ledger').insert(items.map(i => ({
+        organization_id: orgId, variant_id: i.variant_id, movement_type: 'return_in',
+        quantity: Number(i.quantity), source_type: 'order_deleted', source_id: id,
+        notes: `Orden ${folio} eliminada — regresa a inventario`,
+      })))
+    }
+
     setDeletingId(null)
-    if (error) { alert('No se pudo eliminar la orden: ' + error.message); return }
     setOrders(prev => prev.filter(o => o.id !== id))
     if (selected?.id === id) setSelected(null)
   }
