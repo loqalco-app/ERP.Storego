@@ -94,7 +94,7 @@ export default function POSClient({
     const delta = dragCurrentY.current
     if (sheetRef.current) { sheetRef.current.style.transform = ''; sheetRef.current.style.transition = 'height 0.3s cubic-bezier(0.32,0.72,0,1),transform 0.3s cubic-bezier(0.32,0.72,0,1)' }
     if (delta > 70) { if (sheetState === 'full') setSheetState('peek'); else setShowCartSheet(false) }
-    else if (delta < -70) setSheetState('full')
+    else if (delta < -30) setSheetState('full')
     dragCurrentY.current = 0
   }
 
@@ -461,7 +461,7 @@ export default function POSClient({
     .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:flex;flex-direction:column;justify-content:flex-end}
     .cart-sheet{background:#FFFFFF;border-radius:28px 28px 0 0;display:flex;flex-direction:column;padding-bottom:max(env(safe-area-inset-bottom,0px),8px);transition:height 0.3s cubic-bezier(0.32,0.72,0,1),transform 0.3s cubic-bezier(0.32,0.72,0,1)}
     .cart-sheet.peek{height:58dvh}
-    .cart-sheet.full{height:92dvh}
+    .cart-sheet.full{height:100dvh;padding-top:env(safe-area-inset-top,0px)}
     .sheet-handle-area{padding:12px 0 4px;cursor:grab;touch-action:none;flex-shrink:0}
     .sheet-drag{width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,0.15);margin:0 auto}
     .sheet-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 18px 10px;flex-shrink:0}
@@ -547,6 +547,7 @@ export default function POSClient({
     @media(min-width:640px){.modal-overlay{align-items:center}}
     .modal-sheet{background:var(--bg,#ECEEF2);border-radius:28px 28px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto}
     @media(min-width:640px){.modal-sheet{border-radius:28px}}
+    @media(max-width:639px){.modal-sheet{height:100dvh;max-height:100dvh;padding-top:calc(env(safe-area-inset-top,0px) + 24px)}}
     .modal-title{font-size:18px;font-weight:800;color:var(--text,#0A0A0E);margin-bottom:18px;letter-spacing:-.3px}
     .modal-label{font-size:11px;font-weight:700;color:rgba(10,10,14,0.38);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
     .modal-input{width:100%;padding:12px 14px;border:1.5px solid rgba(0,0,0,0.08);border-radius:14px;background:rgba(0,0,0,0.03);font-size:15px;font-family:inherit;color:var(--text,#0A0A0E);outline:none;transition:border-color .15s;margin-bottom:14px}
