@@ -36,6 +36,24 @@ function fmtMoney(n: number) { return '$' + Number(n).toLocaleString('es-MX', { 
 
 export default function CustomerDetailClient({ customer, orders, addresses }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  function addressText(a: Address) {
+    return [
+      a.street,
+      a.neighborhood,
+      `${a.city}, ${a.state} ${a.zip_code}`,
+      a.country && a.country !== 'MX' ? a.country : null,
+    ].filter(Boolean).join('\n')
+  }
+
+  async function copyAddress(a: Address) {
+    try {
+      await navigator.clipboard.writeText(addressText(a))
+      setCopiedId(a.id)
+      setTimeout(() => setCopiedId(null), 1800)
+    } catch { /* clipboard unavailable */ }
+  }
 
   const totalSpent = orders.reduce((s, o) => s + Number(o.total), 0)
   const st = STATUS_STYLE[customer.status] ?? STATUS_STYLE.active
@@ -81,6 +99,19 @@ export default function CustomerDetailClient({ customer, orders, addresses }: Pr
         .info-val{font-size:14px;font-weight:600;color:var(--text-1,#1A1A20)}
         .info-val.muted{color:var(--text-3,rgba(26,26,32,0.42));font-weight:400}
         .tag{display:inline-block;padding:3px 10px;border-radius:50px;font-size:11px;font-weight:600;background:rgba(29,78,216,0.10);color:#1D4ED8;margin:0 4px 4px 0}
+
+        /* Address block */
+        .addr-block{padding:16px 20px;border-bottom:1px solid rgba(0,0,0,0.04)}
+        .addr-block:last-child{border-bottom:none}
+        .addr-block-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+        .addr-block-label{font-size:12px;font-weight:700;color:var(--text-2,rgba(26,26,32,0.65));text-transform:uppercase;letter-spacing:0.04em}
+        .addr-copy-btn{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:50px;border:none;background:rgba(29,78,216,0.08);color:#1D4ED8;font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.12s}
+        .addr-copy-btn:hover{background:rgba(29,78,216,0.14)}
+        .addr-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 16px}
+        @media(max-width:420px){.addr-grid{grid-template-columns:1fr}}
+        .addr-field-wide{grid-column:1 / -1}
+        .addr-field-lbl{font-size:10.5px;font-weight:700;color:var(--text-3,rgba(26,26,32,0.42));text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}
+        .addr-field-val{font-size:14px;font-weight:600;color:var(--text-1,#1A1A20)}
 
         /* Orders list */
         .ord-row{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid rgba(0,0,0,0.04);cursor:pointer;transition:background 0.12s}
@@ -228,11 +259,40 @@ export default function CustomerDetailClient({ customer, orders, addresses }: Pr
               <div className="ord-empty">Sin dirección registrada</div>
             ) : (
               addresses.map(a => (
-                <div className="info-row" key={a.id} style={{ alignItems: 'flex-start' }}>
-                  <div className="info-lbl">{a.label || 'Envío'}{a.is_default ? ' ★' : ''}</div>
-                  <div className="info-val" style={{ fontSize: 13, fontWeight: 400, lineHeight: 1.6 }}>
-                    {a.street}{a.neighborhood ? `, ${a.neighborhood}` : ''}<br />
-                    {a.city}, {a.state} {a.zip_code}{a.country ? ` · ${a.country}` : ''}
+                <div className="addr-block" key={a.id}>
+                  <div className="addr-block-hd">
+                    <span className="addr-block-label">{a.label || 'Envío'}{a.is_default ? ' ★' : ''}</span>
+                    <button className="addr-copy-btn" onClick={() => copyAddress(a)}>
+                      {copiedId === a.id ? (
+                        <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>Copiado</>
+                      ) : (
+                        <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</>
+                      )}
+                    </button>
+                  </div>
+                  <div className="addr-grid">
+                    <div className="addr-field addr-field-wide">
+                      <div className="addr-field-lbl">Dirección</div>
+                      <div className="addr-field-val">{a.street}</div>
+                    </div>
+                    {a.neighborhood && (
+                      <div className="addr-field addr-field-wide">
+                        <div className="addr-field-lbl">Colonia / Referencia</div>
+                        <div className="addr-field-val">{a.neighborhood}</div>
+                      </div>
+                    )}
+                    <div className="addr-field">
+                      <div className="addr-field-lbl">Ciudad</div>
+                      <div className="addr-field-val">{a.city}</div>
+                    </div>
+                    <div className="addr-field">
+                      <div className="addr-field-lbl">Estado</div>
+                      <div className="addr-field-val">{a.state}</div>
+                    </div>
+                    <div className="addr-field">
+                      <div className="addr-field-lbl">Código postal</div>
+                      <div className="addr-field-val">{a.zip_code}</div>
+                    </div>
                   </div>
                 </div>
               ))

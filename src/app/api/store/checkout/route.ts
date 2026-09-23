@@ -139,20 +139,22 @@ export async function POST(req: NextRequest) {
     customerId = newCustomer.id
   }
 
-  const streetLine = shipping.address_line1!.trim() + (shipping.address_line2?.trim() ? `, ${shipping.address_line2!.trim()}` : '')
+  const streetLine = shipping.address_line1!.trim()
+  const neighborhood = shipping.address_line2?.trim() || null
   const { data: existingAddresses } = await client
     .from('customer_addresses')
-    .select('id, street, city, zip_code')
+    .select('id, street, neighborhood, city, zip_code')
     .eq('customer_id', customerId)
 
   const sameAddress = (existingAddresses ?? []).some(a =>
-    a.street === streetLine && a.city === shipping.city!.trim() && a.zip_code === shipping.zip!.trim())
+    a.street === streetLine && a.neighborhood === neighborhood && a.city === shipping.city!.trim() && a.zip_code === shipping.zip!.trim())
 
   if (!sameAddress) {
     await client.from('customer_addresses').insert({
       customer_id: customerId,
       label: 'Envío',
       street: streetLine,
+      neighborhood,
       city: shipping.city!.trim(),
       state: shipping.state!.trim(),
       zip_code: shipping.zip!.trim(),
