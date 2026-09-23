@@ -18,9 +18,11 @@ const SOURCE_LABEL: Record<string, string> = {
   manual: 'Manual',
 }
 
-export async function notifyNewOrder(orgId: string, params: {
-  folio: string; total: number; customerName: string; source: string; itemCount: number
-}) {
+function fmt(n: number) {
+  return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 })
+}
+
+async function sendPush(orgId: string, payload: { title: string; body: string; url: string }) {
   if (!configured()) return { skipped: true as const }
 
   webpush.setVapidDetails(
@@ -37,19 +39,11 @@ export async function notifyNewOrder(orgId: string, params: {
 
   if (!subs || subs.length === 0) return { sent: 0 }
 
-  const total = params.total.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 })
-  const sourceLabel = SOURCE_LABEL[params.source] ?? params.source
-  const itemsLabel = `${params.itemCount} producto${params.itemCount !== 1 ? 's' : ''}`
-  const payload = JSON.stringify({
-    title: 'Nueva venta | northéa',
-    body: `${sourceLabel} · ${params.customerName} · ${itemsLabel} · ${total} · #${params.folio}`,
-    url: '/orders',
-  })
-
+  const body = JSON.stringify(payload)
   let sent = 0
   await Promise.all(subs.map(async sub => {
     try {
-      await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, payload)
+      await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, body)
       sent++
     } catch (err: unknown) {
       const statusCode = (err as { statusCode?: number })?.statusCode
@@ -60,4 +54,32 @@ export async function notifyNewOrder(orgId: string, params: {
   }))
 
   return { sent }
+}
+
+// New order — either a fully-paid sale or a freshly created apartado.
+export async function notifyNewOrder(orgId: string, params: {
+  folio: string; total: number; customerName: string; source: string; itemCount: number; status: string
+}) {
+  const sourceLabel = SOURCE_LABEL[params.source] ?? params.source
+  const itemsLabel = `${params.itemCount} producto${params.itemCount !== 1 ? 's' : ''}`
+  const isApartado = params.status === 'apartado'
+  return sendPush(orgId, {
+    title: isApartado ? 'Nuevo apartado | northéa' : 'Nueva venta | northéa',
+    body: `${sourceLabel} · ${params.customerName} · ${itemsLabel} · ${fmt(params.total)} · #${params.folio}`,
+    url: '/orders',
+  })
+}
+
+// A payment towards an existing apartado — either a partial abono or the one that liquidates it.
+export async function notifyAbono(orgId: string, params: {
+  folio: string; customerName: string; amount: number; balance: number
+}) {
+  const liquidated = params.balance <= 0
+  return sendPush(orgId, {
+    title: liquidated ? 'Apartado liquidado | northéa' : 'Abono recibido | northéa',
+    body: liquidated
+      ? `${params.customerName} · Pagó el resto: ${fmt(params.amount)} · #${params.folio}`
+      : `${params.customerName} · Abonó ${fmt(params.amount)} · Resta ${fmt(params.balance)} · #${params.folio}`,
+    url: '/orders',
+  })
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
-import { notifyNewOrder } from '@/lib/push'
+import { notifyNewOrder, notifyAbono } from '@/lib/push'
 import { sendOrderConfirmationEmail, sendDepositConfirmationEmail, sendAbonoReceivedEmail, type OrderConfirmationItem, type BankDetails } from '@/lib/email'
 
 function adminClient() {
@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       folio: order.folio, total, customerName,
       source: order.source ?? 'pos',
       itemCount: (order.order_items ?? []).length,
+      status: order.status,
     })
 
     if (customerEmail) {
@@ -105,11 +106,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (event === 'abono') {
+    const abonoAmount = Number(amount) || 0
+    await notifyAbono(orgId, { folio: order.folio, customerName, amount: abonoAmount, balance })
     if (customerEmail) {
       if (order.status === 'pagado' || balance <= 0) {
         await sendOrderConfirmationEmail({ to: customerEmail, customerName, folio: order.folio, items, total, shipping })
       } else {
-        await sendAbonoReceivedEmail({ to: customerEmail, customerName, folio: order.folio, amountReceived: Number(amount) || 0, balance })
+        await sendAbonoReceivedEmail({ to: customerEmail, customerName, folio: order.folio, amountReceived: abonoAmount, balance })
       }
     }
     return NextResponse.json({ ok: true })
