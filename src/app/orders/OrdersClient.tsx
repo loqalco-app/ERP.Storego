@@ -2,7 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import Sidebar from '@/components/Sidebar'
+import DateRangeCalendar from '@/components/DateRangeCalendar'
 import { createClient } from '@/lib/supabase/client'
+
+function todayISO() { return new Date().toISOString().slice(0, 10) }
 
 interface OrderPayment { id: string; method: string; amount: number; created_at?: string }
 interface Customer { id: string; full_name: string; email: string | null; phone: string | null }
@@ -49,6 +52,8 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
   const [selected, setSelected] = useState<OrderDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [statusFilter, setStatusFilter] = useState('todos')
+  const [search, setSearch] = useState('')
+  const [dateRange, setDateRange] = useState<{ desde: string; hasta: string } | null>(null)
 
   // Abono state
   const [abonoMethod, setAbonoMethod] = useState<typeof METHODS[number]>('efectivo')
@@ -56,10 +61,27 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
   const [savingAbono, setSavingAbono] = useState(false)
   const [abonoError, setAbonoError] = useState('')
 
-  const filtered = useMemo(() =>
-    statusFilter === 'todos' ? orders : orders.filter(o => o.status === statusFilter),
-    [orders, statusFilter]
-  )
+  const filtered = useMemo(() => {
+    let list = statusFilter === 'todos' ? orders : orders.filter(o => o.status === statusFilter)
+    if (dateRange) {
+      const start = dateRange.desde
+      const end = dateRange.hasta
+      list = list.filter(o => {
+        const d = o.created_at.slice(0, 10)
+        return d >= start && d <= end
+      })
+    }
+    const q = search.trim().toLowerCase()
+    if (q) {
+      list = list.filter(o =>
+        o.folio.toLowerCase().includes(q) ||
+        o.customers?.full_name.toLowerCase().includes(q) ||
+        o.customers?.email?.toLowerCase().includes(q) ||
+        o.customers?.phone?.includes(q)
+      )
+    }
+    return list
+  }, [orders, statusFilter, dateRange, search])
 
   async function openOrder(summary: OrderSummary) {
     setSelected(null); setAbonoAmount(''); setAbonoError('')
@@ -108,6 +130,13 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
     })
     setAbonoAmount(''); setSavingAbono(false)
     fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: selected.id, event: 'abono', amount }) }).catch(() => {})
+  }
+
+  async function changeStatus(newStatus: string) {
+    if (!selected) return
+    if (newStatus === 'cancelado' && !confirm('¿Cancelar este pedido?')) return
+    await supabase.from('orders').update({ status: newStatus }).eq('id', selected.id)
+    syncSelected({ ...selected, status: newStatus })
   }
 
   async function liquidar() {
@@ -189,6 +218,15 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
         .abono-btn:disabled{opacity:.5;cursor:not-allowed}
         .liquidar-btn{width:100%;padding:14px;border-radius:18px;border:none;background:linear-gradient(145deg,#059669,#10B981);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(5,150,105,0.28);margin-top:12px}
         .alert-err{background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.15);border-radius:12px;padding:8px 12px;font-size:12px;font-weight:600;color:#991b1b;margin-top:8px}
+        .ord-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+        .ord-search-wrap{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.04);border-radius:14px;padding:10px 14px}
+        .ord-search-input{flex:1;border:none;background:none;outline:none;font-size:13px;font-family:inherit;color:var(--text-1,#1A1A20)}
+        .ord-search-input::placeholder{color:rgba(26,26,32,0.38)}
+        .ord-clear-dates{background:none;border:none;font-size:12px;font-weight:600;color:#2563EB;cursor:pointer;font-family:inherit;white-space:nowrap}
+        .status-steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+        .status-step{padding:9px 14px;border-radius:12px;border:1.5px solid rgba(0,0,0,0.08);background:none;font-size:12.5px;font-weight:700;color:rgba(10,10,14,0.55);cursor:pointer;font-family:inherit}
+        .status-step.on{border-color:transparent}
+        .status-cancel-btn{background:none;border:none;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;font-family:inherit;padding:4px 0}
         @keyframes sk-s{0%{background-position:-200% 0}100%{background-position:200% 0}}
         .sk{border-radius:12px;background:linear-gradient(90deg,rgba(0,0,0,0.06) 25%,rgba(0,0,0,0.10) 50%,rgba(0,0,0,0.06) 75%);background-size:200%;animation:sk-s 1.4s infinite}
       `}</style>
@@ -200,6 +238,14 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
           <div className="page-hd-row">
             <div className="page-title">Órdenes</div>
             <div className="ord-count">{filtered.length} {filtered.length === 1 ? 'orden' : 'órdenes'}</div>
+          </div>
+          <div className="ord-tools">
+            <div className="ord-search-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{flexShrink:0,opacity:.4}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input className="ord-search-input" placeholder="Buscar por folio, cliente, correo o teléfono…" value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <DateRangeCalendar desde={dateRange?.desde ?? todayISO()} hasta={dateRange?.hasta ?? todayISO()} onApply={(desde, hasta) => setDateRange({ desde, hasta })} />
+            {dateRange && <button className="ord-clear-dates" onClick={() => setDateRange(null)}>Quitar filtro de fecha</button>}
           </div>
           <div className="page-hd-chips">
             {['todos','pagado','apartado','en_preparacion','enviado','entregado','cancelado'].map(s => (
@@ -401,6 +447,26 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
                     </button>
                   )}
                 </div>
+
+                {/* Estatus de entrega — solo aplica a pedidos ya pagados, no a apartados pendientes */}
+                {!isApartado && selected.status !== 'cancelado' && (
+                  <div className="d-section">
+                    <div className="d-title">Estatus del pedido</div>
+                    <div className="status-steps">
+                      {(['pagado', 'en_preparacion', 'enviado', 'entregado'] as const).map(s => (
+                        <button
+                          key={s}
+                          className={`status-step${selected.status === s ? ' on' : ''}`}
+                          style={selected.status === s ? { background: STATUS[s].bg, color: STATUS[s].color } : undefined}
+                          onClick={() => changeStatus(s)}
+                        >
+                          {STATUS[s].label}
+                        </button>
+                      ))}
+                    </div>
+                    <button className="status-cancel-btn" onClick={() => changeStatus('cancelado')}>Cancelar pedido</button>
+                  </div>
+                )}
 
                 {/* Envío */}
                 {selected.order_shipping?.length > 0 && (
