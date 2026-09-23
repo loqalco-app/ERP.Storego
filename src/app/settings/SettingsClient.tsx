@@ -17,11 +17,12 @@ const MODULE_LIST = [
   { key: 'catalog',   label: 'Inventario' },
   { key: 'store',     label: 'Tienda web' },
   { key: 'customers', label: 'Clientes' },
+  { key: 'calculadora', label: 'Precios' },
 ] as const
 
 const DEFAULT_MODULES: Record<string, string[]> = {
-  owner:  ['dashboard','pos','finanzas','orders','catalog','store','customers'],
-  admin:  ['dashboard','pos','finanzas','orders','catalog','store','customers'],
+  owner:  ['dashboard','pos','finanzas','orders','catalog','store','customers','calculadora'],
+  admin:  ['dashboard','pos','finanzas','orders','catalog','store','customers','calculadora'],
   staff:  ['dashboard','pos','orders','catalog','customers'],
   viewer: ['dashboard'],
 }

@@ -58,6 +58,15 @@ const NAV = [
     </svg>,
   },
   {
+    key: 'calculadora', href: '/calculadora', label: 'Precios', desktopOnly: true,
+    icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/>
+      <line x1="8" y1="10.5" x2="9" y2="10.5"/><line x1="12" y1="10.5" x2="13" y2="10.5"/><line x1="16" y1="10.5" x2="17" y2="10.5"/>
+      <line x1="8" y1="14.5" x2="9" y2="14.5"/><line x1="12" y1="14.5" x2="13" y2="14.5"/><line x1="16" y1="14.5" x2="17" y2="14.5"/>
+      <line x1="8" y1="18.5" x2="9" y2="18.5"/><line x1="12" y1="18.5" x2="13" y2="18.5"/><line x1="16" y1="18.5" x2="17" y2="18.5"/>
+    </svg>,
+  },
+  {
     key: 'settings', href: '/settings', label: 'Ajustes', desktopOnly: true,
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="3"/>
@@ -68,8 +77,8 @@ const NAV = [
 
 // Default modules per role — must match SettingsClient.tsx DEFAULT_MODULES
 const DEFAULT_NAV_MODULES: Record<string, string[]> = {
-  owner:  ['dashboard','pos','finanzas','orders','catalog','store','customers','settings'],
-  admin:  ['dashboard','pos','finanzas','orders','catalog','store','customers','settings'],
+  owner:  ['dashboard','pos','finanzas','orders','catalog','store','customers','calculadora','settings'],
+  admin:  ['dashboard','pos','finanzas','orders','catalog','store','customers','calculadora','settings'],
   staff:  ['dashboard','pos','orders','catalog','customers'],
   viewer: ['dashboard'],
 }
