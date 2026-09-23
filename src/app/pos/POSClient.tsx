@@ -54,6 +54,7 @@ export default function POSClient({
   const [showNewCust, setShowNewCust]   = useState(false)
   const [newCust, setNewCust]           = useState({ full_name: '', email: '', phone: '' })
   const [savingCust, setSavingCust]     = useState(false)
+  const [dupCustNotice, setDupCustNotice] = useState('')
   const custRef = useRef<HTMLDivElement>(null)
   const [showCustTopDrop, setShowCustTopDrop] = useState(false)
   const custTopRef = useRef<HTMLDivElement>(null)
@@ -220,7 +221,38 @@ export default function POSClient({
   async function createCustomer() {
     if (!newCust.full_name.trim()) return
     setSavingCust(true)
-    const { data, error } = await supabase.from('customers').insert({ organization_id: orgId, full_name: newCust.full_name.trim(), email: newCust.email.trim() || null, phone: newCust.phone.trim() || null, created_by: userId }).select('id, full_name, email, phone').single()
+    setDupCustNotice('')
+
+    const email = newCust.email.trim().toLowerCase() || null
+    const phone = newCust.phone.trim() || null
+
+    // Same person = same email OR same phone — never create a second record for them.
+    if (email || phone) {
+      const orFilter = email && phone ? `email.eq.${email},phone.eq.${phone}` : email ? `email.eq.${email}` : `phone.eq.${phone}`
+      const { data: matches } = await supabase.from('customers').select('id, full_name, email, phone').eq('organization_id', orgId).or(orFilter)
+      const existing = (matches ?? []).find(c => c.email === email) ?? matches?.[0]
+      if (existing) {
+        setSavingCust(false)
+        setCustomer(existing as Customer)
+        setShowNewCust(false)
+        setNewCust({ full_name: '', email: '', phone: '' })
+        setDupCustNotice(`Ya existe como "${existing.full_name}" — lo seleccionamos.`)
+        setTimeout(() => setDupCustNotice(''), 4000)
+        return
+      }
+    }
+
+    const { data, error } = await supabase.from('customers').insert({ organization_id: orgId, full_name: newCust.full_name.trim(), email, phone, created_by: userId }).select('id, full_name, email, phone').single()
+    if (error?.code === '23505') {
+      // Lost a race with a concurrent insert for the same person — reuse their record.
+      const orFilter = email && phone ? `email.eq.${email},phone.eq.${phone}` : email ? `email.eq.${email}` : `phone.eq.${phone}`
+      const { data: raceMatch } = await supabase.from('customers').select('id, full_name, email, phone').eq('organization_id', orgId).or(orFilter).limit(1).single()
+      setSavingCust(false)
+      if (!raceMatch) return
+      const c = raceMatch as Customer
+      setCustomer(c); setShowNewCust(false); setNewCust({ full_name: '', email: '', phone: '' })
+      return
+    }
     setSavingCust(false)
     if (error || !data) return
     const c = data as Customer
@@ -526,6 +558,7 @@ export default function POSClient({
     .ship-btn.active{border-color:#2563EB;background:rgba(37,99,235,0.06)}
     .rm-pay{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.30);padding:4px;font-size:16px}
     .new-cust-form{margin-top:8px;padding:12px;background:rgba(0,0,0,0.025);border-radius:14px;border:1.5px solid rgba(0,0,0,0.07)}
+    .dup-cust-notice{background:rgba(217,119,6,0.12);color:#92400e;font-size:12px;font-weight:600;padding:10px 14px;border-radius:12px;margin-bottom:10px}
     .new-cust-input{width:100%;padding:9px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;background:rgba(0,0,0,0.03);font-size:13px;font-family:inherit;color:var(--text,#0A0A0E);outline:none;margin-bottom:6px}
     .new-cust-input:focus{border-color:#2563EB}
     .new-cust-btns{display:flex;gap:6px;margin-top:2px}
@@ -759,6 +792,7 @@ export default function POSClient({
           <div className="pos-body-inner">
           {/* LEFT: Customer + Products */}
           <div className="pos-left">
+            {dupCustNotice && <div className="dup-cust-notice">{dupCustNotice}</div>}
             {/* New customer form (shows when + Nuevo cliente is clicked in topbar dropdown) */}
             {showNewCust && (
               <div className="new-cust-form">

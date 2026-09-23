@@ -116,27 +116,45 @@ export async function POST(req: NextRequest) {
 
   const total = orderItemsPayload.reduce((n, i) => n + i.subtotal, 0)
 
-  // 3. Find or create the CRM customer.
+  // 3. Find or create the CRM customer — matched by email OR phone, so the
+  // same person never ends up with two customer records.
   const email = customerIn.email!.trim().toLowerCase()
-  const { data: existingCustomer } = await client
+  const phone = customerIn.phone?.trim() || null
+
+  const orFilter = phone ? `email.eq.${email},phone.eq.${phone}` : `email.eq.${email}`
+  const { data: matches } = await client
     .from('customers')
-    .select('id, phone')
+    .select('id, email, phone')
     .eq('organization_id', orgId)
-    .eq('email', email)
-    .maybeSingle()
+    .or(orFilter)
+
+  // Prefer an exact email match; fall back to the phone match.
+  const existingCustomer = (matches ?? []).find(c => c.email === email) ?? matches?.[0]
 
   let customerId = existingCustomer?.id as string | undefined
-  if (customerId && !existingCustomer?.phone && customerIn.phone?.trim()) {
-    await client.from('customers').update({ phone: customerIn.phone.trim() }).eq('id', customerId)
+  if (customerId) {
+    // Fill in whichever contact field was missing — never overwrite what's already there.
+    const fillIn: Record<string, string> = {}
+    if (!existingCustomer!.phone && phone) fillIn.phone = phone
+    if (!existingCustomer!.email && email) fillIn.email = email
+    if (Object.keys(fillIn).length > 0) await client.from('customers').update(fillIn).eq('id', customerId)
   }
   if (!customerId) {
     const { data: newCustomer, error: cErr } = await client
       .from('customers')
-      .insert({ organization_id: orgId, full_name: customerIn.full_name!.trim(), email, phone: customerIn.phone?.trim() || null, status: 'active' })
+      .insert({ organization_id: orgId, full_name: customerIn.full_name!.trim(), email, phone, status: 'active' })
       .select('id')
       .single()
-    if (cErr || !newCustomer) return json({ error: 'customer_failed' }, 500)
-    customerId = newCustomer.id
+    if (cErr?.code === '23505') {
+      // Lost a race with a concurrent checkout for the same person — reuse their record.
+      const { data: raceMatch } = await client.from('customers').select('id').eq('organization_id', orgId).or(orFilter).limit(1).single()
+      if (!raceMatch) return json({ error: 'customer_failed' }, 500)
+      customerId = raceMatch.id
+    } else if (cErr || !newCustomer) {
+      return json({ error: 'customer_failed' }, 500)
+    } else {
+      customerId = newCustomer.id
+    }
   }
 
   const streetLine = shipping.address_line1!.trim()
