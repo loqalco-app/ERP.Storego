@@ -26,11 +26,14 @@ const DEFAULT_MODULES: Record<string, string[]> = {
   viewer: ['dashboard'],
 }
 
+interface BankDetails { bank?: string; holder?: string; clabe?: string; account?: string }
+
 interface Props {
-  initialTab: 'profile' | 'team'
+  initialTab: 'profile' | 'team' | 'cobros'
   userId: string; email: string; fullName: string; phone: string
   orgId: string; orgName: string; myUserId: string; myRole: string; myEmail: string
   members: Member[]; invitations: Invitation[]; migrationNeeded?: boolean
+  bankDetails: BankDetails | null
 }
 
 const ROLE_META: Record<string, { label: string; color: string; bg: string; desc: string }> = {
@@ -52,16 +55,30 @@ function timeAgo(d: string) {
 export default function SettingsClient({
   initialTab, userId, email, fullName, phone,
   orgId, orgName, myUserId, myRole, myEmail,
-  members: initMembers, invitations: initInvitations, migrationNeeded,
+  members: initMembers, invitations: initInvitations, migrationNeeded, bankDetails,
 }: Props) {
   const router = useRouter()
-  const [tab, setTab] = useState<'profile'|'team'>(initialTab)
+  const [tab, setTab] = useState<'profile'|'team'|'cobros'>(initialTab)
+  const [bank, setBank] = useState<BankDetails>(bankDetails ?? {})
+  const [savingBank, setSavingBank] = useState(false)
+  const [bankMsg, setBankMsg] = useState<{ type: 'ok'|'err'; text: string } | null>(null)
 
-  function switchTab(t: 'profile'|'team') {
+  async function saveBank(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingBank(true); setBankMsg(null)
+    const supabase = createClient()
+    const { data: org } = await supabase.from('organizations').select('settings').eq('id', orgId).single()
+    const nextSettings = { ...(org?.settings ?? {}), bank_transfer: bank }
+    const { error } = await supabase.from('organizations').update({ settings: nextSettings }).eq('id', orgId)
+    setSavingBank(false)
+    setBankMsg(error ? { type: 'err', text: 'No se pudo guardar. Intenta de nuevo.' } : { type: 'ok', text: 'Datos bancarios guardados.' })
+  }
+
+  function switchTab(t: 'profile'|'team'|'cobros') {
     setTab(t)
     // Actualiza URL sin navegar para que refresh mantenga el tab
     const url = new URL(window.location.href)
-    if (t === 'team') url.searchParams.set('tab', 'team')
+    if (t !== 'profile') url.searchParams.set('tab', t)
     else url.searchParams.delete('tab')
     window.history.replaceState(null, '', url.toString())
   }
@@ -458,6 +475,7 @@ export default function SettingsClient({
           <div className="page-hd-tabs">
             <button className={`page-hd-tab${tab === 'profile' ? ' on' : ''}`} onClick={() => switchTab('profile')}>Mi perfil</button>
             <button className={`page-hd-tab${tab === 'team' ? ' on' : ''}`} onClick={() => switchTab('team')}>Equipo</button>
+            <button className={`page-hd-tab${tab === 'cobros' ? ' on' : ''}`} onClick={() => switchTab('cobros')}>Cobros</button>
           </div>
         </div>
 
@@ -527,6 +545,25 @@ export default function SettingsClient({
               <button type="submit" className="pass-save-btn" disabled={savingPass || !curPass || !newPass}>
                 {savingPass ? 'Cambiando...' : 'Cambiar contraseña'}
               </button>
+            </form>
+          </>
+        )}
+
+        {tab === 'cobros' && (
+          <>
+            <div className="sec-title">Datos para transferencia</div>
+            <div className="hint" style={{ marginBottom: 14 }}>
+              Se incluyen automáticamente en el correo que recibe el cliente cuando aparta con transferencia.
+            </div>
+            {bankMsg && <div className={bankMsg.type === 'ok' ? 'alert-ok' : 'alert-err'}>{bankMsg.text}</div>}
+            <form onSubmit={saveBank}>
+              <div className="card">
+                <div className="field"><div className="fl">Banco</div><input className="fi" value={bank.bank ?? ''} onChange={e => setBank(b => ({ ...b, bank: e.target.value }))} placeholder="Ej. BBVA" /></div>
+                <div className="field"><div className="fl">Titular de la cuenta</div><input className="fi" value={bank.holder ?? ''} onChange={e => setBank(b => ({ ...b, holder: e.target.value }))} placeholder="Nombre del titular" /></div>
+                <div className="field"><div className="fl">CLABE</div><input className="fi" value={bank.clabe ?? ''} onChange={e => setBank(b => ({ ...b, clabe: e.target.value }))} placeholder="18 dígitos" /></div>
+                <div className="field"><div className="fl">Número de cuenta (opcional)</div><input className="fi" value={bank.account ?? ''} onChange={e => setBank(b => ({ ...b, account: e.target.value }))} placeholder="Si aplica, además de la CLABE" /></div>
+              </div>
+              <button type="submit" className="save-btn" disabled={savingBank}>{savingBank ? 'Guardando...' : 'Guardar datos bancarios'}</button>
             </form>
           </>
         )}

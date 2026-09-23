@@ -15,7 +15,7 @@ type CartItem = {
   productName: string; variantName: string; sku: string; image: string | null
   unitPrice: number; costPrice: number; quantity: number; discount: number
 }
-type PaymentEntry = { method: 'efectivo' | 'tarjeta' | 'transferencia' | 'otro'; amount: string }
+type PaymentMethod = 'efectivo' | 'tarjeta' | 'transferencia' | 'link_pago'
 type ParkedSale  = { id: string; savedAt: string; customer: Customer | null; cart: CartItem[]; total: number }
 type PosView     = 'home' | 'selling' | 'parked'
 
@@ -23,7 +23,7 @@ const METHODS = [
   { value: 'efectivo',      label: 'Efectivo' },
   { value: 'tarjeta',       label: 'Tarjeta' },
   { value: 'transferencia', label: 'Transferencia' },
-  { value: 'otro',          label: 'Otro' },
+  { value: 'link_pago',     label: 'Link de pago' },
 ] as const
 
 const fmt = (n: number) => n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
@@ -64,7 +64,10 @@ export default function POSClient({
 
   // ── Payment & Shipping ──────────────────────────────────────────────────────
   const [showPayment, setShowPayment] = useState(false)
-  const [payments, setPayments]       = useState<PaymentEntry[]>([{ method: 'efectivo', amount: '' }])
+  const [payMethod, setPayMethod]     = useState<PaymentMethod>('efectivo')
+  const [depositAmount, setDepositAmount] = useState('')
+  const [paymentLink, setPaymentLink] = useState('')
+  const [custEmailInput, setCustEmailInput] = useState('')
   const [isApartado, setIsApartado]   = useState(false)
   const [showShipping, setShowShipping] = useState(false)
   const [shipType, setShipType]         = useState<'pickup' | 'envio'>('pickup')
@@ -202,8 +205,9 @@ export default function POSClient({
   }, [customers, sheetCustSearch])
 
   const cartTotal  = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
-  const totalPaid  = payments.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0)
+  const totalPaid  = isApartado ? (parseFloat(depositAmount) || 0) : cartTotal
   const remaining  = Math.max(0, cartTotal - totalPaid)
+  const needsEmail = !!customer && !customer.email
 
   // ── Cart helpers ────────────────────────────────────────────────────────────
   function addToCart(product: Product, variant: Variant) {
@@ -219,7 +223,7 @@ export default function POSClient({
 
   // ── Customer helpers ─────────────────────────────────────────────────────────
   async function createCustomer() {
-    if (!newCust.full_name.trim()) return
+    if (!newCust.full_name.trim() || !newCust.email.trim()) return
     setSavingCust(true)
     setDupCustNotice('')
 
@@ -263,21 +267,27 @@ export default function POSClient({
   async function createOrder() {
     if (!customer || cart.length === 0) return
     setSaving(true)
-    const { data: order, error: oErr } = await supabase.from('orders').insert({ organization_id: orgId, customer_id: customer.id, folio: '', status: isApartado ? 'apartado' : (remaining <= 0 ? 'pagado' : 'apartado'), subtotal: cartTotal, discount_amount: 0, total: cartTotal, created_by: userId, source: 'pos' }).select('id, folio').single()
+    if (needsEmail && custEmailInput.trim()) {
+      await supabase.from('customers').update({ email: custEmailInput.trim().toLowerCase() }).eq('id', customer.id)
+    }
+    const status = isApartado ? 'apartado' : 'pagado'
+    const { data: order, error: oErr } = await supabase.from('orders').insert({ organization_id: orgId, customer_id: customer.id, folio: '', status, subtotal: cartTotal, discount_amount: 0, total: cartTotal, created_by: userId, source: 'pos' }).select('id, folio').single()
     if (oErr || !order) { setSaving(false); return }
     await supabase.from('order_items').insert(cart.map(i => ({ order_id: order.id, organization_id: orgId, product_id: i.productId, variant_id: i.variantId, product_name: i.productName, variant_name: i.variantName, sku: i.sku, quantity: i.quantity, unit_price: i.unitPrice, cost_price: i.costPrice, discount_amount: i.discount, subtotal: i.unitPrice * i.quantity - i.discount })))
-    const vp = payments.filter(p => parseFloat(p.amount) > 0)
-    if (vp.length > 0) await supabase.from('order_payments').insert(vp.map(p => ({ order_id: order.id, organization_id: orgId, method: p.method, amount: parseFloat(p.amount) })))
+    if (totalPaid > 0) {
+      await supabase.from('order_payments').insert({ order_id: order.id, organization_id: orgId, method: payMethod, amount: totalPaid, reference: payMethod === 'link_pago' ? (paymentLink.trim() || null) : null })
+    }
     const needsAddr = shipType === 'envio' && !skipAddr
     await supabase.from('order_shipping').insert({ order_id: order.id, organization_id: orgId, type: shipType, address_line1: needsAddr ? shipAddr.line1 || null : null, address_line2: needsAddr ? shipAddr.line2 || null : null, city: needsAddr ? shipAddr.city || null : null, state: needsAddr ? shipAddr.state || null : null, zip: needsAddr ? shipAddr.zip || null : null })
     for (const item of cart) await supabase.from('inventory_ledger').insert({ organization_id: orgId, variant_id: item.variantId, movement_type: 'sale', quantity: -item.quantity, source_type: 'order', source_id: order.id, notes: `Venta ${order.folio}` })
-    fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: order.id }) }).catch(() => {})
+    fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: order.id, event: 'created' }) }).catch(() => {})
     setSaving(false); setSavedFolio(order.folio); setShowShipping(false)
+    setPayMethod('efectivo'); setDepositAmount(''); setPaymentLink(''); setCustEmailInput('')
   }
 
   function resetPOS() {
     setCart([]); setCustomer(null); setCustSearch('')
-    setPayments([{ method: 'efectivo', amount: '' }]); setIsApartado(false)
+    setPayMethod('efectivo'); setDepositAmount(''); setPaymentLink(''); setCustEmailInput(''); setIsApartado(false)
     setShipType('pickup'); setShipAddr({ line1: '', line2: '', city: '', state: '', zip: '' })
     setSkipAddr(false); setSavedFolio(''); setShowCartSheet(false); setSheetState('peek')
     setPosView('home')
@@ -799,10 +809,10 @@ export default function POSClient({
                 <div style={{fontSize:12,fontWeight:700,color:'var(--text,#0A0A0E)',marginBottom:8}}>Nuevo cliente</div>
                 <input className="new-cust-input" placeholder="Nombre completo *" value={newCust.full_name} onChange={e => setNewCust(p => ({...p, full_name: e.target.value}))} />
                 <input className="new-cust-input" placeholder="Teléfono" value={newCust.phone} onChange={e => setNewCust(p => ({...p, phone: e.target.value}))} />
-                <input className="new-cust-input" placeholder="Email" value={newCust.email} onChange={e => setNewCust(p => ({...p, email: e.target.value}))} />
+                <input className="new-cust-input" type="email" placeholder="Email * (para enviarle su comprobante)" value={newCust.email} onChange={e => setNewCust(p => ({...p, email: e.target.value}))} />
                 <div className="new-cust-btns">
                   <button className="btn-cancel-sm" onClick={() => setShowNewCust(false)}>Cancelar</button>
-                  <button className="btn-create" disabled={savingCust || !newCust.full_name.trim()} onClick={createCustomer}>{savingCust ? 'Guardando…' : 'Crear cliente'}</button>
+                  <button className="btn-create" disabled={savingCust || !newCust.full_name.trim() || !newCust.email.trim()} onClick={createCustomer}>{savingCust ? 'Guardando…' : 'Crear cliente'}</button>
                 </div>
               </div>
             )}
@@ -1025,24 +1035,41 @@ export default function POSClient({
               <button className={`toggle ${isApartado ? 'on' : ''}`} onClick={() => setIsApartado(v => !v)} />
               <span className="toggle-label">Apartado (pago parcial)</span>
             </div>
-            {payments.map((pay, i) => (
-              <div key={i} className="payment-entry">
-                <select className="modal-input" style={{flex:1,marginBottom:0,padding:'10px 12px'}} value={pay.method} onChange={e => setPayments(prev => prev.map((p, j) => j === i ? {...p, method: e.target.value as any} : p))}>
-                  {METHODS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
-                <input className="modal-input" style={{width:120,marginBottom:0,padding:'10px 12px',textAlign:'right'}} type="number" min="0" placeholder="Monto" value={pay.amount} onChange={e => setPayments(prev => prev.map((p, j) => j === i ? {...p, amount: e.target.value} : p))} />
-                {payments.length > 1 && <button className="rm-pay" onClick={() => setPayments(prev => prev.filter((_, j) => j !== i))}>×</button>}
-              </div>
-            ))}
-            <button className="add-pay-btn" onClick={() => setPayments(prev => [...prev, { method: 'efectivo', amount: '' }])}>+ Agregar otro método de pago</button>
+
+            <select className="modal-input" value={payMethod} onChange={e => setPayMethod(e.target.value as PaymentMethod)}>
+              {METHODS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+            </select>
+
+            {isApartado && (
+              <input className="modal-input" type="number" min="0" placeholder="Anticipo (opcional, puede quedar en $0)" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} />
+            )}
+
+            {payMethod === 'link_pago' && (
+              <input className="modal-input" type="url" placeholder="Pega aquí el link de pago generado" value={paymentLink} onChange={e => setPaymentLink(e.target.value)} />
+            )}
+
+            {needsEmail && (
+              <input className="modal-input" type="email" placeholder="Correo del cliente * (para enviarle su comprobante)" value={custEmailInput} onChange={e => setCustEmailInput(e.target.value)} />
+            )}
+
             <div className="summary-box">
               <div className="summary-row"><span>Total</span><span>{fmt(cartTotal)}</span></div>
-              <div className="summary-row"><span>Pagado</span><span style={{color:'#059669',fontWeight:700}}>{fmt(totalPaid)}</span></div>
-              {remaining > 0 && <div className="summary-row remaining"><span>{isApartado ? 'Pendiente (apartado)' : 'Falta'}</span><span>{fmt(remaining)}</span></div>}
-              {remaining <= 0 && totalPaid > 0 && <div className="summary-row" style={{color:'#059669',fontWeight:700}}><span>Cambio</span><span>{fmt(totalPaid - cartTotal)}</span></div>}
+              {isApartado ? (
+                <>
+                  <div className="summary-row"><span>Anticipo</span><span style={{color:'#059669',fontWeight:700}}>{fmt(totalPaid)}</span></div>
+                  <div className="summary-row remaining"><span>Saldo pendiente</span><span>{fmt(remaining)}</span></div>
+                </>
+              ) : (
+                <div className="summary-row"><span>Se cobra</span><span style={{color:'#059669',fontWeight:700}}>{fmt(cartTotal)}</span></div>
+              )}
             </div>
-            <button className="btn-primary" disabled={totalPaid <= 0 || (!isApartado && remaining > 0.01)} onClick={() => { setShowPayment(false); setShowShipping(true) }}>
-              {!isApartado && remaining > 0.01 ? `Faltan ${fmt(remaining)}` : 'Confirmar pago →'}
+
+            <button
+              className="btn-primary"
+              disabled={(needsEmail && !custEmailInput.trim()) || (payMethod === 'link_pago' && !paymentLink.trim())}
+              onClick={() => { setShowPayment(false); setShowShipping(true) }}
+            >
+              Confirmar pago →
             </button>
             <button className="btn-ghost" onClick={() => setShowPayment(false)}>Cancelar</button>
           </div>

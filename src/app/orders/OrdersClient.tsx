@@ -107,12 +107,15 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
       order_payments: [...selected.order_payments, payment as OrderPayment],
     })
     setAbonoAmount(''); setSavingAbono(false)
+    fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: selected.id, event: 'abono', amount }) }).catch(() => {})
   }
 
   async function liquidar() {
     if (!selected) return
     await supabase.from('orders').update({ status: 'pagado' }).eq('id', selected.id)
+    const pending = Number(selected.total) - selected.order_payments.reduce((s, p) => s + Number(p.amount), 0)
     syncSelected({ ...selected, status: 'pagado' })
+    fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: selected.id, event: 'abono', amount: pending }) }).catch(() => {})
   }
 
   const [deletingId, setDeletingId] = useState<string | null>(null)

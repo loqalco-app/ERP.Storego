@@ -18,15 +18,17 @@ export default async function SettingsPage({
   // Una sola query: perfil + rol + org
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('full_name, phone, avatar_url, organization_id, role, organizations(name)')
+    .select('full_name, phone, avatar_url, organization_id, role, organizations(name, settings)')
     .eq('id', user.id)
     .single()
 
   if (!profile) redirect('/dashboard')
 
   const orgId   = profile.organization_id
-  const orgName = (profile.organizations as unknown as { name: string } | null)?.name ?? 'NORTHÉA'
+  const orgRel  = profile.organizations as unknown as { name: string; settings: Record<string, unknown> } | null
+  const orgName = orgRel?.name ?? 'NORTHÉA'
   const myRole  = (profile as unknown as { role?: string }).role ?? 'owner'
+  const bankDetails = (orgRel?.settings?.bank_transfer as { bank?: string; holder?: string; clabe?: string; account?: string } | undefined) ?? null
 
   // Use service role to bypass RLS — owner must see all members in their org
   const adminClient = createAdmin(
@@ -64,13 +66,14 @@ export default async function SettingsPage({
 
   return (
     <SettingsClient
-      initialTab={params.tab === 'team' ? 'team' : 'profile'}
+      initialTab={params.tab === 'team' ? 'team' : params.tab === 'cobros' ? 'cobros' : 'profile'}
       userId={user.id}
       email={user.email ?? ''}
       fullName={profile.full_name ?? ''}
       phone={profile.phone ?? ''}
       orgId={orgId}
       orgName={orgName}
+      bankDetails={bankDetails}
       myUserId={user.id}
       myRole={myRole}
       myEmail={user.email ?? ''}
