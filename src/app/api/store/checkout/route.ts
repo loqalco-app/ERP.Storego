@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
       shipping: { address_line1: shipping.address_line1!.trim(), address_line2: shipping.address_line2?.trim() || null, city: shipping.city!.trim(), state: shipping.state!.trim(), zip: shipping.zip!.trim() },
       siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? '',
     }),
-    notifyNewOrder(orgId, { folio: order.folio, total, customerName: customerIn.full_name!.trim() }),
+    notifyNewOrder(orgId, { folio: order.folio, total, customerName: customerIn.full_name!.trim(), source: 'ecommerce', itemCount: orderItemsPayload.length }),
   ])
 
   return json({ order_id: order.id, folio: order.folio, total })

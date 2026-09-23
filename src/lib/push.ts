@@ -12,7 +12,15 @@ function configured() {
   return Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY)
 }
 
-export async function notifyNewOrder(orgId: string, params: { folio: string; total: number; customerName: string }) {
+const SOURCE_LABEL: Record<string, string> = {
+  ecommerce: 'Tienda web',
+  pos: 'POS',
+  manual: 'Manual',
+}
+
+export async function notifyNewOrder(orgId: string, params: {
+  folio: string; total: number; customerName: string; source: string; itemCount: number
+}) {
   if (!configured()) return { skipped: true as const }
 
   webpush.setVapidDetails(
@@ -30,9 +38,11 @@ export async function notifyNewOrder(orgId: string, params: { folio: string; tot
   if (!subs || subs.length === 0) return { sent: 0 }
 
   const total = params.total.toLocaleString('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 0 })
+  const sourceLabel = SOURCE_LABEL[params.source] ?? params.source
+  const itemsLabel = `${params.itemCount} producto${params.itemCount !== 1 ? 's' : ''}`
   const payload = JSON.stringify({
-    title: 'Nueva venta en la tienda web',
-    body: `Orden #${params.folio} de ${params.customerName} — ${total}`,
+    title: 'Nueva venta | northéa',
+    body: `${sourceLabel} · ${params.customerName} · ${itemsLabel} · ${total} · #${params.folio}`,
     url: '/orders',
   })
 

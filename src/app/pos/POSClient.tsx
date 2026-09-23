@@ -239,6 +239,7 @@ export default function POSClient({
     const needsAddr = shipType === 'envio' && !skipAddr
     await supabase.from('order_shipping').insert({ order_id: order.id, organization_id: orgId, type: shipType, address_line1: needsAddr ? shipAddr.line1 || null : null, address_line2: needsAddr ? shipAddr.line2 || null : null, city: needsAddr ? shipAddr.city || null : null, state: needsAddr ? shipAddr.state || null : null, zip: needsAddr ? shipAddr.zip || null : null })
     for (const item of cart) await supabase.from('inventory_ledger').insert({ organization_id: orgId, variant_id: item.variantId, movement_type: 'sale', quantity: -item.quantity, source_type: 'order', source_id: order.id, notes: `Venta ${order.folio}` })
+    fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: order.id }) }).catch(() => {})
     setSaving(false); setSavedFolio(order.folio); setShowShipping(false)
   }
 
