@@ -160,6 +160,15 @@ export default function Sidebar({ active }: Props) {
     }).catch(() => {})
   }, [pushState])
 
+  // Ask for the notification permission right after login, instead of
+  // waiting for the user to find the bell button themselves — only once
+  // per browser (never re-nag if they already answered or dismissed it).
+  useEffect(() => {
+    if (pushState !== 'idle' || !orgId) return
+    try { if (localStorage.getItem('_erp_push_prompted')) return } catch { /* ignore */ }
+    enablePush()
+  }, [pushState, orgId])
+
   function urlBase64ToUint8Array(base64: string) {
     const padding = '='.repeat((4 - base64.length % 4) % 4)
     const base64Safe = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -190,6 +199,9 @@ export default function Sidebar({ active }: Props) {
       }, { onConflict: 'endpoint' })
       setPushState('on')
     } catch { /* permission denied or subscribe failed — silently ignore */ }
+    finally {
+      try { localStorage.setItem('_erp_push_prompted', '1') } catch { /* ignore */ }
+    }
   }
 
   async function signOut() {
