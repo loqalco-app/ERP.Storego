@@ -7,12 +7,12 @@ import Sidebar from '@/components/Sidebar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Variant  = { id: string; name: string; sku: string; sale_price: number; cost_price: number; stock: number }
-type Product  = { id: string; name: string; variants: Variant[] }
+type Product  = { id: string; name: string; image: string | null; variants: Variant[] }
 type Customer = { id: string; full_name: string; email: string | null; phone: string | null }
 type CartItem = {
   key: string
   productId: string; variantId: string
-  productName: string; variantName: string; sku: string
+  productName: string; variantName: string; sku: string; image: string | null
   unitPrice: number; costPrice: number; quantity: number; discount: number
 }
 type PaymentEntry = { method: 'efectivo' | 'tarjeta' | 'transferencia' | 'otro'; amount: string }
@@ -210,7 +210,7 @@ export default function POSClient({
     setCart(prev => {
       const ex = prev.find(i => i.key === key)
       if (ex) return prev.map(i => i.key === key ? { ...i, quantity: i.quantity + 1 } : i)
-      return [...prev, { key, productId: product.id, variantId: variant.id, productName: product.name, variantName: variant.name, sku: variant.sku, unitPrice: variant.sale_price, costPrice: variant.cost_price, quantity: 1, discount: 0 }]
+      return [...prev, { key, productId: product.id, variantId: variant.id, productName: product.name, variantName: variant.name, sku: variant.sku, image: product.image, unitPrice: variant.sale_price, costPrice: variant.cost_price, quantity: 1, discount: 0 }]
     })
   }
   function updateQty(key: string, qty: number) { if (qty < 1) removeItem(key); else setCart(prev => prev.map(i => i.key === key ? { ...i, quantity: qty } : i)) }
@@ -468,6 +468,8 @@ export default function POSClient({
     .cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,0.22);font-size:13px;font-weight:600;gap:8px}
     /* cart items — default: light (used in mobile sheet) */
     .cart-item{padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.06)}
+    .cart-item-inner{display:flex;gap:10px}
+    .cart-item-thumb{width:36px;height:44px;border-radius:6px;object-fit:cover;background:rgba(0,0,0,0.06);flex-shrink:0}
     .cart-item-name{font-size:13px;font-weight:700;color:#0A0A0A;margin-bottom:2px}
     .cart-item-sub{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px}
     .cart-item-row{display:flex;align-items:center;gap:8px}
@@ -483,6 +485,7 @@ export default function POSClient({
     .total-row.big{font-size:19px;font-weight:800;color:#0A0A0A;margin-top:8px;margin-bottom:0;border-top:1px solid rgba(0,0,0,0.07);padding-top:8px}
     /* cart items — dark panel overrides (desktop .pos-right) */
     .pos-right .cart-item{border-bottom-color:rgba(255,255,255,0.06)}
+    .pos-right .cart-item-thumb{background:rgba(255,255,255,0.08)}
     .pos-right .cart-item-name{color:rgba(255,255,255,0.90)}
     .pos-right .cart-item-sub{color:rgba(255,255,255,0.35)}
     .pos-right .qty-btn{border-color:rgba(255,255,255,0.15);color:rgba(255,255,255,0.80)}
@@ -838,18 +841,23 @@ export default function POSClient({
                 </div>
               ) : cart.map(item => (
                 <div key={item.key} className="cart-item">
-                  <div className="cart-item-name">{item.productName}</div>
-                  <div className="cart-item-sub">{item.variantName} · {item.sku}</div>
-                  <div className="cart-item-row">
-                    <div className="qty-ctrl">
-                      <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity - 1)}>−</button>
-                      <span className="qty-num">{item.quantity}</span>
-                      <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
+                  <div className="cart-item-inner">
+                    {item.image ? <img className="cart-item-thumb" src={item.image} alt={item.productName} /> : <div className="cart-item-thumb" />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="cart-item-name">{item.productName}</div>
+                      <div className="cart-item-sub">{item.variantName} · {item.sku}</div>
+                      <div className="cart-item-row">
+                        <div className="qty-ctrl">
+                          <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity - 1)}>−</button>
+                          <span className="qty-num">{item.quantity}</span>
+                          <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
+                        </div>
+                        <span className="item-price">{fmt(item.unitPrice * item.quantity)}</span>
+                        <button className="rm-btn" onClick={() => removeItem(item.key)}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </div>
                     </div>
-                    <span className="item-price">{fmt(item.unitPrice * item.quantity)}</span>
-                    <button className="rm-btn" onClick={() => removeItem(item.key)}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
                   </div>
                 </div>
               ))}
@@ -931,18 +939,23 @@ export default function POSClient({
             <div className="cart-body" style={{flex:1,overflowY:'auto',padding:'4px 16px'}}>
               {cart.map(item => (
                 <div key={item.key} className="cart-item">
-                  <div className="cart-item-name">{item.productName}</div>
-                  <div className="cart-item-sub">{item.variantName} · {item.sku}</div>
-                  <div className="cart-item-row">
-                    <div className="qty-ctrl">
-                      <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity - 1)}>−</button>
-                      <span className="qty-num">{item.quantity}</span>
-                      <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
+                  <div className="cart-item-inner">
+                    {item.image ? <img className="cart-item-thumb" src={item.image} alt={item.productName} /> : <div className="cart-item-thumb" />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="cart-item-name">{item.productName}</div>
+                      <div className="cart-item-sub">{item.variantName} · {item.sku}</div>
+                      <div className="cart-item-row">
+                        <div className="qty-ctrl">
+                          <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity - 1)}>−</button>
+                          <span className="qty-num">{item.quantity}</span>
+                          <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
+                        </div>
+                        <span className="item-price" style={{marginLeft:'auto'}}>{fmt(item.unitPrice * item.quantity)}</span>
+                        <button className="rm-btn" onClick={() => removeItem(item.key)}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                      </div>
                     </div>
-                    <span className="item-price" style={{marginLeft:'auto'}}>{fmt(item.unitPrice * item.quantity)}</span>
-                    <button className="rm-btn" onClick={() => removeItem(item.key)}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
                   </div>
                 </div>
               ))}

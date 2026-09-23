@@ -28,6 +28,7 @@ export default async function POSPage() {
       .from('products')
       .select(`
         id, name,
+        product_images(url, is_primary, sort_order),
         product_variants(
           id, name, sku, sale_price, cost_price, status,
           stock_levels(quantity_available)
@@ -48,6 +49,9 @@ export default async function POSPage() {
   const products = (rawProducts ?? []).map((p: any) => ({
     id: p.id,
     name: p.name,
+    image: (p.product_images ?? []).length
+      ? [...p.product_images].sort((a: any, b: any) => (b.is_primary ? 1 : -1) - (a.is_primary ? 1 : -1) || a.sort_order - b.sort_order)[0].url
+      : null,
     variants: (p.product_variants ?? [])
       .filter((v: any) => v.status === 'active')
       .map((v: any) => ({
