@@ -487,7 +487,7 @@ export default function POSClient({
     .cart-sheet{background:#FFFFFF;border-radius:28px 28px 0 0;display:flex;flex-direction:column;padding-bottom:max(env(safe-area-inset-bottom,0px),8px);transition:height 0.3s cubic-bezier(0.32,0.72,0,1),transform 0.3s cubic-bezier(0.32,0.72,0,1)}
     .cart-sheet.peek{height:58dvh}
     .cart-sheet.full{height:100%;padding-top:env(safe-area-inset-top,0px)}
-    .sheet-handle-area{padding:12px 0 4px;cursor:grab;touch-action:none;flex-shrink:0}
+    .sheet-handle-area{padding:16px 0 14px;cursor:grab;touch-action:none;flex-shrink:0}
     .sheet-drag{width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,0.15);margin:0 auto}
     .sheet-hd{display:flex;align-items:center;justify-content:space-between;padding:8px 18px 10px;flex-shrink:0}
     .sheet-title{font-size:17px;font-weight:800;color:var(--text,#0A0A0E)}
@@ -968,7 +968,7 @@ export default function POSClient({
       {showCartSheet && (
         <div className="sheet-overlay" onClick={e => { if (e.target === e.currentTarget) setShowCartSheet(false) }}>
           <div className={`cart-sheet ${sheetState}`} ref={sheetRef}>
-            <div className="sheet-handle-area" onTouchStart={onHandleTouchStart} onTouchMove={onHandleTouchMove} onTouchEnd={onHandleTouchEnd}>
+            <div className="sheet-handle-area" onTouchStart={onHandleTouchStart} onTouchMove={onHandleTouchMove} onTouchEnd={onHandleTouchEnd} onClick={() => setSheetState(s => s === 'full' ? 'peek' : 'full')}>
               <div className="sheet-drag" />
             </div>
 
