@@ -302,7 +302,13 @@ export default function Sidebar({ active }: Props) {
 
         /* Ajustes solo en desktop dentro del pill */
         .nav-item.desk-only{display:none}
-        @media(min-width:768px){.nav-item.desk-only{display:flex}}
+        @media(min-width:768px){
+          .nav-item.desk-only{display:flex}
+          /* En desktop el pill crece con su contenido (width:auto) — si los items
+             siguen con flex:1 compiten por espacio igual y el pill los desborda.
+             Aquí cada item toma solo lo que necesita. */
+          .nav-item{flex:0 0 auto;padding:10px 10px 9px}
+        }
 
         .nav-icon{display:flex;align-items:center;justify-content:center;transition:transform 0.12s}
         .nav-lbl{font-size:9px;font-weight:700;letter-spacing:0.04em;white-space:nowrap;line-height:1}
