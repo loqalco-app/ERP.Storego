@@ -13,7 +13,7 @@ type CartItem = {
   key: string
   productId: string; variantId: string
   productName: string; variantName: string; sku: string; image: string | null
-  unitPrice: number; costPrice: number; quantity: number; discount: number
+  unitPrice: number; costPrice: number; quantity: number; discount: number; maxStock: number
 }
 type PaymentMethod = 'efectivo' | 'tarjeta' | 'transferencia' | 'link_pago'
 type ParkedSale  = { id: string; savedAt: string; customer: Customer | null; cart: CartItem[]; total: number }
@@ -73,6 +73,7 @@ export default function POSClient({
   const [shipType, setShipType]         = useState<'pickup' | 'envio'>('pickup')
   const [shipAddr, setShipAddr]         = useState({ line1: '', line2: '', city: '', state: '', zip: '' })
   const [skipAddr, setSkipAddr]         = useState(false)
+  const [stockError, setStockError]     = useState('')
 
   // ── Mobile sheet ────────────────────────────────────────────────────────────
   const [showCartSheet, setShowCartSheet] = useState(false)
@@ -214,11 +215,15 @@ export default function POSClient({
     const key = `${product.id}_${variant.id}`
     setCart(prev => {
       const ex = prev.find(i => i.key === key)
-      if (ex) return prev.map(i => i.key === key ? { ...i, quantity: i.quantity + 1 } : i)
-      return [...prev, { key, productId: product.id, variantId: variant.id, productName: product.name, variantName: variant.name, sku: variant.sku, image: product.image, unitPrice: variant.sale_price, costPrice: variant.cost_price, quantity: 1, discount: 0 }]
+      if (ex) return ex.quantity >= ex.maxStock ? prev : prev.map(i => i.key === key ? { ...i, quantity: i.quantity + 1 } : i)
+      if (variant.stock <= 0) return prev
+      return [...prev, { key, productId: product.id, variantId: variant.id, productName: product.name, variantName: variant.name, sku: variant.sku, image: product.image, unitPrice: variant.sale_price, costPrice: variant.cost_price, quantity: 1, discount: 0, maxStock: variant.stock }]
     })
   }
-  function updateQty(key: string, qty: number) { if (qty < 1) removeItem(key); else setCart(prev => prev.map(i => i.key === key ? { ...i, quantity: qty } : i)) }
+  function updateQty(key: string, qty: number) {
+    if (qty < 1) { removeItem(key); return }
+    setCart(prev => prev.map(i => i.key === key ? { ...i, quantity: Math.min(qty, i.maxStock) } : i))
+  }
   function removeItem(key: string) { setCart(prev => prev.filter(i => i.key !== key)) }
 
   // ── Customer helpers ─────────────────────────────────────────────────────────
@@ -267,6 +272,24 @@ export default function POSClient({
   async function createOrder() {
     if (!customer || cart.length === 0) return
     setSaving(true)
+    setStockError('')
+
+    // Real-time, authoritative stock check (same source the storefront uses) —
+    // a client-side cap alone isn't enough since stock can move between two
+    // people selling the same item at the same time, on POS or on the web.
+    const stockRes = await fetch('/api/pos/check-stock', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ variant_ids: cart.map(i => i.variantId) }),
+    }).then(r => r.json()).catch(() => null)
+
+    if (!stockRes?.stock) { setSaving(false); setStockError('No se pudo verificar el inventario. Intenta de nuevo.'); return }
+    const shortfall = cart.find(i => (stockRes.stock[i.variantId] ?? 0) < i.quantity)
+    if (shortfall) {
+      setSaving(false)
+      setStockError(`"${shortfall.productName}" (${shortfall.variantName}) — solo quedan ${stockRes.stock[shortfall.variantId] ?? 0} disponibles.`)
+      return
+    }
+
     if (needsEmail && custEmailInput.trim()) {
       await supabase.from('customers').update({ email: custEmailInput.trim().toLowerCase() }).eq('id', customer.id)
     }
@@ -296,6 +319,7 @@ export default function POSClient({
   // ── CSS ──────────────────────────────────────────────────────────────────────
   const CSS = `
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{overflow:hidden;position:fixed;inset:0;width:100%;height:100%}
     body{background:#FFFFFF;font-family:'Space Grotesk','Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
 
     /* ── SHARED ── */
@@ -400,6 +424,7 @@ export default function POSClient({
 
     /* ── SELLING ── */
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:#FFFFFF;padding-top:env(safe-area-inset-top,0px)}
+    @media(max-width:767px){.pos-wrap{position:fixed;inset:0;height:100%}}
     @media(min-width:768px){.pos-wrap{height:calc(100dvh - 60px - 88px)}}
     .pos-topbar{display:flex;align-items:center;gap:12px;padding:10px 18px 8px;flex-shrink:0;background:#FFFFFF}
     @media(min-width:768px){.pos-topbar{padding:10px calc(300px + 32px) 10px 32px;border-bottom:1px solid rgba(0,0,0,0.07)}}
@@ -502,6 +527,7 @@ export default function POSClient({
     .prod-row-stock{font-size:11px;color:rgba(10,10,14,0.32);font-weight:600;white-space:nowrap;flex-shrink:0}
     .prod-row-price{font-size:17px;font-weight:900;color:#0A0A0A;white-space:nowrap;flex-shrink:0;min-width:68px;text-align:right;letter-spacing:-.3px}
     .prod-row-add{width:34px;height:34px;border-radius:50%;border:none;background:#0A0A0A;color:#CAFF3A;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.18);flex-shrink:0;line-height:1}
+    .prod-row-add:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
     .prod-var-sel{padding:2px 6px;border-radius:6px;border:1px solid rgba(0,0,0,0.10);background:rgba(0,0,0,0.03);font-size:11px;font-family:inherit;outline:none;color:var(--text,#0A0A0E);max-width:120px}
     .cart-header{padding:12px 16px 10px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0}
     .cart-hd-row{display:flex;align-items:center;gap:8px}
@@ -520,6 +546,7 @@ export default function POSClient({
     .qty-ctrl{display:flex;align-items:center;gap:6px}
     .qty-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid rgba(0,0,0,0.12);background:none;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#0A0A0A;line-height:1}
     .qty-btn:hover{background:rgba(0,0,0,0.06)}
+    .qty-btn:disabled{opacity:.35;cursor:not-allowed}
     .qty-num{font-size:14px;font-weight:700;min-width:20px;text-align:center;color:#0A0A0A}
     .item-price{margin-left:auto;font-size:13px;font-weight:700;color:#0A0A0A}
     .rm-btn{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.28);padding:2px;line-height:1}
@@ -570,6 +597,7 @@ export default function POSClient({
     .rm-pay{background:none;border:none;cursor:pointer;color:rgba(10,10,14,0.30);padding:4px;font-size:16px}
     .new-cust-form{margin-top:8px;padding:12px;background:rgba(0,0,0,0.025);border-radius:14px;border:1.5px solid rgba(0,0,0,0.07)}
     .dup-cust-notice{background:rgba(217,119,6,0.12);color:#92400e;font-size:12px;font-weight:600;padding:10px 14px;border-radius:12px;margin-bottom:10px}
+    .alert-err{background:rgba(220,38,38,0.10);color:#991B1B;font-size:12.5px;font-weight:600;padding:10px 14px;border-radius:12px;margin-bottom:10px}
     .new-cust-input{width:100%;padding:9px 12px;border:1.5px solid rgba(0,0,0,0.08);border-radius:12px;background:rgba(0,0,0,0.03);font-size:13px;font-family:inherit;color:var(--text,#0A0A0E);outline:none;margin-bottom:6px}
     .new-cust-input:focus{border-color:#2563EB}
     .new-cust-btns{display:flex;gap:6px;margin-top:2px}
@@ -849,7 +877,7 @@ export default function POSClient({
                       </div>
                     </div>
                     <div className="prod-row-price">{fmt(selVar.sale_price)}</div>
-                    <button className="prod-row-add" onClick={() => addToCart(p, selVar)}>+</button>
+                    <button className="prod-row-add" disabled={selVar.stock <= 0} onClick={() => addToCart(p, selVar)}>+</button>
                   </div>
                 )
               })}
@@ -901,7 +929,7 @@ export default function POSClient({
                         <div className="qty-ctrl">
                           <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity - 1)}>−</button>
                           <span className="qty-num">{item.quantity}</span>
-                          <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
+                          <button className="qty-btn" disabled={item.quantity >= item.maxStock} onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
                         </div>
                         <span className="item-price">{fmt(item.unitPrice * item.quantity)}</span>
                         <button className="rm-btn" onClick={() => removeItem(item.key)}>
@@ -999,7 +1027,7 @@ export default function POSClient({
                         <div className="qty-ctrl">
                           <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity - 1)}>−</button>
                           <span className="qty-num">{item.quantity}</span>
-                          <button className="qty-btn" onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
+                          <button className="qty-btn" disabled={item.quantity >= item.maxStock} onClick={() => updateQty(item.key, item.quantity + 1)}>+</button>
                         </div>
                         <span className="item-price" style={{marginLeft:'auto'}}>{fmt(item.unitPrice * item.quantity)}</span>
                         <button className="rm-btn" onClick={() => removeItem(item.key)}>
@@ -1114,6 +1142,7 @@ export default function POSClient({
                 )}
               </>
             )}
+            {stockError && <div className="alert-err">{stockError}</div>}
             <button className="btn-primary" disabled={saving} onClick={createOrder}>{saving ? 'Generando orden…' : 'Generar orden ✓'}</button>
             <button className="btn-ghost" onClick={() => { setShowShipping(false); setShowPayment(true) }}>← Volver al pago</button>
           </div>
