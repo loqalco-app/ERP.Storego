@@ -181,29 +181,49 @@ export async function sendAbonoReceivedEmail(params: {
   to: string
   customerName: string
   folio: string
+  items: OrderConfirmationItem[]
+  total: number
   amountReceived: number
+  paidToDate: number
   balance: number
 }) {
   const resend = getResend()
   if (!resend) return { skipped: true as const }
 
+  const pct = Math.max(0, Math.min(100, Math.round((params.paidToDate / params.total) * 100)))
+
   const body = `
       <div style="padding:32px 0 28px;text-align:center">
-        <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8A867E;margin-bottom:14px">Abono recibido</div>
-        <div style="font-size:22px;font-weight:800;color:#111110;letter-spacing:-.01em;line-height:1.3">Gracias, ${params.customerName.split(' ')[0]}</div>
-        <div style="font-size:13px;color:#6B6660;margin-top:10px">Orden <strong style="color:#111110">#${params.folio}</strong></div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8A867E;margin-bottom:14px">Abono recibido — Orden #${params.folio}</div>
+        <div style="font-size:22px;font-weight:800;color:#111110;letter-spacing:-.01em;line-height:1.3">Gracias por tu abono, ${params.customerName.split(' ')[0]}</div>
       </div>
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-        <tr><td style="padding:8px 0;font-size:12px;color:#6B6660">Recibimos</td><td style="padding:8px 0;text-align:right;font-size:16px;font-weight:800;color:#111110">${fmt(params.amountReceived)}</td></tr>
-        <tr><td style="padding:8px 0 32px;font-size:13px;font-weight:800;color:#111110">Saldo pendiente</td><td style="padding:8px 0 32px;text-align:right;font-size:16px;font-weight:800;color:#111110">${fmt(params.balance)}</td></tr>
-      </table>
+
+      <div style="padding:24px;background:#F7F5F1;border-radius:10px;margin-bottom:28px">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+          <tr><td style="font-size:12px;color:#6B6660;padding-bottom:6px">Recibimos hoy</td><td style="text-align:right;font-size:20px;font-weight:800;color:#111110;padding-bottom:6px">${fmt(params.amountReceived)}</td></tr>
+        </table>
+        <div style="height:8px;background:#EDEDEB;border-radius:4px;margin:14px 0 10px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:#111110;border-radius:4px"></div>
+        </div>
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+          <tr>
+            <td style="font-size:11.5px;color:#8A867E">Pagado a la fecha: <strong style="color:#111110">${fmt(params.paidToDate)}</strong> de ${fmt(params.total)} (${pct}%)</td>
+            <td style="text-align:right;font-size:13px;font-weight:800;color:#111110">Resta ${fmt(params.balance)}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8A867E;margin-bottom:6px">Tu pedido</div>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">${itemRows(params.items)}</table>
+      <div style="padding:14px 0 32px;text-align:right;font-size:12px;color:#6B6660">Total del pedido: <strong style="color:#111110">${fmt(params.total)}</strong></div>
+
       <div style="padding:16px 20px;background:#F7F5F1;border-radius:8px;margin-bottom:32px;text-align:center">
-        <div style="font-size:12px;color:#6B6660">Este correo es tu comprobante de este pago.</div>
+        <div style="font-size:12px;color:#6B6660">Este correo es tu comprobante oficial de este abono. Guárdalo.</div>
       </div>`
 
   return resend.emails.send({
     from: FROM(), to: params.to,
-    subject: `Recibimos tu pago — Orden #${params.folio} — northéa`,
+    subject: `Recibimos tu abono de ${fmt(params.amountReceived)} — Orden #${params.folio} — northéa`,
     html: shell(body),
   })
 }

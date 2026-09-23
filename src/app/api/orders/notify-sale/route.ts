@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
       if (order.status === 'pagado' || balance <= 0) {
         await sendOrderConfirmationEmail({ to: customerEmail, customerName, folio: order.folio, items, total, shipping })
       } else {
-        await sendAbonoReceivedEmail({ to: customerEmail, customerName, folio: order.folio, amountReceived: abonoAmount, balance })
+        await sendAbonoReceivedEmail({ to: customerEmail, customerName, folio: order.folio, items, total, amountReceived: abonoAmount, paidToDate: paid, balance })
       }
     }
     return NextResponse.json({ ok: true })
