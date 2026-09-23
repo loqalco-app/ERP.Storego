@@ -385,6 +385,7 @@ export default function POSClient({
     .cust-top-new:hover{background:rgba(0,0,0,0.04);color:#0A0A0A}
     /* Product avatar */
     .prod-av{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:white;flex-shrink:0;letter-spacing:-.3px}
+    .prod-av-img{object-fit:cover;background:rgba(0,0,0,0.06)}
     .pos-body{display:flex;flex:1;overflow:hidden;min-height:0}
     /* mobile */
     .pos-body-inner{display:flex;flex:1;overflow:hidden;min-height:0;width:100%;background:#FFFFFF}
@@ -783,7 +784,11 @@ export default function POSClient({
                 if (!selVar) return null
                 return (
                   <div key={p.id} className="prod-row">
-                    <div className="prod-av" style={{background:prodColor(p.name)}}>{prodInitials(p.name)}</div>
+                    {p.image ? (
+                      <img className="prod-av prod-av-img" src={p.image} alt={p.name} />
+                    ) : (
+                      <div className="prod-av" style={{background:prodColor(p.name)}}>{prodInitials(p.name)}</div>
+                    )}
                     <div className="prod-row-info">
                       <div className="prod-row-name">{p.name}</div>
                       <div className="prod-row-meta">
