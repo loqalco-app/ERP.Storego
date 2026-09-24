@@ -106,8 +106,6 @@ export default function StoreClient({ orgId, categories: init, products: initP, 
         body { background: #ECEEF2; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
         .shell { display: flex; min-height: 100dvh; }
         .main  { flex: 1; overflow-y: auto; }
-        .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 20px 0; }
-        @media(min-width:768px){ .topbar { padding: 20px 40px 0; } }
         .page-title { font-size: 24px; font-weight: 800; color: #1A1A20; }
         .page-sub { font-size: 13px; color: rgba(26,26,32,0.38); font-weight: 500; margin-top: 2px; }
         .content { padding: 16px 16px 120px; }

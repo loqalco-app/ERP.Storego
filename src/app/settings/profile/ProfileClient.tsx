@@ -60,10 +60,7 @@ export default function ProfileClient({ userId, email, fullName, phone, orgName 
       <style>{`
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .topbar{padding-bottom:20px}
         .back-btn{width:38px;height:38px;border-radius:var(--r-sm,12px);background:var(--bg,#ECEEF2);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;box-shadow:var(--shadow-sm);flex-shrink:0}
-        .page-title{font-size:22px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.4px}
-        @media(min-width:768px){.page-title{font-size:var(--text-xl,26px)}}
         .content{padding-left:20px;padding-right:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
         @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-bottom:calc(var(--nav-h,88px) + 16px);max-width:640px;margin:0 auto}}
         .av-section{display:flex;align-items:center;gap:20px;margin-bottom:28px}

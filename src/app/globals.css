@@ -49,6 +49,27 @@ input, select, textarea {
 }
 
 /*
+ * ── Global .topbar ───────────────────────────────────────────
+ * Para páginas de formulario/detalle (back-button + título, ej.
+ * CustomerForm, Perfil, Equipo, ProductForm). Cada página lo estaba
+ * redefiniendo por su cuenta con paddings distintos y, en un par de
+ * casos, sin display:flex — el título y el botón de regreso quedaban
+ * apilados en vertical en vez de en fila. Un solo lugar, consistente,
+ * con el área segura del notch incluida.
+ * ─────────────────────────────────────────────────────────────
+ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: max(env(safe-area-inset-top, 0px), 20px) 20px 16px;
+}
+@media (min-width: 768px) {
+  .topbar { padding: 24px 40px 20px; }
+}
+
+/*
  * ── Global safe-area wrapper ──────────────────────────────────
  * Para páginas que NO usan .topbar (como Orders).
  * Aplica el inset del notch como padding-top al primer elemento.

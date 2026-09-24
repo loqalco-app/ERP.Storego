@@ -149,8 +149,6 @@ export default function InventoryClient({ variants: initial, products: initialPr
         body { background: #ECEEF2; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
         .shell { display: flex; min-height: 100dvh; }
         .main  { flex: 1; overflow-y: auto; }
-        .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 20px 0; }
-        @media (min-width: 768px) { .topbar { padding: 20px 40px 0; } }
         .tab-row { display: flex; gap: 4px; padding: 12px 20px 16px; }
         @media (min-width: 768px) { .tab-row { padding: 12px 40px 20px; } }
         .tab-pill { padding: 6px 16px; border-radius: 50px; border: 1.5px solid transparent; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.15s; background: transparent; color: rgba(26,26,32,0.40); }
