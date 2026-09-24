@@ -27,6 +27,29 @@ function fmtMxn(n: number) { return n.toLocaleString('es-MX', { style: 'currency
 function pct(n: number) { return `${(n * 100).toFixed(2)}%` }
 function num(s: string) { const n = parseFloat(s); return Number.isFinite(n) ? n : 0 }
 
+function NumField({ label, value, onChange, suffix }: { label: string; value: string; onChange: (v: string) => void; suffix?: string }) {
+  return (
+    <div className="tile">
+      <div className="fl">{label}</div>
+      <div className="fi-wrap">
+        <input
+          className="fi"
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          placeholder="0.00"
+          value={value}
+          onChange={e => {
+            const v = e.target.value.replace(/[^0-9.]/g, '')
+            onChange(v)
+          }}
+        />
+        {suffix && <span className="fi-suffix">{suffix}</span>}
+      </div>
+    </div>
+  )
+}
+
 export default function CalculatorClient() {
   const [inputs, setInputs] = useState<Inputs>(DEFAULTS)
   const [loaded, setLoaded] = useState(false)
@@ -89,26 +112,29 @@ export default function CalculatorClient() {
   return (
     <>
       <style>{`
-        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-        body{background:var(--bg,#ECEEF2);font-family:var(--font,'Inter',-apple-system,sans-serif);-webkit-font-smoothing:antialiased}
-        .content{padding-left:20px;padding-right:20px;padding-top:20px;padding-bottom:calc(var(--nav-h,88px) + 16px)}
-        @media(min-width:768px){.content{padding-left:40px;padding-right:40px;padding-top:76px;max-width:960px;margin:0 auto}}
         .page-title{font-size:22px;font-weight:800;color:var(--text-1,#1A1A20);letter-spacing:-0.4px;margin-bottom:4px}
         .page-sub{font-size:13px;color:var(--text-3,rgba(26,26,32,0.45));margin-bottom:22px}
 
-        .grid{display:grid;grid-template-columns:1fr;gap:16px}
-        @media(min-width:900px){.grid{grid-template-columns:1fr 1fr}}
+        .layout{display:grid;grid-template-columns:1fr;gap:24px}
+        @media(min-width:1024px){.layout{grid-template-columns:1.3fr 1fr;align-items:start}}
 
-        .sec-title{font-size:12px;font-weight:800;color:var(--text-3,rgba(26,26,32,0.45));text-transform:uppercase;letter-spacing:0.06em;margin:18px 0 10px}
+        .sec-title{font-size:12px;font-weight:800;color:var(--text-3,rgba(26,26,32,0.45));text-transform:uppercase;letter-spacing:0.06em;margin:20px 0 10px}
         .sec-title:first-child{margin-top:0}
-        .card{background:var(--bg,#ECEEF2);border-radius:var(--r-xl,24px);overflow:hidden;box-shadow:var(--shadow-card);margin-bottom:4px}
-        .field{padding:12px 18px;border-top:1px solid var(--border-light,rgba(0,0,0,0.04))}
-        .field:first-child{border-top:none}
-        .fl{font-size:11px;font-weight:700;color:var(--text-4,rgba(26,26,32,0.35));text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
-        .fi{width:100%;padding:11px 14px;background:rgba(0,0,0,0.03);border:1.5px solid var(--border,rgba(0,0,0,0.07));border-radius:var(--r-md,14px);font-size:14px;font-weight:600;color:var(--text-1,#1A1A20);font-family:inherit;outline:none;transition:border-color 0.15s;text-align:right}
-        .fi:focus{border-color:var(--brand-mid,#2563EB)}
-        .derived{padding:10px 18px;font-size:11.5px;color:var(--text-3,rgba(26,26,32,0.45));border-top:1px solid var(--border-light,rgba(0,0,0,0.04))}
-        .derived strong{color:var(--text-1,#1A1A20)}
+
+        .tile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+        @media(min-width:520px){.tile-grid{grid-template-columns:repeat(3,1fr)}}
+        @media(min-width:1024px){.tile-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(min-width:1280px){.tile-grid{grid-template-columns:repeat(3,1fr)}}
+
+        .tile{background:var(--bg,#ECEEF2);border-radius:var(--r-lg,18px);box-shadow:var(--shadow-card);padding:12px 14px}
+        .fl{font-size:10.5px;font-weight:700;color:var(--text-4,rgba(26,26,32,0.35));text-transform:uppercase;letter-spacing:0.05em;margin-bottom:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .fi-wrap{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.03);border:1.5px solid var(--border,rgba(0,0,0,0.07));border-radius:var(--r-md,14px);padding:0 12px;transition:border-color 0.15s}
+        .fi-wrap:focus-within{border-color:var(--brand-mid,#2563EB)}
+        .fi{flex:1;min-width:0;padding:10px 0;background:none;border:none;font-size:15px;font-weight:700;color:var(--text-1,#1A1A20);font-family:inherit;outline:none;text-align:right}
+        .fi-suffix{font-size:11px;font-weight:700;color:var(--text-4,rgba(26,26,32,0.4));flex-shrink:0}
+
+        .derived-note{margin-top:10px;padding:10px 14px;background:rgba(37,99,235,0.06);border-radius:14px;font-size:11.5px;color:var(--text-3,rgba(26,26,32,0.55))}
+        .derived-note strong{color:#1D4ED8}
 
         .waterfall{background:var(--bg,#ECEEF2);border-radius:var(--r-xl,24px);box-shadow:var(--shadow-card);overflow:hidden}
         .w-row{display:flex;justify-content:space-between;align-items:baseline;padding:12px 20px;border-top:1px solid var(--border-light,rgba(0,0,0,0.05))}
@@ -136,30 +162,30 @@ export default function CalculatorClient() {
         <div className="page-title">Calculadora de precios</div>
         <div className="page-sub">Herramienta interna — no afecta productos, stock ni ventas. Solo te ayuda a decidir cuánto cobrar.</div>
 
-        <div className="grid">
+        <div className="layout">
           <div>
             <div className="sec-title">Datos de este viaje de compra</div>
-            <div className="card">
-              <div className="field"><div className="fl">Valor total de la compra (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="0.00" value={inputs.tripTotalUsd} onChange={e => set('tripTotalUsd', e.target.value)} /></div>
-              <div className="field"><div className="fl">Costo del shopper, total (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="0.00" value={inputs.shopperFeeUsd} onChange={e => set('shopperFeeUsd', e.target.value)} /></div>
-              <div className="field"><div className="fl">Costo de envío / importación, total (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="0.00" value={inputs.importCostUsd} onChange={e => set('importCostUsd', e.target.value)} /></div>
-              {tripTotal > 0 && (
-                <div className="derived">% shopper: <strong>{pct(shopperPct)}</strong> &nbsp;·&nbsp; % importación: <strong>{pct(importPct)}</strong> — se aplican a cualquier producto de este viaje</div>
-              )}
+            <div className="tile-grid">
+              <NumField label="Valor total compra" suffix="USD" value={inputs.tripTotalUsd} onChange={v => set('tripTotalUsd', v)} />
+              <NumField label="Fee del shopper" suffix="USD" value={inputs.shopperFeeUsd} onChange={v => set('shopperFeeUsd', v)} />
+              <NumField label="Envío / importación" suffix="USD" value={inputs.importCostUsd} onChange={v => set('importCostUsd', v)} />
             </div>
+            {tripTotal > 0 && (
+              <div className="derived-note">% shopper: <strong>{pct(shopperPct)}</strong> &nbsp;·&nbsp; % importación: <strong>{pct(importPct)}</strong> — se aplican a cualquier producto de este viaje</div>
+            )}
 
             <div className="sec-title">Este producto</div>
-            <div className="card">
-              <div className="field"><div className="fl">Precio del producto (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="0.00" value={inputs.productPriceUsd} onChange={e => set('productPriceUsd', e.target.value)} /></div>
-              <div className="field"><div className="fl">Packaging de este producto (MXN)</div><input className="fi" type="number" min="0" step="0.01" value={inputs.packagingMxn} onChange={e => set('packagingMxn', e.target.value)} /></div>
-              <div className="field"><div className="fl">Envío al cliente final (MXN)</div><input className="fi" type="number" min="0" step="0.01" value={inputs.shippingMxn} onChange={e => set('shippingMxn', e.target.value)} /></div>
+            <div className="tile-grid">
+              <NumField label="Precio producto" suffix="USD" value={inputs.productPriceUsd} onChange={v => set('productPriceUsd', v)} />
+              <NumField label="Packaging" suffix="MXN" value={inputs.packagingMxn} onChange={v => set('packagingMxn', v)} />
+              <NumField label="Envío al cliente" suffix="MXN" value={inputs.shippingMxn} onChange={v => set('shippingMxn', v)} />
             </div>
 
             <div className="sec-title">General</div>
-            <div className="card">
-              <div className="field"><div className="fl">Sales tax EUA (%)</div><input className="fi" type="number" min="0" step="0.01" value={inputs.salesTaxPct} onChange={e => set('salesTaxPct', e.target.value)} /></div>
-              <div className="field"><div className="fl">Tipo de cambio USD → MXN</div><input className="fi" type="number" min="0" step="0.01" value={inputs.exchangeRate} onChange={e => set('exchangeRate', e.target.value)} /></div>
-              <div className="field"><div className="fl">Margen deseado (%)</div><input className="fi" type="number" min="0" max="99" step="1" value={inputs.marginPct} onChange={e => set('marginPct', e.target.value)} /></div>
+            <div className="tile-grid">
+              <NumField label="Sales tax EUA" suffix="%" value={inputs.salesTaxPct} onChange={v => set('salesTaxPct', v)} />
+              <NumField label="Tipo de cambio" suffix="MXN" value={inputs.exchangeRate} onChange={v => set('exchangeRate', v)} />
+              <NumField label="Margen deseado" suffix="%" value={inputs.marginPct} onChange={v => set('marginPct', v)} />
             </div>
           </div>
 
