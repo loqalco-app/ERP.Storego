@@ -140,9 +140,9 @@ export default function CalculatorClient() {
           <div>
             <div className="sec-title">Datos de este viaje de compra</div>
             <div className="card">
-              <div className="field"><div className="fl">Valor total de la compra (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="1773.00" value={inputs.tripTotalUsd} onChange={e => set('tripTotalUsd', e.target.value)} /></div>
-              <div className="field"><div className="fl">Costo del shopper, total (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="200.00" value={inputs.shopperFeeUsd} onChange={e => set('shopperFeeUsd', e.target.value)} /></div>
-              <div className="field"><div className="fl">Costo de envío / importación, total (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="150.00" value={inputs.importCostUsd} onChange={e => set('importCostUsd', e.target.value)} /></div>
+              <div className="field"><div className="fl">Valor total de la compra (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="0.00" value={inputs.tripTotalUsd} onChange={e => set('tripTotalUsd', e.target.value)} /></div>
+              <div className="field"><div className="fl">Costo del shopper, total (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="0.00" value={inputs.shopperFeeUsd} onChange={e => set('shopperFeeUsd', e.target.value)} /></div>
+              <div className="field"><div className="fl">Costo de envío / importación, total (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="0.00" value={inputs.importCostUsd} onChange={e => set('importCostUsd', e.target.value)} /></div>
               {tripTotal > 0 && (
                 <div className="derived">% shopper: <strong>{pct(shopperPct)}</strong> &nbsp;·&nbsp; % importación: <strong>{pct(importPct)}</strong> — se aplican a cualquier producto de este viaje</div>
               )}
@@ -150,7 +150,7 @@ export default function CalculatorClient() {
 
             <div className="sec-title">Este producto</div>
             <div className="card">
-              <div className="field"><div className="fl">Precio del producto (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="50.00" value={inputs.productPriceUsd} onChange={e => set('productPriceUsd', e.target.value)} /></div>
+              <div className="field"><div className="fl">Precio del producto (USD)</div><input className="fi" type="number" min="0" step="0.01" placeholder="0.00" value={inputs.productPriceUsd} onChange={e => set('productPriceUsd', e.target.value)} /></div>
               <div className="field"><div className="fl">Packaging de este producto (MXN)</div><input className="fi" type="number" min="0" step="0.01" value={inputs.packagingMxn} onChange={e => set('packagingMxn', e.target.value)} /></div>
               <div className="field"><div className="fl">Envío al cliente final (MXN)</div><input className="fi" type="number" min="0" step="0.01" value={inputs.shippingMxn} onChange={e => set('shippingMxn', e.target.value)} /></div>
             </div>

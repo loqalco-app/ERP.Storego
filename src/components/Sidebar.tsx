@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 
 const NAV = [
   {
-    key: 'dashboard', href: '/dashboard', label: 'Inicio',
+    key: 'dashboard', href: '/dashboard', label: 'Inicio', desktopOnly: true,
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="8" height="9" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/>
       <rect x="13" y="12" width="8" height="9" rx="1.5"/><rect x="3" y="16" width="8" height="5" rx="1.5"/>
@@ -36,7 +36,7 @@ const NAV = [
     </svg>,
   },
   {
-    key: 'catalog', href: '/catalog', label: 'Stock',
+    key: 'catalog', href: '/catalog', label: 'Stock', desktopOnly: true,
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
       <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
@@ -58,7 +58,7 @@ const NAV = [
     </svg>,
   },
   {
-    key: 'calculadora', href: '/calculadora', label: 'Precios', desktopOnly: true,
+    key: 'calculadora', href: '/calculadora', label: 'Precios',
     icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/>
       <line x1="8" y1="10.5" x2="9" y2="10.5"/><line x1="12" y1="10.5" x2="13" y2="10.5"/><line x1="16" y1="10.5" x2="17" y2="10.5"/>
@@ -95,6 +95,14 @@ function readCache(key: string, fallback: string) {
   try { return localStorage.getItem(key) || fallback } catch { return fallback }
 }
 
+// Sidebar se re-monta en cada página (cada page.tsx lo renderiza por su cuenta),
+// así que sin esto se repite auth.getUser() + la consulta a user_profiles en
+// cada navegación — el costo de red se sentía en cada clic. Esta caché vive
+// mientras el módulo JS siga cargado (o sea, toda la sesión de navegación
+// dentro de la SPA) y evita repetir la consulta salvo que pase el TTL.
+let profileCache: { orgId: string; keys: string[]; initials: string; displayName: string; fetchedAt: number } | null = null
+const PROFILE_TTL_MS = 5 * 60 * 1000
+
 interface Props { active: string; orgName?: string; userName?: string }
 
 export default function Sidebar({ active }: Props) {
@@ -102,7 +110,7 @@ export default function Sidebar({ active }: Props) {
 
   // Inicializa desde caché — sin flash al navegar
   const [visibleKeys,  setVisibleKeys]  = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem('_erp_nav') || 'null') || Object.keys(DEFAULT_NAV_MODULES).flatMap(k => DEFAULT_NAV_MODULES[k]) } catch { return [] }
+    try { return JSON.parse(localStorage.getItem('_erp_nav_v2') || 'null') || Object.keys(DEFAULT_NAV_MODULES).flatMap(k => DEFAULT_NAV_MODULES[k]) } catch { return [] }
   })
   const [initials,     setInitials]     = useState(() => readCache('_erp_ini', '?'))
   const [displayName,  setDisplayName]  = useState(() => readCache('_erp_dn', ''))
@@ -116,6 +124,13 @@ export default function Sidebar({ active }: Props) {
   const desktopWrapRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (profileCache && Date.now() - profileCache.fetchedAt < PROFILE_TTL_MS) {
+      setOrgId(profileCache.orgId)
+      setVisibleKeys(profileCache.keys)
+      setInitials(profileCache.initials)
+      setDisplayName(profileCache.displayName)
+      return
+    }
     const sb = createClient()
     sb.auth.getUser().then(async ({ data }) => {
       if (!data.user) return
@@ -124,7 +139,7 @@ export default function Sidebar({ active }: Props) {
         .select('full_name, role, allowed_modules, organization_id')
         .eq('id', data.user.id)
         .single()
-      const org = (profile as { organization_id?: string } | null)?.organization_id
+      const org = (profile as { organization_id?: string } | null)?.organization_id ?? ''
       if (org) setOrgId(org)
       const name = profile?.full_name
         || data.user.user_metadata?.full_name
@@ -140,10 +155,11 @@ export default function Sidebar({ active }: Props) {
       const dn  = getFirstName(name)
       setInitials(ini)
       setDisplayName(dn)
+      profileCache = { orgId: org, keys, initials: ini, displayName: dn, fetchedAt: Date.now() }
       try {
         localStorage.setItem('_erp_ini', ini)
         localStorage.setItem('_erp_dn', dn)
-        localStorage.setItem('_erp_nav', JSON.stringify(keys))
+        localStorage.setItem('_erp_nav_v2', JSON.stringify(keys))
       } catch { /* ignore */ }
     })
   }, [])
