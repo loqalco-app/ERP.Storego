@@ -4,6 +4,8 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
+import QuoteReceipt, { type BankDetails } from '@/components/QuoteReceipt'
+import { nodeToImageBlob, shareOrDownloadImage } from '@/lib/shareImage'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Variant  = { id: string; name: string; sku: string; sale_price: number; cost_price: number; stock: number }
@@ -30,10 +32,11 @@ const fmt = (n: number) => n.toLocaleString('es-MX', { style: 'currency', curren
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function POSClient({
-  orgId, userId, initialProducts, initialCustomers,
+  orgId, userId, initialProducts, initialCustomers, bankDetails,
 }: {
   orgId: string; userId: string
   initialProducts: Product[]; initialCustomers: Customer[]
+  bankDetails: BankDetails | null
 }) {
   const router  = useRouter()
   const supabase = createClient()
@@ -185,6 +188,23 @@ export default function POSClient({
   // ── Result ──────────────────────────────────────────────────────────────────
   const [saving, setSaving]     = useState(false)
   const [savedFolio, setSavedFolio] = useState('')
+  const [quoteInfo, setQuoteInfo] = useState<{
+    folio: string; customerName: string
+    items: { name: string; variantLabel: string; quantity: number; unitPrice: number; subtotal: number; image: string | null }[]
+    total: number; method: string; isApartado: boolean; depositAmount: number; paymentLink: string
+  } | null>(null)
+  const [sharingQuote, setSharingQuote] = useState(false)
+  const quoteRef = useRef<HTMLDivElement>(null)
+
+  async function handleShareQuote() {
+    if (!quoteRef.current) return
+    setSharingQuote(true)
+    try {
+      const blob = await nodeToImageBlob(quoteRef.current)
+      await shareOrDownloadImage(blob, `cotizacion-${quoteInfo?.folio ?? 'northea'}.png`, 'Cotización northéa', `Aquí tu cotización, folio #${quoteInfo?.folio}`)
+    } catch { /* best effort */ }
+    setSharingQuote(false)
+  }
 
   // ── Derived ─────────────────────────────────────────────────────────────────
   const filteredProducts = useMemo(() => {
@@ -206,7 +226,11 @@ export default function POSClient({
   }, [customers, sheetCustSearch])
 
   const cartTotal  = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
-  const totalPaid  = isApartado ? (parseFloat(depositAmount) || 0) : cartTotal
+  // Transferencia y link de pago no se confirman al momento — nada se
+  // considera "cobrado" todavía salvo que además se registre un anticipo.
+  const isUnconfirmedMethod = payMethod === 'transferencia' || payMethod === 'link_pago'
+  const isPending  = isApartado || isUnconfirmedMethod
+  const totalPaid  = isApartado ? (parseFloat(depositAmount) || 0) : (isUnconfirmedMethod ? 0 : cartTotal)
   const remaining  = Math.max(0, cartTotal - totalPaid)
   const needsEmail = !!customer && !customer.email
 
@@ -293,7 +317,7 @@ export default function POSClient({
     if (needsEmail && custEmailInput.trim()) {
       await supabase.from('customers').update({ email: custEmailInput.trim().toLowerCase() }).eq('id', customer.id)
     }
-    const status = isApartado ? 'apartado' : 'pagado'
+    const status = isPending ? 'apartado' : 'pagado'
     const { data: order, error: oErr } = await supabase.from('orders').insert({ organization_id: orgId, customer_id: customer.id, folio: '', status, subtotal: cartTotal, discount_amount: 0, total: cartTotal, created_by: userId, source: 'pos' }).select('id, folio').single()
     if (oErr || !order) { setSaving(false); return }
     await supabase.from('order_items').insert(cart.map(i => ({ order_id: order.id, organization_id: orgId, product_id: i.productId, variant_id: i.variantId, product_name: i.productName, variant_name: i.variantName, sku: i.sku, quantity: i.quantity, unit_price: i.unitPrice, cost_price: i.costPrice, discount_amount: i.discount, subtotal: i.unitPrice * i.quantity - i.discount })))
@@ -303,7 +327,20 @@ export default function POSClient({
     const needsAddr = shipType === 'envio' && !skipAddr
     await supabase.from('order_shipping').insert({ order_id: order.id, organization_id: orgId, type: shipType, address_line1: needsAddr ? shipAddr.line1 || null : null, address_line2: needsAddr ? shipAddr.line2 || null : null, city: needsAddr ? shipAddr.city || null : null, state: needsAddr ? shipAddr.state || null : null, zip: needsAddr ? shipAddr.zip || null : null })
     for (const item of cart) await supabase.from('inventory_ledger').insert({ organization_id: orgId, variant_id: item.variantId, movement_type: 'sale', quantity: -item.quantity, source_type: 'order', source_id: order.id, notes: `Venta ${order.folio}` })
-    fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: order.id, event: 'created' }) }).catch(() => {})
+
+    if (isPending) {
+      // Transferencia / apartado / link de pago: nada se confirma todavía —
+      // ni correo ni notificación. Se generan hasta que se marque pagado/abono
+      // en Órdenes. En vez de eso, aquí armamos la cotización para WhatsApp.
+      setQuoteInfo({
+        folio: order.folio, customerName: customer.full_name,
+        items: cart.map(i => ({ name: i.productName, variantLabel: i.variantName === 'Estándar' ? '' : i.variantName, quantity: i.quantity, unitPrice: i.unitPrice, subtotal: i.unitPrice * i.quantity, image: i.image })),
+        total: cartTotal, method: payMethod, isApartado, depositAmount: totalPaid, paymentLink,
+      })
+    } else {
+      fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: order.id, event: 'created' }) }).catch(() => {})
+    }
+
     setSaving(false); setSavedFolio(order.folio); setShowShipping(false)
     setPayMethod('efectivo'); setDepositAmount(''); setPaymentLink(''); setCustEmailInput('')
   }
@@ -312,7 +349,7 @@ export default function POSClient({
     setCart([]); setCustomer(null); setCustSearch('')
     setPayMethod('efectivo'); setDepositAmount(''); setPaymentLink(''); setCustEmailInput(''); setIsApartado(false)
     setShipType('pickup'); setShipAddr({ line1: '', line2: '', city: '', state: '', zip: '' })
-    setSkipAddr(false); setSavedFolio(''); setShowCartSheet(false); setSheetState('peek')
+    setSkipAddr(false); setSavedFolio(''); setQuoteInfo(null); setShowCartSheet(false); setSheetState('peek')
     setPosView('home')
   }
 
@@ -604,6 +641,11 @@ export default function POSClient({
     .btn-create{flex:1;padding:8px;border-radius:12px;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
     .btn-cancel-sm{padding:8px 14px;border-radius:12px;border:1.5px solid rgba(0,0,0,0.10);background:none;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:rgba(10,10,14,0.5)}
     .success-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100dvh;background:var(--bg,#ECEEF2);padding:24px;text-align:center;font-family:'Inter',-apple-system,sans-serif}
+    .quote-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+    .quote-modal{background:#fff;border-radius:20px;padding:20px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;font-family:'Inter',-apple-system,sans-serif}
+    .quote-modal-hd{font-size:13px;font-weight:800;color:#0A0A0E;margin-bottom:14px;text-align:center}
+    .quote-preview-wrap{border:1px solid rgba(0,0,0,0.08);border-radius:12px;overflow:hidden;margin-bottom:16px;display:flex;justify-content:center}
+    .quote-actions{display:flex;flex-direction:column;gap:8px}
   `
 
   // ── Shared sidebar + CSS ─────────────────────────────────────────────────────
@@ -619,18 +661,49 @@ export default function POSClient({
 
   // ── SUCCESS ──────────────────────────────────────────────────────────────────
   if (savedFolio) return wrap(
-    <div className="success-wrap">
-      <div style={{width:72,height:72,borderRadius:'50%',background:'linear-gradient(135deg,#059669,#10B981)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',boxShadow:'0 8px 24px rgba(5,150,105,0.30)'}}>
-        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <>
+      <div className="success-wrap">
+        <div style={{width:72,height:72,borderRadius:'50%',background:'linear-gradient(135deg,#059669,#10B981)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',boxShadow:'0 8px 24px rgba(5,150,105,0.30)'}}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div style={{fontSize:28,fontWeight:900,color:'#0A0A0E',letterSpacing:'-.5px',marginBottom:6}}>{savedFolio}</div>
+        <div style={{fontSize:20,fontWeight:800,color:'#0A0A0E',marginBottom:6}}>¡Orden generada!</div>
+        <div style={{fontSize:14,color:'rgba(10,10,14,0.50)',marginBottom:28}}>
+          {quoteInfo ? 'Se guardó el pedido. Comparte la cotización con el cliente.' : 'La venta se registró y el inventario se actualizó.'}
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:10,width:'100%',maxWidth:320}}>
+          {quoteInfo && <button className="btn-primary" onClick={handleShareQuote} disabled={sharingQuote}>{sharingQuote ? 'Generando…' : 'Compartir cotización'}</button>}
+          <button className={quoteInfo ? 'btn-ghost' : 'btn-primary'} onClick={resetPOS}>Nueva venta</button>
+          <button className="btn-ghost" onClick={() => router.push('/orders')}>Ver todas las órdenes</button>
+        </div>
       </div>
-      <div style={{fontSize:28,fontWeight:900,color:'#0A0A0E',letterSpacing:'-.5px',marginBottom:6}}>{savedFolio}</div>
-      <div style={{fontSize:20,fontWeight:800,color:'#0A0A0E',marginBottom:6}}>¡Orden generada!</div>
-      <div style={{fontSize:14,color:'rgba(10,10,14,0.50)',marginBottom:28}}>La venta se registró y el inventario se actualizó.</div>
-      <div style={{display:'flex',flexDirection:'column',gap:10,width:'100%',maxWidth:320}}>
-        <button className="btn-primary" onClick={resetPOS}>Nueva venta</button>
-        <button className="btn-ghost" onClick={() => router.push('/orders')}>Ver todas las órdenes</button>
-      </div>
-    </div>
+
+      {quoteInfo && (
+        <div className="quote-overlay" onClick={e => { if (e.target === e.currentTarget) setQuoteInfo(null) }}>
+          <div className="quote-modal">
+            <div className="quote-modal-hd">Vista previa de la cotización</div>
+            <div className="quote-preview-wrap">
+              <QuoteReceipt
+                ref={quoteRef}
+                folio={quoteInfo.folio}
+                customerName={quoteInfo.customerName}
+                items={quoteInfo.items}
+                total={quoteInfo.total}
+                method={quoteInfo.method}
+                isApartado={quoteInfo.isApartado}
+                depositAmount={quoteInfo.depositAmount}
+                bankDetails={bankDetails}
+                paymentLink={quoteInfo.paymentLink}
+              />
+            </div>
+            <div className="quote-actions">
+              <button className="btn-primary" onClick={handleShareQuote} disabled={sharingQuote}>{sharingQuote ? 'Generando…' : 'Compartir por WhatsApp'}</button>
+              <button className="btn-ghost" onClick={() => setQuoteInfo(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 
   // ── HOME ─────────────────────────────────────────────────────────────────────
@@ -1088,10 +1161,15 @@ export default function POSClient({
                   <div className="summary-row"><span>Anticipo</span><span style={{color:'#059669',fontWeight:700}}>{fmt(totalPaid)}</span></div>
                   <div className="summary-row remaining"><span>Saldo pendiente</span><span>{fmt(remaining)}</span></div>
                 </>
+              ) : isUnconfirmedMethod ? (
+                <div className="summary-row remaining"><span>Por confirmar</span><span>{fmt(cartTotal)}</span></div>
               ) : (
                 <div className="summary-row"><span>Se cobra</span><span style={{color:'#059669',fontWeight:700}}>{fmt(cartTotal)}</span></div>
               )}
             </div>
+            {isPending && (
+              <div className="dup-cust-notice">Este pago no se confirma al momento — se genera una cotización para enviar por WhatsApp. El correo y la notificación se disparan hasta que confirmes el pago en Órdenes.</div>
+            )}
 
             <button
               className="btn-primary"

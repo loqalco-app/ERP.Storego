@@ -23,7 +23,7 @@ export default async function POSPage() {
   if (!profile?.organization_id) redirect('/login')
   const orgId = profile.organization_id
 
-  const [{ data: rawProducts }, { data: customers }] = await Promise.all([
+  const [{ data: rawProducts }, { data: customers }, { data: org }] = await Promise.all([
     supabase
       .from('products')
       .select(`
@@ -43,7 +43,14 @@ export default async function POSPage() {
       .eq('organization_id', orgId)
       .eq('status', 'active')
       .order('full_name'),
+    supabase
+      .from('organizations')
+      .select('settings')
+      .eq('id', orgId)
+      .single(),
   ])
+
+  const bankDetails = (org?.settings as { bank_transfer?: { bank?: string; holder?: string; clabe?: string; account?: string } } | null)?.bank_transfer ?? null
 
   // Flatten stock per variant
   const products = (rawProducts ?? []).map((p: any) => ({
@@ -72,6 +79,7 @@ export default async function POSPage() {
       userId={user.id}
       initialProducts={products}
       initialCustomers={customers ?? []}
+      bankDetails={bankDetails}
     />
   )
 }
