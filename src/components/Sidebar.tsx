@@ -297,7 +297,7 @@ export default function Sidebar({ active }: Props) {
           scrollbar-width:none;-webkit-overflow-scrolling:touch
         }
         .nav-pill::-webkit-scrollbar{display:none}
-        @media(min-width:768px){.nav-pill{overflow:visible;width:auto;justify-content:flex-start}}
+        @media(min-width:768px){.nav-pill{overflow:visible;width:auto;max-width:none;justify-content:flex-start}}
 
         /* ── Nav item ── */
         .nav-item{
