@@ -78,6 +78,11 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
   const [status, setStatus]       = useState(initial?.status ?? 'active')
   const [condition, setCondition] = useState(initial?.condition ?? 'new')
   const [brandId, setBrandId]     = useState(initial?.brandId ?? '')
+  // Solo decide qué chips de talla sugerir abajo — no se guarda en la base,
+  // es puramente para acelerar la captura de tallas de calzado (numéricas)
+  // vs. ropa (S/M/L). No cambia nada de lo que ya existía.
+  const [productType, setProductType] = useState<'ropa' | 'calzado'>('ropa')
+  const SHOE_SIZES = ['22','23','24','25','26','27','28','29','30','31']
 
   const initialCatId = initial?.categoryId ?? ''
   const [rootCatId, setRootCatId] = useState(() => {
@@ -181,6 +186,20 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     setColorBlocks(cb => cb.map(b => b.id === blockId ? { ...b, sizes: [...b.sizes, sz], sizeInput: '' } : b))
     const skuHint = `${skuPrefix()}-${slugify(block.colorName + ' ' + sz).toUpperCase().slice(0, 10)}`
     // If this is the first size, remove the no-size variant and replace with size variants
+    setVariants(vs => {
+      const withoutNoSize = vs.filter(v => !(v.colorId === blockId && v.sizeName === ''))
+      return [...withoutNoSize, { colorId: blockId, sizeName: sz, sku: skuHint, stock: '', isOpen: true }]
+    })
+  }
+
+  // Igual que addSize, pero toma la talla directamente (para los chips de
+  // calzado de un clic) en vez de leerla de block.sizeInput. No toca ni
+  // reemplaza addSize — la captura libre de tallas de ropa sigue igual.
+  function quickAddSize(blockId: string, sz: string) {
+    const block = colorBlocks.find(b => b.id === blockId)
+    if (!block || block.sizes.includes(sz)) return
+    setColorBlocks(cb => cb.map(b => b.id === blockId ? { ...b, sizes: [...b.sizes, sz] } : b))
+    const skuHint = `${skuPrefix()}-${slugify(block.colorName + ' ' + sz).toUpperCase().slice(0, 10)}`
     setVariants(vs => {
       const withoutNoSize = vs.filter(v => !(v.colorId === blockId && v.sizeName === ''))
       return [...withoutNoSize, { colorId: blockId, sizeName: sz, sku: skuHint, stock: '', isOpen: true }]
@@ -543,6 +562,14 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
                   <div className="fl">Descripción</div>
                   <textarea className="fta" value={desc} onChange={e => setDesc(e.target.value)} placeholder="Descripción, materiales, detalles…" />
                 </div>
+                <div className="field">
+                  <div className="fl">Tipo de producto</div>
+                  <div className="seg">
+                    {([['ropa','Ropa'],['calzado','Calzado']] as [string,string][]).map(([v,l]) => (
+                      <button key={v} type="button" className={`seg-btn${productType===v?' on':''}`} onClick={() => setProductType(v as 'ropa' | 'calzado')}>{l}</button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="sec-lbl">Clasificación</div>
@@ -695,6 +722,15 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
 
                     {/* Sizes (independent per color) */}
                     <div className="fl">Tallas disponibles en {block.colorName}</div>
+                    {productType === 'calzado' && (
+                      <div className="sz-tags" style={{ marginBottom: 8 }}>
+                        {SHOE_SIZES.filter(sz => !block.sizes.includes(sz)).map(sz => (
+                          <button key={sz} type="button" className="seg-btn" style={{ flex: '0 0 auto', padding: '6px 10px' }} onClick={() => quickAddSize(block.id, sz)}>
+                            + {sz}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {block.sizes.length > 0 && (
                       <div className="sz-tags">
                         {block.sizes.map(sz => (
