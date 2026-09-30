@@ -428,7 +428,6 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
         body{background:#ECEEF2;font-family:'Inter',-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
         .pf-shell{display:flex;flex-direction:column;min-height:100dvh}
-        @media(min-width:768px){.pf-shell{padding-top:60px}}
         .pf-topbar{display:flex;align-items:center;gap:14px;padding:16px 20px 12px;position:sticky;top:0;z-index:10;background:rgba(236,238,242,0.92);backdrop-filter:blur(16px)}
         @media(min-width:768px){.pf-topbar{padding:14px 40px 12px}}
         .back-btn{width:36px;height:36px;border-radius:10px;background:#ECEEF2;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;box-shadow:3px 3px 8px rgba(0,0,0,0.10),-2px -2px 6px rgba(255,255,255,0.90)}

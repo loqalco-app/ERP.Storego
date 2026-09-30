@@ -420,7 +420,7 @@ export default function POSClient({
 
     /* ── PARKED VIEW ── */
     .parked-view{min-height:100dvh;padding:max(env(safe-area-inset-top,0px),20px) 20px calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}
-    @media(min-width:768px){.parked-view{max-width:960px;margin:60px auto 0;padding:28px 0 calc(var(--nav-h,88px) + env(safe-area-inset-bottom,0px) + 24px)}}
+    @media(min-width:768px){.parked-view{max-width:960px;margin:0 auto;padding:36px 0 40px}}
     .pv-topbar{display:flex;align-items:center;gap:14px;margin-bottom:28px}
     .pv-back{width:38px;height:38px;border-radius:12px;background:rgba(0,0,0,0.06);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(10,10,14,0.55);flex-shrink:0}
     .pv-back:hover{background:rgba(0,0,0,0.10)}
@@ -462,7 +462,7 @@ export default function POSClient({
     /* ── SELLING ── */
     .pos-wrap{display:flex;flex-direction:column;height:100dvh;overflow:hidden;background:#FFFFFF;padding-top:env(safe-area-inset-top,0px)}
     @media(max-width:767px){.pos-wrap{position:fixed;inset:0;height:100%}}
-    @media(min-width:768px){.pos-wrap{height:calc(100dvh - 60px - 88px)}}
+    @media(min-width:768px){.pos-wrap{height:100dvh}}
     .pos-topbar{display:flex;align-items:center;gap:12px;padding:10px 18px 8px;flex-shrink:0;background:#FFFFFF}
     @media(min-width:768px){.pos-topbar{padding:10px calc(300px + 32px) 10px 32px;border-bottom:1px solid rgba(0,0,0,0.07)}}
     @media(min-width:1280px){.pos-topbar{padding-right:calc(320px + 32px)}}
@@ -502,7 +502,7 @@ export default function POSClient({
       .pos-body-inner{display:block;width:100%;height:100%;overflow-y:auto;padding-right:300px;box-sizing:border-box;background:#FFFFFF}
       .pos-left{padding:0 24px 24px;max-width:760px;margin:0 auto}
       .pos-right{
-        position:fixed;top:60px;right:0;bottom:88px;width:300px;
+        position:fixed;top:0;right:0;bottom:0;width:300px;
         display:flex;flex-direction:column;overflow:hidden;
         background:#0D0D0D;
         border-left:1px solid rgba(255,255,255,0.06);
