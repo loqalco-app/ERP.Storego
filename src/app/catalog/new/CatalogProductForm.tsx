@@ -149,6 +149,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
 
   const [uploadingFor, setUploadingFor] = useState<string | null>(null)
   const [activeTarget, setActiveTarget] = useState('std')
+  const [dragOverTarget, setDragOverTarget] = useState<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
   const [webCatId, setWebCatId] = useState(initial?.webCategoryId ?? '')
@@ -264,6 +265,22 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
   function triggerUpload(target: string) {
     setActiveTarget(target)
     photoInputRef.current?.click()
+  }
+
+  // Arrastrar y soltar fotos directo sobre el cuadrito — usa el mismo
+  // handleFiles que ya usa el input de archivo, nada más cambia el origen.
+  function handleDragOver(e: React.DragEvent, target: string) {
+    e.preventDefault()
+    setDragOverTarget(target)
+  }
+  function handleDragLeave() {
+    setDragOverTarget(null)
+  }
+  function handleDrop(e: React.DragEvent, target: string) {
+    e.preventDefault()
+    setDragOverTarget(null)
+    const files = Array.from(e.dataTransfer.files ?? []).filter(f => f.type.startsWith('image/'))
+    if (files.length) handleFiles(files, target)
   }
 
   // ── Inline create ──
@@ -519,6 +536,7 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
         .photo-rm{position:absolute;top:3px;right:3px;width:19px;height:19px;border-radius:50%;border:none;background:rgba(0,0,0,0.55);color:white;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:800}
         .photo-add{width:68px;height:68px;border-radius:10px;border:2px dashed rgba(0,0,0,0.13);background:rgba(0,0,0,0.02);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex-shrink:0;font-family:inherit;transition:all 0.15s}
         .photo-add:hover{border-color:#2563EB;background:rgba(29,78,216,0.04)}
+        .photo-add.drag-over{border-color:#2563EB;background:rgba(29,78,216,0.10);border-style:solid}
         .photo-add-lbl{font-size:10px;font-weight:600;color:rgba(26,26,32,0.38)}
 
         /* Standard variant */
@@ -784,7 +802,15 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
                           <button type="button" className="photo-rm" onClick={() => removePhoto(block.id, p.tempId, p.path, p.imageId)}>×</button>
                         </div>
                       ))}
-                      <button type="button" className="photo-add" onClick={() => triggerUpload(block.id)} disabled={uploadingFor === block.id}>
+                      <button
+                        type="button"
+                        className={`photo-add${dragOverTarget === block.id ? ' drag-over' : ''}`}
+                        onClick={() => triggerUpload(block.id)}
+                        onDragOver={e => handleDragOver(e, block.id)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={e => handleDrop(e, block.id)}
+                        disabled={uploadingFor === block.id}
+                      >
                         {uploadingFor === block.id
                           ? <div className="photo-add-lbl">Subiendo…</div>
                           : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.28)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><div className="photo-add-lbl">Foto</div></>
@@ -828,7 +854,15 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
                             <button type="button" className="photo-rm" onClick={() => removePhoto('std', p.tempId, p.path, p.imageId)}>×</button>
                           </div>
                         ))}
-                        <button type="button" className="photo-add" onClick={() => triggerUpload('std')} disabled={uploadingFor === 'std'}>
+                        <button
+                          type="button"
+                          className={`photo-add${dragOverTarget === 'std' ? ' drag-over' : ''}`}
+                          onClick={() => triggerUpload('std')}
+                          onDragOver={e => handleDragOver(e, 'std')}
+                          onDragLeave={handleDragLeave}
+                          onDrop={e => handleDrop(e, 'std')}
+                          disabled={uploadingFor === 'std'}
+                        >
                           {uploadingFor === 'std'
                             ? <div className="photo-add-lbl">Subiendo…</div>
                             : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.28)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><div className="photo-add-lbl">+ Foto</div></>
