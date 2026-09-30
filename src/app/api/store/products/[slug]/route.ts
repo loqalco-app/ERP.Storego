@@ -23,7 +23,7 @@ export async function GET(
     .select(`
       id, name, slug, description, created_at, category_id,
       product_variants(id, name, sku, sale_price, regular_price, status),
-      product_images(url, is_primary, sort_order, alt_text),
+      product_images(url, is_primary, sort_order, alt_text, variant_id),
       store_product_categories(category_id)
     `)
     .eq('organization_id', orgId)
