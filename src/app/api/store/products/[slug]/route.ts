@@ -36,14 +36,18 @@ export async function GET(
     return NextResponse.json({ error: 'not_found' }, { status: 404 })
   }
 
+  // Stock real y confirmado (no stock_disponible) — esa vista resta las
+  // reservas de carrito de OTROS compradores, así que un producto que
+  // alguien solo agregó al carrito (sin pagar) aparecía "Agotado" para
+  // todos. "Agotado" debe reflejar únicamente ventas ya confirmadas.
   const variantIds = (product.product_variants as { id: string }[]).map(v => v.id)
   const { data: stock } = await client
-    .from('stock_disponible')
-    .select('variant_id, quantity_disponible')
+    .from('stock_levels')
+    .select('variant_id, quantity_available')
     .in('variant_id', variantIds)
 
   const stockMap: Record<string, number> = {}
-  for (const s of stock ?? []) stockMap[s.variant_id] = s.quantity_disponible
+  for (const s of stock ?? []) stockMap[s.variant_id] = (stockMap[s.variant_id] ?? 0) + Number(s.quantity_available)
 
   const variants = (product.product_variants as { id: string; name: string; sku: string; sale_price: number; regular_price: number | null; status: string }[]).map(v => ({
     ...v,
