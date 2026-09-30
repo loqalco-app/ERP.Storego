@@ -97,9 +97,8 @@
   --t4-weight: 500;
 
   /* ── Nav ── */
-  --nav-h:     80px;   /* alto total del área del nav (incluye padding) — solo mobile */
+  --nav-h:     80px;   /* alto total del área del nav (incluye padding) */
   --topbar-h:  104px;  /* alto estimado del topbar en mobile (safe-top + title + pb) */
-  --sidebar-w: 236px;  /* ancho del menú lateral fijo en desktop (≥768px) */
 
   /* ── Profile chip (esquina superior derecha) ── */
   --chip-w:      154px;

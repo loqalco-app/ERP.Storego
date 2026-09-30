@@ -38,12 +38,8 @@ body {
   transform: translate3d(0,0,0);
 }
 @media (min-width: 768px) {
-  /* Reserva el ancho del menú lateral fijo (.desk-sidebar en Sidebar.tsx)
-     para que el contenido normal (todo lo que no sea position:fixed) no
-     quede debajo de él. Sidebar.tsx le agrega esta clase a <body> mientras
-     está montado, así que páginas públicas sin Sidebar (login, etc.) no
-     se ven afectadas. */
-  body.has-desk-sidebar { margin-left: var(--sidebar-w, 236px); }
+  /* Compensa el .desk-header fixed de 60px para que el contenido no quede tapado */
+  body { padding-top: 60px; }
 }
 
 /* Previene el auto-zoom de iOS en todos los inputs (<16px dispara zoom en Safari/PWA) */
@@ -120,10 +116,8 @@ input, select, textarea {
 
 /*
  * ── Global .content ──────────────────────────────────────────
- * En mobile reserva el nav inferior flotante (--nav-h) y el safe-area
- * del notch. En desktop la navegación vive en .desk-sidebar (a la
- * izquierda, no abajo), así que el padding-bottom ahí es solo espacio
- * de aire normal, no una reserva de nav.
+ * Arranca justo debajo del .desk-header en desktop.
+ * En mobile incluye el safe-area del notch como padding-top.
  * ─────────────────────────────────────────────────────────────
  */
 .content {
@@ -138,7 +132,6 @@ input, select, textarea {
     padding-top: 24px;
     padding-left: 40px;
     padding-right: 40px;
-    padding-bottom: 40px;
   }
 }
 

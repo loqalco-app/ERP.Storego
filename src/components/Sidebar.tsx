@@ -123,14 +123,6 @@ export default function Sidebar({ active }: Props) {
 
   const desktopWrapRef = useRef<HTMLDivElement>(null)
 
-  // Le avisa a globals.css (vía esta clase en <body>) que reserve el ancho
-  // del sidebar en escritorio — solo mientras esta página realmente tiene
-  // Sidebar montado (login/auth no lo usan y no deben desplazarse).
-  useEffect(() => {
-    document.body.classList.add('has-desk-sidebar')
-    return () => { document.body.classList.remove('has-desk-sidebar') }
-  }, [])
-
   useEffect(() => {
     if (profileCache && Date.now() - profileCache.fetchedAt < PROFILE_TTL_MS) {
       setOrgId(profileCache.orgId)
@@ -275,16 +267,15 @@ export default function Sidebar({ active }: Props) {
     <>
       <style>{`
 
-        /* ── Bottom fade (mobile únicamente) ── */
+        /* ── Bottom fade ── */
         .nav-fade{
           position:fixed;bottom:0;left:0;right:0;height:96px;
           background:linear-gradient(to top,var(--bg,#ECEEF2) 60%,transparent);
           pointer-events:none;z-index:198;
           -webkit-transform:translate3d(0,0,0);transform:translate3d(0,0,0)
         }
-        @media(min-width:768px){.nav-fade{display:none}}
 
-        /* ── Nav bar (mobile únicamente — en desktop la navegación vive en .desk-sidebar) ── */
+        /* ── Nav bar ── */
         .nav-bar{
           position:fixed;bottom:0;left:0;right:0;z-index:199;
           display:flex;align-items:flex-end;justify-content:center;
@@ -294,7 +285,6 @@ export default function Sidebar({ active }: Props) {
           will-change:transform
         }
         @media(min-width:480px){.nav-bar{padding:0 20px max(var(--safe-bottom,0px),16px)}}
-        @media(min-width:768px){.nav-bar{display:none}}
 
         /* ── Floating pill ── */
         .nav-pill{
@@ -379,66 +369,55 @@ export default function Sidebar({ active }: Props) {
           min-width:210px;overflow:hidden;z-index:701
         }
 
-        /* ── Menú lateral fijo en desktop (≥768px) ── */
-        .desk-sidebar{display:none}
+        /* ── Header desktop full-width ── */
+        .desk-header{display:none}
         @media(min-width:768px){
-          .desk-sidebar{
-            display:flex;flex-direction:column;
-            position:fixed;top:0;left:0;bottom:0;width:var(--sidebar-w,236px);z-index:300;
-            background:var(--bg,#ECEEF2);
-            border-right:1px solid rgba(0,0,0,0.07);
-            padding:22px 14px;
+          .desk-header{
+            display:flex;align-items:center;gap:16px;
+            position:fixed;top:0;left:0;right:0;height:60px;z-index:300;
+            background:rgba(236,238,242,0.92);
+            -webkit-backdrop-filter:blur(20px) saturate(160%);
+            backdrop-filter:blur(20px) saturate(160%);
+            border-bottom:1px solid rgba(0,0,0,0.07);
+            padding:0 24px;
           }
         }
-        .desk-brand{font-size:16px;font-weight:800;color:var(--text-1,#0A0A0E);letter-spacing:-.3px;padding:0 10px;margin-bottom:24px}
+        .desk-brand{font-size:15px;font-weight:800;color:var(--text-1,#0A0A0E);letter-spacing:-.3px;flex:1}
 
-        .desk-nav{display:flex;flex-direction:column;gap:2px;flex:1;overflow-y:auto}
-        .desk-nav-item{
-          display:flex;align-items:center;gap:12px;
-          padding:10px 12px;border-radius:12px;text-decoration:none;
-          color:var(--text-2,rgba(10,10,14,0.62));font-size:13.5px;font-weight:600;
-          font-family:var(--font,'Inter',-apple-system,sans-serif);
-          transition:background 0.14s,color 0.14s
-        }
-        .desk-nav-item:hover{background:rgba(0,0,0,0.045)}
-        .desk-nav-item.on{
-          background:var(--grad-brand,linear-gradient(135deg,#1D4ED8,#2563EB));
-          color:white;font-weight:700;box-shadow:0 4px 14px rgba(29,78,216,0.28)
-        }
-        .desk-nav-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0}
-
-        /* ── Pie del sidebar: campana + chip de perfil ── */
-        .desk-sidebar-foot{display:flex;align-items:center;gap:6px;position:relative;padding-top:14px;border-top:1px solid rgba(0,0,0,0.06);margin-top:8px}
+        /* ── Chip de perfil — vive dentro del desk-header ── */
+        .desk-chip-wrap{display:none;position:relative}
+        @media(min-width:768px){.desk-chip-wrap{display:flex;align-items:center}}
         .desk-chip{
-          flex:1;min-width:0;display:flex;align-items:center;gap:8px;
-          background:none;border:none;border-radius:12px;
-          padding:8px 10px;
+          display:flex;align-items:center;gap:8px;
+          background:var(--bg,#ECEEF2);border:none;border-radius:50px;
+          padding:6px 14px 6px 6px;
+          box-shadow:4px 4px 12px rgba(0,0,0,0.10),-3px -3px 8px rgba(255,255,255,0.90),inset 0 1px 0 rgba(255,255,255,0.70);
           cursor:pointer;font-family:var(--font,'Inter',-apple-system,sans-serif);
-          -webkit-tap-highlight-color:transparent;transition:background 0.14s
+          -webkit-tap-highlight-color:transparent;transition:opacity 0.14s
         }
-        .desk-chip:hover{background:rgba(0,0,0,0.045)}
+        .desk-chip:hover{opacity:.88}
         .desk-chip-av{
           width:28px;height:28px;border-radius:50%;
           background:linear-gradient(135deg,#1D4ED8,#2563EB);
           display:flex;align-items:center;justify-content:center;
           font-size:10px;font-weight:800;color:white;flex-shrink:0
         }
-        .desk-chip-name{font-size:13px;font-weight:700;color:var(--text-1,#1A1A20);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .desk-chip-name{font-size:13px;font-weight:700;color:var(--text-1,#1A1A20)}
 
         .bell-btn{
-          position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+          position:relative;display:flex;align-items:center;justify-content:center;
           width:36px;height:36px;border-radius:50%;border:none;background:none;
           color:var(--text-1,#0A0A0E);opacity:.55;cursor:pointer;transition:opacity .14s,background .14s
         }
         .bell-btn:hover{opacity:.85;background:rgba(0,0,0,0.05)}
         .bell-dot{position:absolute;top:6px;right:7px;width:7px;height:7px;border-radius:50%;background:#16A34A;box-shadow:0 0 0 2px var(--bg,#ECEEF2)}
 
-        /* Dropdown desktop — sube desde el chip, ya que el chip vive al fondo del sidebar */
+        /* Dropdown desktop — baja del chip */
         .desk-dropdown{
-          position:absolute;bottom:calc(100% + 8px);left:0;right:0;
+          position:absolute;top:calc(100% + 8px);right:0;
           background:var(--bg,#ECEEF2);border-radius:var(--r-lg,20px);
-          box-shadow:0 -8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
-          overflow:hidden;z-index:400
+          box-shadow:0 8px 32px rgba(0,0,0,0.12),0 4px 16px rgba(0,0,0,0.06);
+          min-width:200px;overflow:hidden;z-index:400
         }
 
         /* Menú items compartidos */
@@ -457,32 +436,22 @@ export default function Sidebar({ active }: Props) {
         .pc-divider{height:1px;background:rgba(0,0,0,0.06);margin:4px 0}
       `}</style>
 
-      {/* ── Menú lateral fijo desktop (≥768px) ── */}
-      <aside className="desk-sidebar">
-        <div className="desk-brand">northéa</div>
-
-        <nav className="desk-nav" aria-label="Navegación principal">
-          {NAV.filter(item => visibleKeys.length === 0 || visibleKeys.includes(item.key)).map(item => {
-            const isActive = currentKey === item.key
-            return (
-              <Link key={item.key} href={item.href} className={`desk-nav-item${isActive ? ' on' : ''}`} aria-current={isActive ? 'page' : undefined}>
-                <span className="desk-nav-icon">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            )
-          })}
-        </nav>
-
-        <div className="desk-sidebar-foot" ref={desktopWrapRef}>
-          {pushState !== 'unsupported' && (
-            <button className="bell-btn" onClick={enablePush} aria-label={pushState === 'on' ? 'Notificaciones activas' : 'Activar notificaciones'} title={pushState === 'on' ? 'Notificaciones activas' : 'Activar notificaciones de nuevas ventas'}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              {pushState === 'on' && <span className="bell-dot" />}
-            </button>
-          )}
+      {/* ── Header fijo desktop (≥768px) ── */}
+      <div className="desk-header">
+        <span className="desk-brand">NORTHÉA</span>
+        {pushState !== 'unsupported' && (
+          <button className="bell-btn" onClick={enablePush} aria-label={pushState === 'on' ? 'Notificaciones activas' : 'Activar notificaciones'} title={pushState === 'on' ? 'Notificaciones activas' : 'Activar notificaciones de nuevas ventas'}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            {pushState === 'on' && <span className="bell-dot" />}
+          </button>
+        )}
+        <div className="desk-chip-wrap" ref={desktopWrapRef}>
           <button className="desk-chip" aria-label="Mi perfil" onClick={() => setDesktopOpen(v => !v)}>
             <div className="desk-chip-av">{initials}</div>
             <span className="desk-chip-name">{displayName || 'Perfil'}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.35)" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
           </button>
           {desktopOpen && (
             <div className="desk-dropdown">
@@ -490,7 +459,7 @@ export default function Sidebar({ active }: Props) {
             </div>
           )}
         </div>
-      </aside>
+      </div>
 
       {/* Bottom fade */}
       <div className="nav-fade" aria-hidden="true" />
