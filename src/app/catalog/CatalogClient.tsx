@@ -140,7 +140,12 @@ export default function CatalogClient({ products: initProducts, categories: init
     if (!mName.trim()) { setErr('El nombre es obligatorio.'); return }
     setSaving(true); setErr(null)
     const supabase = createClient()
-    const slug = slugify(mName.trim())
+    // El slug es único por organización (sin importar el padre) — dos
+    // subcategorías con el mismo nombre bajo padres distintos (ej. "Lentes"
+    // en Hombre y en Mujer) chocarían si el slug fuera solo el nombre. Para
+    // una subcategoría, se le agrega el slug del padre como prefijo.
+    const parentCat = mParent ? categories.find(c => c.id === mParent) : null
+    const slug = parentCat ? `${parentCat.slug}-${slugify(mName.trim())}` : slugify(mName.trim())
     if (editItem) {
       const { error } = await supabase.from('categories').update({ name: mName.trim(), description: mDesc.trim()||null, parent_id: mParent||null }).eq('id', editItem.id)
       if (error) { setSaving(false); setErr(error.message); return }
