@@ -141,9 +141,21 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
 
   async function liquidar() {
     if (!selected) return
-    await supabase.from('orders').update({ status: 'pagado' }).eq('id', selected.id)
     const pending = Number(selected.total) - selected.order_payments.reduce((s, p) => s + Number(p.amount), 0)
-    syncSelected({ ...selected, status: 'pagado' })
+    // Liquidar también es un cobro: se registra el saldo como pago con el
+    // método elegido, para que cuente en Finanzas por efectivo/transferencia/etc.
+    let newPayment: OrderPayment | null = null
+    if (pending > 0) {
+      const { data: payment, error } = await supabase
+        .from('order_payments')
+        .insert({ order_id: selected.id, organization_id: orgId, method: abonoMethod, amount: pending })
+        .select('id, method, amount, created_at')
+        .single()
+      if (error || !payment) { setAbonoError('No se pudo registrar el pago de la liquidación'); return }
+      newPayment = payment as OrderPayment
+    }
+    await supabase.from('orders').update({ status: 'pagado' }).eq('id', selected.id)
+    syncSelected({ ...selected, status: 'pagado', order_payments: newPayment ? [...selected.order_payments, newPayment] : selected.order_payments })
     fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: selected.id, event: 'abono', amount: pending }) }).catch(() => {})
   }
 
@@ -456,7 +468,7 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
 
                   {isApartado && (
                     <button className="liquidar-btn" onClick={liquidar}>
-                      {pending <= 0 ? '✓ Marcar como pagado' : `Liquidar (${fmt(pending)} pendiente)`}
+                      {pending <= 0 ? '✓ Marcar como pagado' : `Liquidar ${fmt(pending)} · ${METHOD_LABEL[abonoMethod]}`}
                     </button>
                   )}
                 </div>

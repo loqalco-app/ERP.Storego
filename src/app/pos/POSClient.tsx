@@ -75,6 +75,9 @@ export default function POSClient({
   const [paymentLink, setPaymentLink] = useState('')
   const [custEmailInput, setCustEmailInput] = useState('')
   const [isApartado, setIsApartado]   = useState(false)
+  // Transferencia / link de pago que el cliente ya pagó en el momento: se registra
+  // como venta confirmada (sin cotización) con ese método de pago.
+  const [alreadyPaid, setAlreadyPaid]   = useState(false)
   const [showShipping, setShowShipping] = useState(false)
   const [shipType, setShipType]         = useState<'pickup' | 'envio'>('pickup')
   const [shipAddr, setShipAddr]         = useState({ line1: '', line2: '', city: '', state: '', zip: '' })
@@ -232,8 +235,10 @@ export default function POSClient({
   // Transferencia y link de pago no se confirman al momento — nada se
   // considera "cobrado" todavía salvo que además se registre un anticipo.
   const isUnconfirmedMethod = payMethod === 'transferencia' || payMethod === 'link_pago'
-  const isPending  = isApartado || isUnconfirmedMethod
-  const totalPaid  = isApartado ? (parseFloat(depositAmount) || 0) : (isUnconfirmedMethod ? 0 : cartTotal)
+  const paidNow = alreadyPaid && !isApartado
+  const awaitingPayment = isUnconfirmedMethod && !paidNow
+  const isPending  = isApartado || awaitingPayment
+  const totalPaid  = isApartado ? (parseFloat(depositAmount) || 0) : (awaitingPayment ? 0 : cartTotal)
   const remaining  = Math.max(0, cartTotal - totalPaid)
   const needsEmail = !!customer && !customer.email
 
@@ -358,7 +363,7 @@ export default function POSClient({
 
   function resetPOS() {
     setCart([]); setCustomer(null); setCustSearch('')
-    setPayMethod('efectivo'); setDepositAmount(''); setPaymentLink(''); setCustEmailInput(''); setIsApartado(false)
+    setPayMethod('efectivo'); setDepositAmount(''); setPaymentLink(''); setCustEmailInput(''); setIsApartado(false); setAlreadyPaid(false)
     setShipType('pickup'); setShipAddr({ line1: '', line2: '', city: '', state: '', zip: '' })
     setSkipAddr(false); setSavedFolio(''); setQuoteInfo(null); setShowCartSheet(false); setSheetState('peek')
     setPosView('home')
@@ -1163,7 +1168,14 @@ export default function POSClient({
               <input className="modal-input" type="number" min="0" placeholder="Anticipo (opcional, puede quedar en $0)" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} />
             )}
 
-            {payMethod === 'link_pago' && (
+            {isUnconfirmedMethod && !isApartado && (
+              <div className="toggle-row">
+                <button className={`toggle ${alreadyPaid ? 'on' : ''}`} onClick={() => setAlreadyPaid(v => !v)} />
+                <span className="toggle-label">El cliente ya pagó (sin cotización)</span>
+              </div>
+            )}
+
+            {payMethod === 'link_pago' && !paidNow && (
               <input className="modal-input" type="url" placeholder="Pega aquí el link de pago generado" value={paymentLink} onChange={e => setPaymentLink(e.target.value)} />
             )}
 
@@ -1178,7 +1190,7 @@ export default function POSClient({
                   <div className="summary-row"><span>Anticipo</span><span style={{color:'#059669',fontWeight:700}}>{fmt(totalPaid)}</span></div>
                   <div className="summary-row remaining"><span>Saldo pendiente</span><span>{fmt(remaining)}</span></div>
                 </>
-              ) : isUnconfirmedMethod ? (
+              ) : awaitingPayment ? (
                 <div className="summary-row remaining"><span>Por confirmar</span><span>{fmt(cartTotal)}</span></div>
               ) : (
                 <div className="summary-row"><span>Se cobra</span><span style={{color:'#059669',fontWeight:700}}>{fmt(cartTotal)}</span></div>
@@ -1190,7 +1202,7 @@ export default function POSClient({
 
             <button
               className="btn-primary"
-              disabled={(needsEmail && !custEmailInput.trim()) || (payMethod === 'link_pago' && !paymentLink.trim())}
+              disabled={(needsEmail && !custEmailInput.trim()) || (payMethod === 'link_pago' && !paidNow && !paymentLink.trim())}
               onClick={() => { setShowPayment(false); setShowShipping(true) }}
             >
               Confirmar pago →
