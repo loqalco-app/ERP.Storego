@@ -50,8 +50,10 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
     { data: orders },
     { data: expenses },
     { data: apartados },
+    { data: payments },
   ] = await Promise.all([
-    // Órdenes del periodo con sus items (para CMV)
+    // Órdenes del periodo con sus items (para CMV, que se reconoce al vender,
+    // no al cobrar)
     supabase
       .from('orders')
       .select(`
@@ -81,6 +83,16 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
       .select('id, folio, total, customers(full_name), order_payments(amount)')
       .eq('organization_id', orgId)
       .eq('status', 'apartado'),
+
+    // Pagos recibidos EN este periodo, por su propia fecha — no por la fecha
+    // en que se creó el pedido. Un abono de hoy sobre un pedido de hace dos
+    // semanas debe contar como ingreso de hoy, no quedar fuera.
+    supabase
+      .from('order_payments')
+      .select('amount, method, created_at')
+      .eq('organization_id', orgId)
+      .gte('created_at', desdeTs)
+      .lte('created_at', hastaTs),
   ])
 
   return (
@@ -90,6 +102,7 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
       orders={(orders ?? []) as any[]}
       expenses={(expenses ?? []) as any[]}
       apartados={(apartados ?? []) as any[]}
+      payments={(payments ?? []) as any[]}
       periodo={periodo}
       desde={desde}
       hasta={hasta}
