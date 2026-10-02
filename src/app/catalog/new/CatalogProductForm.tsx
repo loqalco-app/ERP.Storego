@@ -382,6 +382,19 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     // borran de verdad. Si una tiene historial que lo impide (FK, ej. ya se
     // vendió), en vez de fallar se deja inactiva y en 0 de stock.
     for (const vid of deletedVariantIds) {
+      // Sus fotos se borran siempre primero — tanto del storage como de la
+      // fila en product_images — así nunca quedan huérfanas ni visibles,
+      // ni siquiera si la variante termina solo desactivada (no borrada).
+      const { data: imgs } = await supabase.from('product_images').select('id, url').eq('variant_id', vid)
+      if (imgs && imgs.length) {
+        const marker = '/product-images/'
+        const paths = imgs
+          .map(img => { const i = img.url.indexOf(marker); return i !== -1 ? img.url.slice(i + marker.length) : null })
+          .filter((p): p is string => !!p)
+        if (paths.length) await supabase.storage.from('product-images').remove(paths)
+        await supabase.from('product_images').delete().eq('variant_id', vid)
+      }
+
       const { error: delErr } = await supabase.from('product_variants').delete().eq('id', vid)
       if (delErr) {
         await supabase.from('product_variants').update({ status: 'inactive' }).eq('id', vid)
