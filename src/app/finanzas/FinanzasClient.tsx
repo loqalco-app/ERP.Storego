@@ -317,6 +317,7 @@ export default function FinanzasClient({
         /* category summary cards */
         .cat-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
         .cat-card{background:var(--bg,#ECEEF2);border-radius:18px;padding:14px;box-shadow:4px 4px 12px rgba(0,0,0,0.06),-3px -3px 8px rgba(255,255,255,0.90)}
+        .cat-card-total{border:1.5px solid rgba(10,10,14,0.14)}
         .cat-card-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
         .cat-card-lbl{font-size:11px;font-weight:700;color:rgba(10,10,14,0.50);margin-bottom:4px}
         .cat-card-amt{font-size:17px;font-weight:900;color:#0A0A0E;letter-spacing:-.3px;margin-bottom:10px}
@@ -605,6 +606,14 @@ export default function FinanzasClient({
 
         {gastosPorCat.length > 0 && (
           <div className="cat-card-grid">
+            <div className="cat-card cat-card-total">
+              <div className="cat-card-icon" style={{background:'rgba(10,10,14,0.08)',color:'#0A0A0E'}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              </div>
+              <div className="cat-card-lbl">Total gastos</div>
+              <div className="cat-card-amt">{fmt(kpis.gastosTotales)}</div>
+              <div className="cat-card-pct">{gastosPorCat.length} {gastosPorCat.length === 1 ? 'categoría' : 'categorías'}</div>
+            </div>
             {gastosPorCat.map(([cat, total]) => {
               const meta = CAT_META[cat] ?? CAT_META.otro
               const pct = kpis.gastosTotales === 0 ? 0 : Math.round(total / kpis.gastosTotales * 100)
