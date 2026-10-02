@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdmin } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import FinanzasClient from './FinanzasClient'
 
@@ -17,6 +18,16 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
 
   if (!profile?.organization_id) redirect('/login')
   const orgId = profile.organization_id
+
+  // Se lee con el service role, igual que ya hace Ajustes para listar el
+  // equipo — el RLS de esta base se ha comportado de forma intermitente
+  // (vimos lo mismo con organizations y con finance_expenses) y el scope
+  // por organización ya queda garantizado en cada query con .eq('organization_id', orgId).
+  const admin = createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
 
   const params = await searchParams
   const periodo = params.periodo ?? 'mes'
@@ -54,7 +65,7 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
     { data: apartados },
   ] = await Promise.all([
     // Órdenes del periodo con sus items (para CMV)
-    supabase
+    admin
       .from('orders')
       .select(`
         id, folio, status, total, created_at,
@@ -69,7 +80,7 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
       .order('created_at', { ascending: false }),
 
     // Gastos del periodo (tabla puede no existir aún)
-    supabase
+    admin
       .from('finance_expenses')
       .select('id, date, category, description, amount, created_at')
       .eq('organization_id', orgId)
@@ -78,7 +89,7 @@ export default async function FinanzasPage({ searchParams }: { searchParams: Pro
       .order('date', { ascending: false }),
 
     // Apartados pendientes (cuentas por cobrar) — todos, no solo del periodo
-    supabase
+    admin
       .from('orders')
       .select('id, folio, total, customers(full_name), order_payments(amount)')
       .eq('organization_id', orgId)
