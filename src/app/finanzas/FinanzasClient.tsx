@@ -149,18 +149,16 @@ export default function FinanzasClient({
     setExpenses(prev => prev.filter(e => e.id !== id))
   }
 
-  // router.push por sí solo puede servir una versión en caché del segmento
-  // (el cliente de Next cachea por ruta) aunque cambie el query string —
-  // refresh() fuerza que el servidor vuelva a correr la consulta con el
-  // nuevo periodo en vez de reusar los datos del periodo anterior.
+  // router.push/refresh seguían sirviendo datos del periodo anterior pese a
+  // desactivar el staleTimes del router — para quitar cualquier duda de
+  // caché del lado del cliente, el cambio de periodo recarga la página
+  // completa (navegación real del navegador, sin capas de caché de Next).
   function changePeriodo(p: string) {
-    router.push(`/finanzas?periodo=${p}`)
-    router.refresh()
+    window.location.href = `/finanzas?periodo=${p}`
   }
 
   function applyCustomRange(d: string, h: string) {
-    router.push(`/finanzas?periodo=personalizado&desde=${d}&hasta=${h}`)
-    router.refresh()
+    window.location.href = `/finanzas?periodo=personalizado&desde=${d}&hasta=${h}`
   }
 
   // ── Export modal ─────────────────────────────────────────────────────────────
