@@ -9,9 +9,11 @@ const nextConfig: NextConfig = {
 
   // Dedupe requests across concurrent renders
   experimental: {
-    // Dedupes identical fetch() calls within the same render pass
+    // dynamic: 0 — nunca reusar datos viejos del router al navegar entre
+    // rutas dinámicas (ej. cambiar de periodo en Finanzas); un panel de
+    // administración interno necesita datos frescos más que este ahorro.
     staleTimes: {
-      dynamic: 30,   // cache dynamic routes in client router for 30s
+      dynamic: 0,
       static: 180,   // cache static routes for 3 min
     },
   },

@@ -534,15 +534,20 @@ export default function FinanzasClient({
         </div>
 
         {/* KPIs de métodos de pago */}
-        <div className="kpi-row">
-          {Object.entries(kpis.byMethod).map(([m, v]) => (
-            <div key={m} className="kpi-card">
-              <div className="kpi-lbl">{METHOD_LABEL[m] ?? m}</div>
-              <div className="kpi-v">{fmt(v)}</div>
-              <div className="kpi-s">ingresos</div>
+        {Object.keys(kpis.byMethod).length > 0 && (
+          <>
+            <div className="sec-title" style={{ marginBottom: 10 }}>Ingresos por método de pago</div>
+            <div className="kpi-row">
+              {Object.entries(kpis.byMethod).map(([m, v]) => (
+                <div key={m} className="kpi-card">
+                  <div className="kpi-lbl">{METHOD_LABEL[m] ?? m}</div>
+                  <div className="kpi-v">{fmt(v)}</div>
+                  <div className="kpi-s">ingresos</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         </>}
 
