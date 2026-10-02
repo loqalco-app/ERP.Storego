@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, type ReactNode } from 'react'
+import { useState, useMemo, useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import DateRangeCalendar from '@/components/DateRangeCalendar'
@@ -55,6 +55,12 @@ export default function FinanzasClient({
 
   const [tab, setTab] = useState<'resumen'|'productos'|'gastos'|'cobros'>('resumen')
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses)
+  // El verdadero bug de "se queda pegado" al cambiar de periodo: este
+  // componente no se desmonta en una navegación suave, así que useState
+  // solo toma initialExpenses la primera vez — sin este efecto, los gastos
+  // se quedan congelados con los del primer periodo que se vio, para
+  // siempre, sin importar cuántas veces cambies el periodo después.
+  useEffect(() => { setExpenses(initialExpenses) }, [initialExpenses])
   const [showExpForm, setShowExpForm] = useState(false)
   const [expForm, setExpForm] = useState({ category: 'gasto_operativo', description: '', amount: '', date: desde })
   const [savingExp, setSavingExp] = useState(false)
@@ -149,16 +155,12 @@ export default function FinanzasClient({
     setExpenses(prev => prev.filter(e => e.id !== id))
   }
 
-  // router.push/refresh seguían sirviendo datos del periodo anterior pese a
-  // desactivar el staleTimes del router — para quitar cualquier duda de
-  // caché del lado del cliente, el cambio de periodo recarga la página
-  // completa (navegación real del navegador, sin capas de caché de Next).
   function changePeriodo(p: string) {
-    window.location.href = `/finanzas?periodo=${p}`
+    router.push(`/finanzas?periodo=${p}`)
   }
 
   function applyCustomRange(d: string, h: string) {
-    window.location.href = `/finanzas?periodo=personalizado&desde=${d}&hasta=${h}`
+    router.push(`/finanzas?periodo=personalizado&desde=${d}&hasta=${h}`)
   }
 
   // ── Export modal ─────────────────────────────────────────────────────────────
