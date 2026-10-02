@@ -67,16 +67,16 @@ export default function SettingsClient({
   async function saveBank(e: React.FormEvent) {
     e.preventDefault()
     setSavingBank(true); setBankMsg(null)
-    const supabase = createClient()
-    const { data: org } = await supabase.from('organizations').select('settings').eq('id', orgId).single()
-    const nextSettings = { ...(org?.settings ?? {}), bank_transfer: bank }
-    const { data: updated, error } = await supabase.from('organizations').update({ settings: nextSettings }).eq('id', orgId).select('id')
+    // Se guarda vía API con service role en vez de un update directo bajo
+    // RLS — ese camino venía fallando en producción de forma intermitente.
+    const res = await fetch('/api/settings/bank-details', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orgId, bank }),
+    })
+    const json = await res.json().catch(() => ({}))
     setSavingBank(false)
-    // Un rol sin permiso (RLS) no da error — simplemente no actualiza ninguna
-    // fila. Si no viene ninguna fila de vuelta, el guardado no se aplicó.
-    if (error) setBankMsg({ type: 'err', text: 'No se pudo guardar. Intenta de nuevo.' })
-    else if (!updated || updated.length === 0) setBankMsg({ type: 'err', text: 'No se guardó — tu usuario no tiene permiso para editar esto. Pide a un Admin o Propietario que lo configure.' })
-    else setBankMsg({ type: 'ok', text: 'Datos bancarios guardados.' })
+    setBankMsg(res.ok ? { type: 'ok', text: 'Datos bancarios guardados.' } : { type: 'err', text: json.error ?? 'No se pudo guardar. Intenta de nuevo.' })
   }
 
   function switchTab(t: 'profile'|'team'|'cobros') {
