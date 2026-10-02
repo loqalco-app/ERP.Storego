@@ -8,7 +8,7 @@ import QuoteReceipt, { type BankDetails } from '@/components/QuoteReceipt'
 import { nodeToImageBlob, shareOrDownloadImage } from '@/lib/shareImage'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Variant  = { id: string; name: string; sku: string; sale_price: number; cost_price: number; stock: number }
+type Variant  = { id: string; name: string; sku: string; sale_price: number; cost_price: number; stock: number; image: string | null }
 type Product  = { id: string; name: string; image: string | null; variants: Variant[] }
 type Customer = { id: string; full_name: string; email: string | null; phone: string | null }
 type CartItem = {
@@ -48,6 +48,9 @@ export default function POSClient({
   const [products] = useState<Product[]>(initialProducts)
   const [search, setSearch]   = useState('')
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
+  // Preview de foto a pantalla completa — se abre al tocar cualquier
+  // miniatura (producto o carrito) y se cierra con la X.
+  const [previewImg, setPreviewImg] = useState<string | null>(null)
 
   // ── Customer ────────────────────────────────────────────────────────────────
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
@@ -241,7 +244,7 @@ export default function POSClient({
       const ex = prev.find(i => i.key === key)
       if (ex) return ex.quantity >= ex.maxStock ? prev : prev.map(i => i.key === key ? { ...i, quantity: i.quantity + 1 } : i)
       if (variant.stock <= 0) return prev
-      return [...prev, { key, productId: product.id, variantId: variant.id, productName: product.name, variantName: variant.name, sku: variant.sku, image: product.image, unitPrice: variant.sale_price, costPrice: variant.cost_price, quantity: 1, discount: 0, maxStock: variant.stock }]
+      return [...prev, { key, productId: product.id, variantId: variant.id, productName: product.name, variantName: variant.name, sku: variant.sku, image: variant.image ?? product.image, unitPrice: variant.sale_price, costPrice: variant.cost_price, quantity: 1, discount: 0, maxStock: variant.stock }]
     })
   }
   function updateQty(key: string, qty: number) {
@@ -490,7 +493,7 @@ export default function POSClient({
     .cust-top-new:hover{background:rgba(0,0,0,0.04);color:#0A0A0A}
     /* Product avatar */
     .prod-av{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:white;flex-shrink:0;letter-spacing:-.3px}
-    .prod-av-img{object-fit:cover;background:rgba(0,0,0,0.06)}
+    .prod-av-img{object-fit:cover;background:rgba(0,0,0,0.06);cursor:pointer}
     .pos-body{display:flex;flex:1;overflow:hidden;min-height:0}
     /* mobile */
     .pos-body-inner{display:flex;flex:1;overflow:hidden;min-height:0;width:100%;background:#FFFFFF}
@@ -576,7 +579,12 @@ export default function POSClient({
     /* cart items — default: light (used in mobile sheet) */
     .cart-item{padding:10px 0;border-bottom:1px solid rgba(0,0,0,0.06)}
     .cart-item-inner{display:flex;gap:10px}
-    .cart-item-thumb{width:36px;height:44px;border-radius:6px;object-fit:cover;background:rgba(0,0,0,0.06);flex-shrink:0}
+    .cart-item-thumb{width:36px;height:44px;border-radius:6px;object-fit:cover;background:rgba(0,0,0,0.06);flex-shrink:0;cursor:pointer}
+    .img-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:300;display:flex;align-items:center;justify-content:center;padding:32px;animation:fadeIn .15s ease}
+    .img-preview-overlay img{max-width:min(92vw,480px);max-height:82vh;object-fit:contain;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+    .img-preview-close{position:absolute;top:max(18px,env(safe-area-inset-top,0px));right:18px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,0.14);color:white;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px)}
+    .img-preview-close:hover{background:rgba(255,255,255,0.22)}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
     .cart-item-name{font-size:13px;font-weight:700;color:#0A0A0A;margin-bottom:2px}
     .cart-item-sub{font-size:11px;color:rgba(10,10,14,0.45);margin-bottom:6px}
     .cart-item-row{display:flex;align-items:center;gap:8px}
@@ -929,10 +937,11 @@ export default function POSClient({
                 const selVarId = selectedVariants[p.id] ?? p.variants[0]?.id
                 const selVar   = p.variants.find(v => v.id === selVarId) ?? p.variants[0]
                 if (!selVar) return null
+                const rowImg = selVar.image ?? p.image
                 return (
                   <div key={p.id} className="prod-row">
-                    {p.image ? (
-                      <img className="prod-av prod-av-img" src={p.image} alt={p.name} />
+                    {rowImg ? (
+                      <img className="prod-av prod-av-img" src={rowImg} alt={p.name} onClick={e => { e.stopPropagation(); setPreviewImg(rowImg) }} />
                     ) : (
                       <div className="prod-av" style={{background:prodColor(p.name)}}>{prodInitials(p.name)}</div>
                     )}
@@ -994,7 +1003,7 @@ export default function POSClient({
               ) : cart.map(item => (
                 <div key={item.key} className="cart-item">
                   <div className="cart-item-inner">
-                    {item.image ? <img className="cart-item-thumb" src={item.image} alt={item.productName} /> : <div className="cart-item-thumb" />}
+                    {item.image ? <img className="cart-item-thumb" src={item.image} alt={item.productName} onClick={() => setPreviewImg(item.image)} /> : <div className="cart-item-thumb" />}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="cart-item-name">{item.productName}</div>
                       <div className="cart-item-sub">{item.variantName} · {item.sku}</div>
@@ -1092,7 +1101,7 @@ export default function POSClient({
               {cart.map(item => (
                 <div key={item.key} className="cart-item">
                   <div className="cart-item-inner">
-                    {item.image ? <img className="cart-item-thumb" src={item.image} alt={item.productName} /> : <div className="cart-item-thumb" />}
+                    {item.image ? <img className="cart-item-thumb" src={item.image} alt={item.productName} onClick={() => setPreviewImg(item.image)} /> : <div className="cart-item-thumb" />}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="cart-item-name">{item.productName}</div>
                       <div className="cart-item-sub">{item.variantName} · {item.sku}</div>
@@ -1224,6 +1233,15 @@ export default function POSClient({
             <button className="btn-primary" disabled={saving} onClick={createOrder}>{saving ? 'Generando orden…' : 'Generar orden ✓'}</button>
             <button className="btn-ghost" onClick={() => { setShowShipping(false); setShowPayment(true) }}>← Volver al pago</button>
           </div>
+        </div>
+      )}
+
+      {previewImg && (
+        <div className="img-preview-overlay" onClick={() => setPreviewImg(null)}>
+          <button className="img-preview-close" onClick={() => setPreviewImg(null)} aria-label="Cerrar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <img src={previewImg} alt="" onClick={e => e.stopPropagation()} />
         </div>
       )}
     </>
