@@ -14,7 +14,6 @@ interface ColorBlock {
   id: string
   colorName: string
   sizes: string[]
-  photos: PhotoEntry[]
   sizeInput: string
 }
 
@@ -25,11 +24,20 @@ interface VariantData {
   stock: string
   isOpen: boolean
   id?: string
+  photos: PhotoEntry[]
 }
 
-interface ExistingSizeVariant { sizeName: string; variantId: string; sku: string; stock: number }
-interface ExistingColorGroup  { colorName: string; sizes: ExistingSizeVariant[]; photos: { id: string; url: string }[] }
+interface ExistingSizeVariant { sizeName: string; variantId: string; sku: string; stock: number; photos: { id: string; url: string }[] }
+interface ExistingColorGroup  { colorName: string; sizes: ExistingSizeVariant[] }
 interface ExistingStandard    { variantId: string; sku: string; stock: number; photos: { id: string; url: string }[] }
+
+// Clave compuesta color+talla usada para targetear fotos y drag&drop por
+// variante exacta (no por color completo) — "" de talla = color sin tallas.
+function variantKey(colorId: string, sizeName: string) { return `${colorId}::${sizeName}` }
+function splitVariantKey(key: string): [string, string] {
+  const i = key.indexOf('::')
+  return [key.slice(0, i), key.slice(i + 2)]
+}
 
 interface Props {
   mode: 'create' | 'edit'
@@ -108,7 +116,6 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
       id: `ec-${i}`,
       colorName: ec.colorName,
       sizes: ec.sizes.map(s => s.sizeName).filter(Boolean),
-      photos: ec.photos.map(p => ({ url: p.url, path: '', tempId: uid(), imageId: p.id })),
       sizeInput: '',
     }))
   )
@@ -121,8 +128,12 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
       stock: String(s.stock),
       isOpen: false,
       id: s.variantId,
+      photos: s.photos.map(p => ({ url: p.url, path: '', tempId: uid(), imageId: p.id })),
     })))
   )
+  // Variantes (color+talla) existentes que el usuario eliminó en esta sesión
+  // de edición — se borran de verdad en el submit, no solo de la pantalla.
+  const [deletedVariantIds, setDeletedVariantIds] = useState<string[]>([])
 
   // Global pricing (applies to all variants)
   const [globalCost, setGlobalCost]     = useState(initial?.costPrice ? String(initial.costPrice) : '')
@@ -167,14 +178,18 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     const v = colorInput.trim()
     if (!v || colorBlocks.some(b => b.colorName === v)) return
     const blockId = uid()
-    setColorBlocks(cb => [...cb, { id: blockId, colorName: v, sizes: [], photos: [], sizeInput: '' }])
+    setColorBlocks(cb => [...cb, { id: blockId, colorName: v, sizes: [], sizeInput: '' }])
     // Create a no-size variant for this color right away
     const skuHint = `${skuPrefix()}-${slugify(v).toUpperCase().slice(0, 10)}`
-    setVariants(vs => [...vs, { colorId: blockId, sizeName: '', sku: skuHint, stock: '', isOpen: true }])
+    setVariants(vs => [...vs, { colorId: blockId, sizeName: '', sku: skuHint, stock: '', isOpen: true, photos: [] }])
     setColorInput('')
   }
 
   function removeColor(blockId: string) {
+    // Las variantes de este color que ya existían en la base se marcan para
+    // borrarse de verdad al guardar — no solo desaparecen de la pantalla.
+    const toDelete = variants.filter(v => v.colorId === blockId && v.id).map(v => v.id!)
+    if (toDelete.length) setDeletedVariantIds(ids => [...ids, ...toDelete])
     setColorBlocks(cb => cb.filter(b => b.id !== blockId))
     setVariants(vs => vs.filter(v => v.colorId !== blockId))
   }
@@ -184,12 +199,19 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     if (!block) return
     const sz = block.sizeInput.trim()
     if (!sz || block.sizes.includes(sz)) return
+    const wasFirstSize = block.sizes.length === 0
     setColorBlocks(cb => cb.map(b => b.id === blockId ? { ...b, sizes: [...b.sizes, sz], sizeInput: '' } : b))
     const skuHint = `${skuPrefix()}-${slugify(block.colorName + ' ' + sz).toUpperCase().slice(0, 10)}`
-    // If this is the first size, remove the no-size variant and replace with size variants
     setVariants(vs => {
-      const withoutNoSize = vs.filter(v => !(v.colorId === blockId && v.sizeName === ''))
-      return [...withoutNoSize, { colorId: blockId, sizeName: sz, sku: skuHint, stock: '', isOpen: true }]
+      const noSizeIdx = vs.findIndex(v => v.colorId === blockId && v.sizeName === '')
+      if (wasFirstSize && noSizeIdx !== -1) {
+        // Reusa la variante "sin talla" (conserva su id y sus fotos) en vez
+        // de borrarla y crear una nueva — así no se pierden fotos ya subidas.
+        const copy = [...vs]
+        copy[noSizeIdx] = { ...copy[noSizeIdx], sizeName: sz, sku: skuHint }
+        return copy
+      }
+      return [...vs, { colorId: blockId, sizeName: sz, sku: skuHint, stock: '', isOpen: true, photos: [] }]
     })
   }
 
@@ -199,11 +221,17 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
   function quickAddSize(blockId: string, sz: string) {
     const block = colorBlocks.find(b => b.id === blockId)
     if (!block || block.sizes.includes(sz)) return
+    const wasFirstSize = block.sizes.length === 0
     setColorBlocks(cb => cb.map(b => b.id === blockId ? { ...b, sizes: [...b.sizes, sz] } : b))
     const skuHint = `${skuPrefix()}-${slugify(block.colorName + ' ' + sz).toUpperCase().slice(0, 10)}`
     setVariants(vs => {
-      const withoutNoSize = vs.filter(v => !(v.colorId === blockId && v.sizeName === ''))
-      return [...withoutNoSize, { colorId: blockId, sizeName: sz, sku: skuHint, stock: '', isOpen: true }]
+      const noSizeIdx = vs.findIndex(v => v.colorId === blockId && v.sizeName === '')
+      if (wasFirstSize && noSizeIdx !== -1) {
+        const copy = [...vs]
+        copy[noSizeIdx] = { ...copy[noSizeIdx], sizeName: sz, sku: skuHint }
+        return copy
+      }
+      return [...vs, { colorId: blockId, sizeName: sz, sku: skuHint, stock: '', isOpen: true, photos: [] }]
     })
   }
 
@@ -211,13 +239,15 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     const block = colorBlocks.find(b => b.id === blockId)
     if (!block) return
     const newSizes = block.sizes.filter(s => s !== sz)
+    const toDelete = variants.find(v => v.colorId === blockId && v.sizeName === sz)?.id
+    if (toDelete) setDeletedVariantIds(ids => [...ids, toDelete])
     setColorBlocks(cb => cb.map(b => b.id === blockId ? { ...b, sizes: newSizes } : b))
     setVariants(vs => {
       const filtered = vs.filter(v => !(v.colorId === blockId && v.sizeName === sz))
       // If no sizes left, re-add no-size variant
       if (newSizes.length === 0) {
         const skuHint = `${skuPrefix()}-${slugify(block.colorName).toUpperCase().slice(0, 10)}`
-        return [...filtered, { colorId: blockId, sizeName: '', sku: skuHint, stock: '', isOpen: true }]
+        return [...filtered, { colorId: blockId, sizeName: '', sku: skuHint, stock: '', isOpen: true, photos: [] }]
       }
       return filtered
     })
@@ -248,7 +278,10 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
       const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
       const entry: PhotoEntry = { url: publicUrl, path, tempId: uid() }
       if (target === 'std') setStdPhotos(p => [...p, entry])
-      else setColorBlocks(cb => cb.map(b => b.id === target ? { ...b, photos: [...b.photos, entry] } : b))
+      else {
+        const [colorId, sizeName] = splitVariantKey(target)
+        setVariants(vs => vs.map(v => v.colorId === colorId && v.sizeName === sizeName ? { ...v, photos: [...v.photos, entry] } : v))
+      }
     }
     setUploadingFor(null)
     if (photoInputRef.current) photoInputRef.current.value = ''
@@ -259,7 +292,10 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
     if (path) await supabase.storage.from('product-images').remove([path])
     if (imageId) await supabase.from('product_images').delete().eq('id', imageId)
     if (target === 'std') setStdPhotos(p => p.filter(x => x.tempId !== tempId))
-    else setColorBlocks(cb => cb.map(b => b.id === target ? { ...b, photos: b.photos.filter(x => x.tempId !== tempId) } : b))
+    else {
+      const [colorId, sizeName] = splitVariantKey(target)
+      setVariants(vs => vs.map(v => v.colorId === colorId && v.sizeName === sizeName ? { ...v, photos: v.photos.filter(x => x.tempId !== tempId) } : v))
+    }
   }
 
   function triggerUpload(target: string) {
@@ -342,13 +378,24 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
       pid = product!.id
     }
 
+    // Variantes de colores/tallas que el usuario quitó de la pantalla — se
+    // borran de verdad. Si una tiene historial que lo impide (FK, ej. ya se
+    // vendió), en vez de fallar se deja inactiva y en 0 de stock.
+    for (const vid of deletedVariantIds) {
+      const { error: delErr } = await supabase.from('product_variants').delete().eq('id', vid)
+      if (delErr) {
+        await supabase.from('product_variants').update({ status: 'inactive' }).eq('id', vid)
+        await supabase.from('stock_levels').update({ quantity_available: 0 }).eq('variant_id', vid)
+      }
+    }
+
     // Build variant definitions (existing ones carry their DB id)
     const variantDefs = hasColors
       ? variants.map(v => {
           const block = colorBlocks.find(b => b.id === v.colorId)!
-          return { id: v.id, name: v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName, sku: v.sku.trim().toUpperCase(), stock: parseFloat(v.stock) || 0 }
+          return { id: v.id, colorId: v.colorId, sizeName: v.sizeName, name: v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName, sku: v.sku.trim().toUpperCase(), stock: parseFloat(v.stock) || 0 }
         })
-      : [{ id: stdVariantId, name: 'Estándar', sku: stdSku.trim().toUpperCase(), stock: parseFloat(stdStock) || 0 }]
+      : [{ id: stdVariantId, colorId: 'std', sizeName: '', name: 'Estándar', sku: stdSku.trim().toUpperCase(), stock: parseFloat(stdStock) || 0 }]
 
     if (variantDefs.some(v => !v.sku)) { fail('Todos los SKU son obligatorios — revisa las variantes de colores/tallas.'); return }
 
@@ -412,23 +459,26 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
       }
     }
 
-    // Photos — only insert the NEW ones (existing ones already have a DB row)
-    const varIdByName: Record<string, string> = {}
-    for (const iv of insertedV) { if (iv.name && iv.id) varIdByName[iv.name] = iv.id }
-    for (const v of existingDefs) varIdByName[v.name] = v.id
+    // Photos — only insert the NEW ones (existing ones already have a DB row).
+    // Cada variante (color+talla) exacta se liga a su propia fila real en la
+    // base — ya no se adivina por nombre de color, por índice posicional
+    // entre newDefs e insertedV (mismo orden en que se mandaron a insertar).
+    const variantDbIdByKey: Record<string, string> = {}
+    for (const v of existingDefs) variantDbIdByKey[variantKey(v.colorId, v.sizeName)] = v.id
+    newDefs.forEach((v, i) => { const row = insertedV[i]; if (row?.id) variantDbIdByKey[variantKey(v.colorId, v.sizeName)] = row.id })
 
     const photoRows: { product_id: string; url: string; is_primary: boolean; sort_order: number; variant_id: string | null }[] = []
     if (!hasColors) {
       const newStdPhotos = stdPhotos.filter(p => !p.imageId)
       newStdPhotos.forEach((p, i) => photoRows.push({ product_id: pid, url: p.url, is_primary: mode === 'create' && i === 0, sort_order: i, variant_id: null }))
     } else {
-      for (const block of colorBlocks) {
-        const linkedId = Object.entries(varIdByName).find(([n]) => n === block.colorName || n.startsWith(block.colorName + ' /'))?.[1] ?? null
-        const newBlockPhotos = block.photos.filter(p => !p.imageId)
-        newBlockPhotos.forEach((p, i) => photoRows.push({ product_id: pid, url: p.url, is_primary: mode === 'create' && photoRows.length === 0 && i === 0, sort_order: photoRows.length, variant_id: linkedId }))
+      for (const v of variants) {
+        const linkedId = variantDbIdByKey[variantKey(v.colorId, v.sizeName)] ?? null
+        const newVariantPhotos = v.photos.filter(p => !p.imageId)
+        newVariantPhotos.forEach((p, i) => photoRows.push({ product_id: pid, url: p.url, is_primary: mode === 'create' && photoRows.length === 0 && i === 0, sort_order: photoRows.length, variant_id: linkedId }))
       }
     }
-    const totalPhotosInState = hasColors ? colorBlocks.reduce((n, b) => n + b.photos.length, 0) : stdPhotos.length
+    const totalPhotosInState = hasColors ? variants.reduce((n, v) => n + v.photos.length, 0) : stdPhotos.length
     if (photoRows.length) {
       const { error: imgErr } = await supabase.from('product_images').insert(photoRows)
       if (imgErr) { fail('El producto se guardó, pero las fotos no se pudieron guardar: ' + imgErr.message); return }
@@ -770,12 +820,15 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
                       <button type="button" className="sz-add-btn" onClick={() => addSize(block.id)}>+ Talla</button>
                     </div>
 
-                    {/* Collapsible variant cards */}
-                    {blockV.map(v => (
+                    {/* Collapsible variant cards — SKU, stock y fotos propias de cada talla */}
+                    {blockV.map(v => {
+                      const vKey = variantKey(block.id, v.sizeName)
+                      const label = v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName
+                      return (
                       <div key={v.sizeName} className="vcard">
                         <div className="vcard-hdr" onClick={() => toggleVariant(block.id, v.sizeName)}>
-                          <div className="vcard-name">{v.sizeName ? `${block.colorName} / ${v.sizeName}` : block.colorName}</div>
-                          {!v.isOpen && v.sku && <div className="vcard-preview">{v.sku}{v.stock ? ` · ${v.stock} pz` : ''}</div>}
+                          <div className="vcard-name">{label}</div>
+                          {!v.isOpen && v.sku && <div className="vcard-preview">{v.sku}{v.stock ? ` · ${v.stock} pz` : ''}{v.photos.length ? ` · ${v.photos.length} foto${v.photos.length === 1 ? '' : 's'}` : ''}</div>}
                           <span className={`vcard-chevron${v.isOpen ? ' open' : ''}`}>▼</span>
                         </div>
                         {v.isOpen && (
@@ -788,36 +841,37 @@ export default function CatalogProductForm({ mode, orgId, categories, brands, pr
                               <div className="fl">{v.id ? 'Cantidad en stock' : 'Cantidad inicial'}</div>
                               <input className="fi" type="number" min="0" step="1" value={v.stock} onChange={e => updateVariant(block.id, v.sizeName, 'stock', e.target.value)} placeholder="0" />
                             </div>
+                            <div>
+                              <div className="fl">Fotos de {label}</div>
+                              <div className="photo-row">
+                                {v.photos.map(p => (
+                                  <div key={p.tempId} className="photo-thumb">
+                                    <img src={p.url} alt="" />
+                                    <button type="button" className="photo-rm" onClick={() => removePhoto(vKey, p.tempId, p.path, p.imageId)}>×</button>
+                                  </div>
+                                ))}
+                                <button
+                                  type="button"
+                                  className={`photo-add${dragOverTarget === vKey ? ' drag-over' : ''}`}
+                                  onClick={() => triggerUpload(vKey)}
+                                  onDragOver={e => handleDragOver(e, vKey)}
+                                  onDragLeave={handleDragLeave}
+                                  onDrop={e => handleDrop(e, vKey)}
+                                  disabled={uploadingFor === vKey}
+                                >
+                                  {uploadingFor === vKey
+                                    ? <div className="photo-add-lbl">Subiendo…</div>
+                                    : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.28)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><div className="photo-add-lbl">Foto</div></>
+                                  }
+                                </button>
+                              </div>
+                              <div className="hint">{v.sizeName ? `Fotos solo de la talla ${v.sizeName} en ${block.colorName}` : `Fotos de ${block.colorName}`} · se comprimen automáticamente</div>
+                            </div>
                           </div>
                         )}
                       </div>
-                    ))}
-
-                    {/* Photos for this color */}
-                    <div className="fl" style={{ marginTop: 14 }}>Fotos de {block.colorName}</div>
-                    <div className="photo-row">
-                      {block.photos.map(p => (
-                        <div key={p.tempId} className="photo-thumb">
-                          <img src={p.url} alt="" />
-                          <button type="button" className="photo-rm" onClick={() => removePhoto(block.id, p.tempId, p.path, p.imageId)}>×</button>
-                        </div>
-                      ))}
-                      <button
-                        type="button"
-                        className={`photo-add${dragOverTarget === block.id ? ' drag-over' : ''}`}
-                        onClick={() => triggerUpload(block.id)}
-                        onDragOver={e => handleDragOver(e, block.id)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={e => handleDrop(e, block.id)}
-                        disabled={uploadingFor === block.id}
-                      >
-                        {uploadingFor === block.id
-                          ? <div className="photo-add-lbl">Subiendo…</div>
-                          : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(26,26,32,0.28)" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><div className="photo-add-lbl">Foto</div></>
-                        }
-                      </button>
-                    </div>
-                    <div className="hint">Estas fotos aparecen al seleccionar "{block.colorName}" en la tienda · se comprimen automáticamente</div>
+                      )
+                    })}
                   </div>
                 )
               })}

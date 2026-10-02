@@ -45,7 +45,7 @@ export default async function EditCatalogProductPage({ params }: { params: Promi
 
   const hasColorStructure = variantsRaw.some(v => v.name.includes(' / ')) || new Set(variantsRaw.map(v => v.name)).size > 1
 
-  type ExistingColorGroup = { colorName: string; sizes: { sizeName: string; variantId: string; sku: string; stock: number }[]; photos: { id: string; url: string }[] }
+  type ExistingColorGroup = { colorName: string; sizes: { sizeName: string; variantId: string; sku: string; stock: number; photos: { id: string; url: string }[] }[] }
   let existingColors: ExistingColorGroup[] = []
   let existingStandard: { variantId: string; sku: string; stock: number; photos: { id: string; url: string }[] } | null = null
 
@@ -53,14 +53,16 @@ export default async function EditCatalogProductPage({ params }: { params: Promi
     const colorMap = new Map<string, ExistingColorGroup>()
     for (const v of variantsRaw) {
       const [colorName, sizeName] = v.name.includes(' / ') ? v.name.split(' / ') : [v.name, '']
-      if (!colorMap.has(colorName)) colorMap.set(colorName, { colorName, sizes: [], photos: [] })
-      colorMap.get(colorName)!.sizes.push({ sizeName: sizeName ?? '', variantId: v.id, sku: v.sku, stock: stockMap[v.id] ?? 0 })
+      if (!colorMap.has(colorName)) colorMap.set(colorName, { colorName, sizes: [] })
+      colorMap.get(colorName)!.sizes.push({ sizeName: sizeName ?? '', variantId: v.id, sku: v.sku, stock: stockMap[v.id] ?? 0, photos: [] })
     }
-    const variantIdToColor = new Map<string, string>()
-    for (const [colorName, block] of colorMap) for (const s of block.sizes) variantIdToColor.set(s.variantId, colorName)
+    // Cada foto se liga a la variante EXACTA (color+talla) a la que pertenece —
+    // ya no se mezclan todas las fotos de un color en un solo bote.
+    const sizeByVariantId = new Map<string, { sizeName: string; variantId: string; sku: string; stock: number; photos: { id: string; url: string }[] }>()
+    for (const block of colorMap.values()) for (const s of block.sizes) sizeByVariantId.set(s.variantId, s)
     for (const img of images) {
-      const colorName = img.variant_id ? variantIdToColor.get(img.variant_id) : undefined
-      if (colorName && colorMap.has(colorName)) colorMap.get(colorName)!.photos.push({ id: img.id, url: img.url })
+      const sizeEntry = img.variant_id ? sizeByVariantId.get(img.variant_id) : undefined
+      if (sizeEntry) sizeEntry.photos.push({ id: img.id, url: img.url })
     }
     existingColors = Array.from(colorMap.values())
   } else if (variantsRaw.length === 1) {
