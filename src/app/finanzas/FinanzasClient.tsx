@@ -63,7 +63,10 @@ export default function FinanzasClient({
 
   // ── KPIs ─────────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
-    const ventasNetas = orders.reduce((s, o) => s + Number(o.total), 0)
+    // "Ingresos netos" = dinero que de verdad ha entrado, no el total del
+    // pedido — un apartado solo cuenta por lo que ya se ha abonado, no por
+    // el total de la pieza hasta que se liquide.
+    const ventasNetas = orders.reduce((s, o) => s + (o.order_payments ?? []).reduce((s2, p) => s2 + Number(p.amount), 0), 0)
     const cmv = orders.reduce((s, o) =>
       s + (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0), 0)
     const utilidadBruta = ventasNetas - cmv
@@ -191,7 +194,7 @@ export default function FinanzasClient({
     }
 
     const rangeLabel = `${exportDesde}_a_${exportHasta}`
-    const ventasNetas = expOrders.reduce((s, o) => s + Number(o.total), 0)
+    const ventasNetas = expOrders.reduce((s, o) => s + (o.order_payments ?? []).reduce((s2, p) => s2 + Number(p.amount), 0), 0)
     const cmv = expOrders.reduce((s, o) => s + (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0), 0)
     const utilidadBruta = ventasNetas - cmv
     const gastosTotalesExp = expExpenses.reduce((s, e) => s + Number(e.amount), 0)
@@ -199,11 +202,11 @@ export default function FinanzasClient({
 
     if (exportSections.resumen) {
       downloadCSV(`resumen_${rangeLabel}.csv`, ['Concepto', 'Monto'], [
-        ['Ventas netas', ventasNetas.toFixed(2)],
+        ['Ingresos netos', ventasNetas.toFixed(2)],
         ['Costo de mercancía (CMV)', cmv.toFixed(2)],
         ['Utilidad bruta', utilidadBruta.toFixed(2)],
         ['Gastos operativos', gastosTotalesExp.toFixed(2)],
-        ['Ingresos netos', ingresosNetos.toFixed(2)],
+        ['Utilidad neta', ingresosNetos.toFixed(2)],
       ])
     }
     if (exportSections.productos) {
@@ -394,7 +397,7 @@ export default function FinanzasClient({
         <div className="cascade">
           <div className="cascade-top">
             <div>
-              <div className="cascade-label">Ventas netas</div>
+              <div className="cascade-label">Ingresos netos</div>
               <div className="cascade-val">{fmt(kpis.ventasNetas)}</div>
               <div className="cascade-sub">{orders.length} {orders.length === 1 ? 'orden' : 'órdenes'}</div>
             </div>
@@ -437,8 +440,8 @@ export default function FinanzasClient({
               <div className="bk-left">
                 <div className="bk-sign" style={{background:'rgba(5,150,105,0.10)',color:'#059669'}}>+</div>
                 <div>
-                  <div className="bk-name">Ventas netas</div>
-                  <div className="bk-desc">Lo que cobraste a tus clientes</div>
+                  <div className="bk-name">Ingresos netos</div>
+                  <div className="bk-desc">Lo que de verdad has cobrado a tus clientes</div>
                 </div>
               </div>
               <div>
@@ -456,7 +459,7 @@ export default function FinanzasClient({
               </div>
               <div>
                 <div className="bk-val" style={{color:'#D97706'}}>{fmt(kpis.cmv)}</div>
-                <div className="bk-pct">{fmtPct(kpis.cmv, kpis.ventasNetas)} de las ventas</div>
+                <div className="bk-pct">{fmtPct(kpis.cmv, kpis.ventasNetas)} de los ingresos</div>
               </div>
             </div>
 
@@ -485,7 +488,7 @@ export default function FinanzasClient({
               </div>
               <div>
                 <div className="bk-val" style={{color:'#DC2626'}}>{fmt(kpis.gastosTotales)}</div>
-                <div className="bk-pct">{fmtPct(kpis.gastosTotales, kpis.ventasNetas)} de las ventas</div>
+                <div className="bk-pct">{fmtPct(kpis.gastosTotales, kpis.ventasNetas)} de los ingresos</div>
               </div>
             </div>
 
@@ -496,10 +499,10 @@ export default function FinanzasClient({
             }}>
               <div>
                 <div style={{fontSize:12,fontWeight:800,color:kpis.ingresosNetos >= 0 ? '#1D4ED8' : '#DC2626'}}>
-                  = Ingresos netos
+                  = Utilidad neta
                 </div>
                 <div style={{fontSize:11,color:'rgba(10,10,14,0.40)',marginTop:2}}>
-                  Lo que realmente ganaste · {fmtPct(kpis.ingresosNetos, kpis.ventasNetas)} sobre ventas
+                  Lo que realmente ganaste · {fmtPct(kpis.ingresosNetos, kpis.ventasNetas)} sobre ingresos
                 </div>
               </div>
               <div style={{fontSize:20,fontWeight:900,color:kpis.ingresosNetos >= 0 ? '#1D4ED8' : '#DC2626',letterSpacing:'-.5px'}}>
