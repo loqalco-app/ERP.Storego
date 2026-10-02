@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import FinanzasClient from './FinanzasClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function FinanzasPage({ searchParams }: { searchParams: Promise<{ periodo?: string; desde?: string; hasta?: string }> }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
