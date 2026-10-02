@@ -18,7 +18,7 @@ interface OrderSummary {
 }
 
 interface OrderDetail extends OrderSummary {
-  order_items: { id: string; product_name: string; variant_name: string; sku: string; quantity: number; unit_price: number }[]
+  order_items: { id: string; product_id?: string | null; variant_id?: string | null; image?: string | null; product_name: string; variant_name: string; sku: string; quantity: number; unit_price: number }[]
   order_shipping: { id: string; type: string; address_line1: string | null; address_line2: string | null; city: string | null; state: string | null; zip: string | null }[]
 }
 
@@ -32,7 +32,7 @@ const STATUS: Record<string, { label: string; color: string; bg: string }> = {
 }
 
 const METHOD_LABEL: Record<string, string> = {
-  efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', otro: 'Otro',
+  efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', link_pago: 'Link de pago', otro: 'Otro',
 }
 const METHODS = ['efectivo', 'tarjeta', 'transferencia', 'otro'] as const
 
@@ -60,6 +60,7 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
   const [abonoAmount, setAbonoAmount] = useState('')
   const [savingAbono, setSavingAbono] = useState(false)
   const [abonoError, setAbonoError] = useState('')
+  const [previewImg, setPreviewImg] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     let list = statusFilter === 'todos' ? orders : orders.filter(o => o.status === statusFilter)
@@ -92,13 +93,37 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
         id, folio, status, total, created_at,
         customers(id, full_name, phone, email),
         order_payments(id, method, amount, created_at),
-        order_items(id, product_name, variant_name, sku, quantity, unit_price),
+        order_items(id, product_id, variant_id, product_name, variant_name, sku, quantity, unit_price),
         order_shipping(id, type, address_line1, address_line2, city, state, zip)
       `)
       .eq('id', summary.id)
       .single()
     setLoadingDetail(false)
-    if (data) setSelected(data as any as OrderDetail)
+    if (!data) return
+    const detail = data as any as OrderDetail
+    setSelected(detail)
+    // Fotos de los artículos: la de su variante, si no la de su mismo color,
+    // si no la principal del producto. Si falla, el detalle se ve igual sin fotos.
+    const productIds = Array.from(new Set(detail.order_items.map(i => i.product_id).filter(Boolean))) as string[]
+    if (!productIds.length) return
+    const [{ data: imgs }, { data: vars }] = await Promise.all([
+      supabase.from('product_images').select('product_id, variant_id, url, is_primary, sort_order').in('product_id', productIds),
+      supabase.from('product_variants').select('id, product_id, name').in('product_id', productIds),
+    ])
+    if (!imgs) return
+    const colorOf = (n: string) => (n.includes(' / ') ? n.split(' / ')[0] : n)
+    const withImages = detail.order_items.map(item => {
+      const pImgs = imgs.filter(im => im.product_id === item.product_id)
+        .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0) || a.sort_order - b.sort_order)
+      const own = pImgs.find(im => im.variant_id && im.variant_id === item.variant_id)
+      const myColor = colorOf(item.variant_name ?? '')
+      const sameColor = pImgs.find(im => {
+        const v = (vars ?? []).find(vv => vv.id === im.variant_id)
+        return v && colorOf(v.name) === myColor
+      })
+      return { ...item, image: own?.url ?? sameColor?.url ?? pImgs[0]?.url ?? null }
+    })
+    setSelected(cur => (cur && cur.id === detail.id ? { ...cur, order_items: withImages } : cur))
   }
 
   function syncSelected(updated: OrderDetail) {
@@ -241,6 +266,11 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
         .abono-select:focus,.abono-input:focus{border-color:#2563EB}
         .abono-btn{padding:10px 16px;border-radius:12px;border:none;background:linear-gradient(145deg,#1D4ED8,#2563EB);color:white;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
         .abono-btn:disabled{opacity:.5;cursor:not-allowed}
+        .d-item-img{width:56px;height:70px;border-radius:8px;object-fit:cover;background:rgba(0,0,0,0.06);flex-shrink:0;cursor:pointer}
+        .d-item-noimg{cursor:default}
+        .img-preview-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:1000;display:flex;align-items:center;justify-content:center;padding:32px}
+        .img-preview-overlay img{max-width:min(92vw,480px);max-height:82vh;object-fit:contain;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+        .img-preview-close{position:absolute;top:max(18px,env(safe-area-inset-top,0px));right:18px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,0.14);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer}
         .liquidar-btn{width:100%;padding:14px;border-radius:18px;border:none;background:linear-gradient(145deg,#059669,#10B981);color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(5,150,105,0.28);margin-top:12px}
         .alert-err{background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.15);border-radius:12px;padding:8px 12px;font-size:12px;font-weight:600;color:#991b1b;margin-top:8px}
         .ord-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
@@ -400,11 +430,18 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
                     <div className="d-box">
                       {selected.order_items.map(item => (
                         <div key={item.id} className="d-item">
-                          <div style={{fontSize:13,fontWeight:700,color:'#0A0A0E'}}>{item.product_name}</div>
-                          <div style={{fontSize:11,color:'rgba(10,10,14,0.45)',marginTop:2}}>{item.variant_name} · SKU: {item.sku}</div>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6}}>
-                            <span style={{fontSize:12,color:'rgba(10,10,14,0.50)'}}>{item.quantity} × {fmt(item.unit_price)}</span>
-                            <span style={{fontSize:13,fontWeight:700,color:'#0A0A0E'}}>{fmt(item.unit_price * item.quantity)}</span>
+                          <div style={{display:'flex',gap:12}}>
+                            {item.image
+                              ? <img className="d-item-img" src={item.image} alt={item.product_name} onClick={() => setPreviewImg(item.image ?? null)} />
+                              : <div className="d-item-img d-item-noimg" />}
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:13,fontWeight:700,color:'#0A0A0E'}}>{item.product_name}</div>
+                              <div style={{fontSize:11,color:'rgba(10,10,14,0.45)',marginTop:2}}>{item.variant_name} · SKU: {item.sku}</div>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:6}}>
+                                <span style={{fontSize:12,color:'rgba(10,10,14,0.50)'}}>{item.quantity} × {fmt(item.unit_price)}</span>
+                                <span style={{fontSize:13,fontWeight:700,color:'#0A0A0E'}}>{fmt(item.unit_price * item.quantity)}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -433,6 +470,15 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
                       </div>
                     </>
                   )}
+
+                  <div className="d-box" style={{marginBottom:10}}>
+                    <div className="d-row"><span className="d-label">Total del pedido</span><span className="d-val">{fmt(selected.total)}</span></div>
+                    <div className="d-row"><span className="d-label">Pagado</span><span className="d-val" style={{color:'#059669'}}>{fmt(totalPaid)}</span></div>
+                    <div className="d-row"><span className="d-label">{pending > 0 ? 'Pendiente' : 'Estado'}</span><span className="d-val" style={{color: pending > 0 ? '#D97706' : '#059669'}}>{pending > 0 ? fmt(pending) : '✓ Liquidado'}</span></div>
+                    {selected.order_payments.length > 0 && (
+                      <div className="d-row"><span className="d-label">Método(s) de pago</span><span className="d-val">{Array.from(new Set(selected.order_payments.map(p => METHOD_LABEL[p.method] ?? p.method))).join(', ')}</span></div>
+                    )}
+                  </div>
 
                   <div className="d-box">
                     {selected.order_payments.map((p, i) => (
@@ -520,6 +566,15 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
           </div>
         )
       })()}
+
+      {previewImg && (
+        <div className="img-preview-overlay" onClick={() => setPreviewImg(null)}>
+          <button className="img-preview-close" onClick={() => setPreviewImg(null)} aria-label="Cerrar">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <img src={previewImg} alt="" onClick={e => e.stopPropagation()} />
+        </div>
+      )}
     </>
   )
 }

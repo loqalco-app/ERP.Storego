@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import './globals.css'
+import GlobalEscape from '@/components/GlobalEscape'
 
 export const metadata: Metadata = {
   title: 'NORTHÉA',
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         />
       </head>
       <body>
+        <GlobalEscape />
         {/* Fix iOS PWA: captura --app-h y --safe-bottom una sola vez para que el BottomNav nunca salte */}
         <script dangerouslySetInnerHTML={{
           __html: `
