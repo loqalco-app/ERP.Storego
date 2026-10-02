@@ -67,8 +67,17 @@ export default function FinanzasClient({
     // pedido — un apartado solo cuenta por lo que ya se ha abonado, no por
     // el total de la pieza hasta que se liquide.
     const ventasNetas = orders.reduce((s, o) => s + (o.order_payments ?? []).reduce((s2, p) => s2 + Number(p.amount), 0), 0)
-    const cmv = orders.reduce((s, o) =>
-      s + (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0), 0)
+    // El costo de mercancía se cuenta en la misma proporción que ya se ha
+    // cobrado de cada orden — un apartado al 45% solo aporta el 45% de su
+    // costo. Así nunca se resta el costo de algo que todavía no se cobra,
+    // evitando una utilidad "negativa" artificial por apartados sin liquidar.
+    const cmv = orders.reduce((s, o) => {
+      const paid = (o.order_payments ?? []).reduce((s2, p) => s2 + Number(p.amount), 0)
+      const total = Number(o.total) || 0
+      const fraction = total > 0 ? Math.min(1, paid / total) : 0
+      const itemsCost = (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0)
+      return s + itemsCost * fraction
+    }, 0)
     const utilidadBruta = ventasNetas - cmv
     const gastosTotales = expenses.reduce((s, e) => s + Number(e.amount), 0)
     const ingresosNetos = utilidadBruta - gastosTotales
@@ -140,12 +149,18 @@ export default function FinanzasClient({
     setExpenses(prev => prev.filter(e => e.id !== id))
   }
 
+  // router.push por sí solo puede servir una versión en caché del segmento
+  // (el cliente de Next cachea por ruta) aunque cambie el query string —
+  // refresh() fuerza que el servidor vuelva a correr la consulta con el
+  // nuevo periodo en vez de reusar los datos del periodo anterior.
   function changePeriodo(p: string) {
     router.push(`/finanzas?periodo=${p}`)
+    router.refresh()
   }
 
   function applyCustomRange(d: string, h: string) {
     router.push(`/finanzas?periodo=personalizado&desde=${d}&hasta=${h}`)
+    router.refresh()
   }
 
   // ── Export modal ─────────────────────────────────────────────────────────────
@@ -195,7 +210,13 @@ export default function FinanzasClient({
 
     const rangeLabel = `${exportDesde}_a_${exportHasta}`
     const ventasNetas = expOrders.reduce((s, o) => s + (o.order_payments ?? []).reduce((s2, p) => s2 + Number(p.amount), 0), 0)
-    const cmv = expOrders.reduce((s, o) => s + (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0), 0)
+    const cmv = expOrders.reduce((s, o) => {
+      const paid = (o.order_payments ?? []).reduce((s2, p) => s2 + Number(p.amount), 0)
+      const total = Number(o.total) || 0
+      const fraction = total > 0 ? Math.min(1, paid / total) : 0
+      const itemsCost = (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0)
+      return s + itemsCost * fraction
+    }, 0)
     const utilidadBruta = ventasNetas - cmv
     const gastosTotalesExp = expExpenses.reduce((s, e) => s + Number(e.amount), 0)
     const ingresosNetos = utilidadBruta - gastosTotalesExp
