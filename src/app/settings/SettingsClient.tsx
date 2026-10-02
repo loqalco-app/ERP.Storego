@@ -480,7 +480,7 @@ export default function SettingsClient({
           <div className="page-hd-tabs">
             <button className={`page-hd-tab${tab === 'profile' ? ' on' : ''}`} onClick={() => switchTab('profile')}>Mi perfil</button>
             <button className={`page-hd-tab${tab === 'team' ? ' on' : ''}`} onClick={() => switchTab('team')}>Equipo</button>
-            <button className={`page-hd-tab${tab === 'cobros' ? ' on' : ''}`} onClick={() => switchTab('cobros')}>Cobros</button>
+            <button className={`page-hd-tab${tab === 'cobros' ? ' on' : ''}`} onClick={() => switchTab('cobros')}>Datos bancarios</button>
           </div>
         </div>
 
