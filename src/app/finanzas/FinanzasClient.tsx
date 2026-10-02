@@ -11,7 +11,6 @@ interface OrderPayment { method: string; amount: number }
 interface Order { id: string; folio: string; status: string; total: number; created_at: string; customers: { full_name: string } | null; order_items: OrderItem[]; order_payments: OrderPayment[] }
 interface Expense { id: string; date: string; category: string; description: string; amount: number; created_at: string }
 interface Apartado { id: string; folio: string; total: number; customers: { full_name: string } | null; order_payments: { amount: number }[] }
-interface Payment { amount: number; method: string; created_at: string }
 
 const CATS: Record<string, string> = {
   gasto_operativo: 'Gasto operativo',
@@ -45,10 +44,10 @@ const fmtPct = (a: number, b: number) => b === 0 ? '—' : (Math.round(a / b * 1
 const METHOD_LABEL: Record<string, string> = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia', otro: 'Otro' }
 
 export default function FinanzasClient({
-  orgId, userId, orders, expenses: initialExpenses, apartados, payments, periodo, desde, hasta,
+  orgId, userId, orders, expenses: initialExpenses, apartados, periodo, desde, hasta,
 }: {
   orgId: string; userId: string
-  orders: Order[]; expenses: Expense[]; apartados: Apartado[]; payments: Payment[]
+  orders: Order[]; expenses: Expense[]; apartados: Apartado[]
   periodo: string; desde: string; hasta: string
 }) {
   const router = useRouter()
@@ -64,10 +63,10 @@ export default function FinanzasClient({
 
   // ── KPIs ─────────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
-    // "Ingresos netos" = dinero que de verdad ha entrado EN este periodo,
-    // contado por la fecha del pago mismo — no por la fecha del pedido. Un
-    // abono de hoy sobre un pedido viejo cuenta como ingreso de hoy.
-    const ventasNetas = payments.reduce((s, p) => s + Number(p.amount), 0)
+    // "Ingresos netos" = dinero que de verdad ha entrado, no el total del
+    // pedido — un apartado solo cuenta por lo que ya se ha abonado, no por
+    // el total de la pieza hasta que se liquide.
+    const ventasNetas = orders.reduce((s, o) => s + (o.order_payments ?? []).reduce((s2, p) => s2 + Number(p.amount), 0), 0)
     const cmv = orders.reduce((s, o) =>
       s + (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0), 0)
     const utilidadBruta = ventasNetas - cmv
@@ -75,10 +74,12 @@ export default function FinanzasClient({
     const ingresosNetos = utilidadBruta - gastosTotales
 
     const byMethod: Record<string, number> = {}
-    payments.forEach(p => { byMethod[p.method] = (byMethod[p.method] ?? 0) + Number(p.amount) })
+    orders.forEach(o => (o.order_payments ?? []).forEach(p => {
+      byMethod[p.method] = (byMethod[p.method] ?? 0) + Number(p.amount)
+    }))
 
     return { ventasNetas, cmv, utilidadBruta, gastosTotales, ingresosNetos, byMethod }
-  }, [orders, expenses, payments])
+  }, [orders, expenses])
 
   // ── Barra de recuperación de inversión ───────────────────────────────────────
   const recoveryPct = kpis.ventasNetas === 0 ? 0
@@ -174,13 +175,12 @@ export default function FinanzasClient({
     setExporting(true)
     let expOrders = orders
     let expExpenses = expenses
-    let expPayments = payments
 
     // If the chosen export range differs from what's loaded, fetch fresh data for it
     if (exportDesde !== desde || exportHasta !== hasta) {
       const desdeTs = `${exportDesde}T00:00:00`
       const hastaTs = `${exportHasta}T23:59:59`
-      const [{ data: o }, { data: e }, { data: p }] = await Promise.all([
+      const [{ data: o }, { data: e }] = await Promise.all([
         supabase.from('orders').select(`
           id, folio, status, total, created_at,
           customers(full_name),
@@ -188,15 +188,13 @@ export default function FinanzasClient({
           order_payments(method, amount)
         `).eq('organization_id', orgId).neq('status', 'cancelado').gte('created_at', desdeTs).lte('created_at', hastaTs).order('created_at', { ascending: false }),
         supabase.from('finance_expenses').select('id, date, category, description, amount, created_at').eq('organization_id', orgId).gte('date', exportDesde).lte('date', exportHasta).order('date', { ascending: false }),
-        supabase.from('order_payments').select('amount, method, created_at').eq('organization_id', orgId).gte('created_at', desdeTs).lte('created_at', hastaTs),
       ])
       expOrders = (o ?? []) as unknown as Order[]
       expExpenses = (e ?? []) as Expense[]
-      expPayments = (p ?? []) as Payment[]
     }
 
     const rangeLabel = `${exportDesde}_a_${exportHasta}`
-    const ventasNetas = expPayments.reduce((s, p) => s + Number(p.amount), 0)
+    const ventasNetas = expOrders.reduce((s, o) => s + (o.order_payments ?? []).reduce((s2, p) => s2 + Number(p.amount), 0), 0)
     const cmv = expOrders.reduce((s, o) => s + (o.order_items ?? []).reduce((si, i) => si + Number(i.cost_price || 0) * i.quantity, 0), 0)
     const utilidadBruta = ventasNetas - cmv
     const gastosTotalesExp = expExpenses.reduce((s, e) => s + Number(e.amount), 0)
