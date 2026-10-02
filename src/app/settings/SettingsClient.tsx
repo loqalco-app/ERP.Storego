@@ -70,9 +70,13 @@ export default function SettingsClient({
     const supabase = createClient()
     const { data: org } = await supabase.from('organizations').select('settings').eq('id', orgId).single()
     const nextSettings = { ...(org?.settings ?? {}), bank_transfer: bank }
-    const { error } = await supabase.from('organizations').update({ settings: nextSettings }).eq('id', orgId)
+    const { data: updated, error } = await supabase.from('organizations').update({ settings: nextSettings }).eq('id', orgId).select('id')
     setSavingBank(false)
-    setBankMsg(error ? { type: 'err', text: 'No se pudo guardar. Intenta de nuevo.' } : { type: 'ok', text: 'Datos bancarios guardados.' })
+    // Un rol sin permiso (RLS) no da error — simplemente no actualiza ninguna
+    // fila. Si no viene ninguna fila de vuelta, el guardado no se aplicó.
+    if (error) setBankMsg({ type: 'err', text: 'No se pudo guardar. Intenta de nuevo.' })
+    else if (!updated || updated.length === 0) setBankMsg({ type: 'err', text: 'No se guardó — tu usuario no tiene permiso para editar esto. Pide a un Admin o Propietario que lo configure.' })
+    else setBankMsg({ type: 'ok', text: 'Datos bancarios guardados.' })
   }
 
   function switchTab(t: 'profile'|'team'|'cobros') {

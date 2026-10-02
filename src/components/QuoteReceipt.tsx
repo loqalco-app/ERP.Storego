@@ -32,7 +32,7 @@ const QuoteReceipt = forwardRef<HTMLDivElement, QuoteReceiptProps>(function Quot
   { folio, customerName, items, total, method, isApartado, depositAmount, bankDetails, paymentLink }, ref
 ) {
   const balance = Math.max(0, total - (isApartado ? depositAmount : 0))
-  const showBank = method === 'transferencia' && bankDetails && (bankDetails.clabe || bankDetails.account)
+  const showBank = method === 'transferencia' && !!bankDetails && (bankDetails.bank || bankDetails.holder || bankDetails.clabe || bankDetails.account)
   const showLink = method === 'link_pago' && paymentLink
 
   return (
@@ -90,6 +90,9 @@ const QuoteReceipt = forwardRef<HTMLDivElement, QuoteReceiptProps>(function Quot
             {bankDetails?.holder && <div>Titular: <strong>{bankDetails.holder}</strong></div>}
             {bankDetails?.clabe && <div>CLABE: <strong>{bankDetails.clabe}</strong></div>}
             {bankDetails?.account && <div>Cuenta: <strong>{bankDetails.account}</strong></div>}
+          </div>
+          <div style={{ fontSize: 11, color: '#6B6660', marginTop: 10, lineHeight: 1.5, borderTop: '1px solid #E5E2DC', paddingTop: 10 }}>
+            Una vez hecha la transferencia, envíanos el comprobante por este medio y te estará llegando vía correo electrónico la confirmación de tu pedido.
           </div>
         </div>
       )}
