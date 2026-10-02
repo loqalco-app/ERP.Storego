@@ -157,6 +157,24 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
     fetch('/api/orders/notify-sale', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_id: selected.id, event: 'abono', amount }) }).catch(() => {})
   }
 
+  // Orden ya pagada que quedó sin registro de pago (ventas anteriores a que
+  // "Liquidar" guardara el cobro): se registra el monto faltante con su método.
+  async function registrarPagoFaltante() {
+    if (!selected) return
+    const paid = selected.order_payments.reduce((s, p) => s + Number(p.amount), 0)
+    const missing = Number(selected.total) - paid
+    if (missing <= 0) return
+    setSavingAbono(true); setAbonoError('')
+    const { data: payment, error } = await supabase
+      .from('order_payments')
+      .insert({ order_id: selected.id, organization_id: orgId, method: abonoMethod, amount: missing })
+      .select('id, method, amount, created_at')
+      .single()
+    setSavingAbono(false)
+    if (error || !payment) { setAbonoError('No se pudo registrar el pago'); return }
+    syncSelected({ ...selected, order_payments: [...selected.order_payments, payment as OrderPayment] })
+  }
+
   async function changeStatus(newStatus: string) {
     if (!selected) return
     if (newStatus === 'cancelado' && !confirm('¿Cancelar este pedido?')) return
@@ -385,6 +403,8 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
         const pending = Math.max(0, Number(selected.total) - totalPaid)
         const pct = Math.min(100, Math.round(totalPaid / Math.max(1, Number(selected.total)) * 100))
         const isApartado = selected.status === 'apartado'
+        const settled = selected.status !== 'apartado' && selected.status !== 'cancelado'
+        const missingPayment = settled ? Math.max(0, Number(selected.total) - totalPaid) : 0
 
         return (
           <div className="detail-overlay" onClick={e => { if (e.target === e.currentTarget) setSelected(null) }}>
@@ -473,11 +493,13 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
 
                   <div className="d-box" style={{marginBottom:10}}>
                     <div className="d-row"><span className="d-label">Total del pedido</span><span className="d-val">{fmt(selected.total)}</span></div>
-                    <div className="d-row"><span className="d-label">Pagado</span><span className="d-val" style={{color:'#059669'}}>{fmt(totalPaid)}</span></div>
-                    <div className="d-row"><span className="d-label">{pending > 0 ? 'Pendiente' : 'Estado'}</span><span className="d-val" style={{color: pending > 0 ? '#D97706' : '#059669'}}>{pending > 0 ? fmt(pending) : '✓ Liquidado'}</span></div>
-                    {selected.order_payments.length > 0 && (
+                    <div className="d-row"><span className="d-label">Pagado</span><span className="d-val" style={{color:'#059669'}}>{fmt(settled ? Math.max(totalPaid, Number(selected.total)) : totalPaid)}</span></div>
+                    <div className="d-row"><span className="d-label">{!settled && pending > 0 ? 'Pendiente' : 'Estado'}</span><span className="d-val" style={{color: !settled && pending > 0 ? '#D97706' : '#059669'}}>{!settled && pending > 0 ? fmt(pending) : '✓ Liquidado'}</span></div>
+                    {selected.order_payments.length > 0 ? (
                       <div className="d-row"><span className="d-label">Método(s) de pago</span><span className="d-val">{Array.from(new Set(selected.order_payments.map(p => METHOD_LABEL[p.method] ?? p.method))).join(', ')}</span></div>
-                    )}
+                    ) : settled ? (
+                      <div className="d-row"><span className="d-label">Método de pago</span><span className="d-val" style={{color:'#D97706'}}>Sin registrar</span></div>
+                    ) : null}
                   </div>
 
                   <div className="d-box">
@@ -494,6 +516,20 @@ export default function OrdersClient({ orders: initialOrders, orgId, sellersMap 
                       <div style={{padding:14,fontSize:13,color:'rgba(10,10,14,0.40)',textAlign:'center'}}>Sin pagos registrados</div>
                     )}
                   </div>
+
+                  {missingPayment > 0 && (
+                    <>
+                      <div className="abono-form">
+                        <select className="abono-select" value={abonoMethod} onChange={e => setAbonoMethod(e.target.value as any)}>
+                          {METHODS.map(m => <option key={m} value={m}>{METHOD_LABEL[m]}</option>)}
+                        </select>
+                        <button className="abono-btn" disabled={savingAbono} onClick={registrarPagoFaltante}>
+                          {savingAbono ? '…' : `Registrar pago de ${fmt(missingPayment)}`}
+                        </button>
+                      </div>
+                      {abonoError && <div className="alert-err">{abonoError}</div>}
+                    </>
+                  )}
 
                   {isApartado && pending > 0 && (
                     <>
