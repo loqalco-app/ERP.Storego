@@ -18,7 +18,6 @@ export default async function CatalogPage() {
     { data: products },
     { data: categories },
     { data: brands },
-    { data: stockLevels },
   ] = await Promise.all([
     supabase.from('products').select(`
       id, name, status, condition, created_at, category_id, brand_id, is_published, is_featured,
@@ -31,9 +30,15 @@ export default async function CatalogPage() {
     supabase.from('categories').select('id, name, slug, description, parent_id').eq('organization_id', orgId).order('name'),
 
     supabase.from('brands').select('id, name').eq('organization_id', orgId).order('name'),
-
-    supabase.from('stock_levels').select('variant_id, quantity_available'),
   ])
+
+  // stock_levels no tiene organization_id propio — se acota por los variant_id
+  // de esta organización (antes jalaba el stock de TODAS las organizaciones
+  // del sistema en cada carga de Catálogo).
+  const variantIds = (products ?? []).flatMap(p => (p.product_variants ?? []).map((v: { id: string }) => v.id))
+  const { data: stockLevels } = variantIds.length
+    ? await supabase.from('stock_levels').select('variant_id, quantity_available').in('variant_id', variantIds)
+    : { data: [] as { variant_id: string; quantity_available: number }[] }
 
   // Merge stock into variants
   const stockMap: Record<string, number> = {}
