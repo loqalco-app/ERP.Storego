@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createAdmin } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import POSClient from './POSClient'
@@ -23,6 +24,15 @@ export default async function POSPage() {
   if (!profile?.organization_id) redirect('/login')
   const orgId = profile.organization_id
 
+  // Datos bancarios con service role — el embed/select directo sobre
+  // organizations vía RLS ha regresado vacío de forma intermitente aunque
+  // los datos sí estén guardados (mismo problema visto en Ajustes/Finanzas).
+  const admin = createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
   const [{ data: rawProducts }, { data: customers }, { data: org }] = await Promise.all([
     supabase
       .from('products')
@@ -43,7 +53,7 @@ export default async function POSPage() {
       .eq('organization_id', orgId)
       .eq('status', 'active')
       .order('full_name'),
-    supabase
+    admin
       .from('organizations')
       .select('settings')
       .eq('id', orgId)

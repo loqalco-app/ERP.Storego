@@ -15,27 +15,35 @@ export default async function SettingsPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Una sola query: perfil + rol + org
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('full_name, phone, avatar_url, organization_id, role, organizations(name, settings)')
+    .select('full_name, phone, avatar_url, organization_id, role')
     .eq('id', user.id)
     .single()
 
   if (!profile) redirect('/dashboard')
 
-  const orgId   = profile.organization_id
-  const orgRel  = profile.organizations as unknown as { name: string; settings: Record<string, unknown> } | null
-  const orgName = orgRel?.name ?? 'NORTHÉA'
-  const myRole  = (profile as unknown as { role?: string }).role ?? 'owner'
-  const bankDetails = (orgRel?.settings?.bank_transfer as { bank?: string; holder?: string; clabe?: string; account?: string } | undefined) ?? null
+  const orgId  = profile.organization_id
+  const myRole = (profile as unknown as { role?: string }).role ?? 'owner'
 
-  // Use service role to bypass RLS — owner must see all members in their org
+  // Use service role to bypass RLS — el embed organizations(settings) vía
+  // RLS venía regresando datos viejos/vacíos de forma intermitente (mismo
+  // problema que ya vimos en Finanzas), así que esto se lee con el service
+  // role igual que ya hace la lista de "Equipo" más abajo.
   const adminClient = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
+
+  const { data: org } = await adminClient
+    .from('organizations')
+    .select('name, settings')
+    .eq('id', orgId)
+    .single()
+
+  const orgName = org?.name ?? 'NORTHÉA'
+  const bankDetails = ((org?.settings as Record<string, unknown> | null)?.bank_transfer as { bank?: string; holder?: string; clabe?: string; account?: string } | undefined) ?? null
 
   const [membersResult, { data: invitations }] = await Promise.all([
     adminClient
