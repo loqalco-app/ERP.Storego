@@ -325,7 +325,15 @@ export default function POSClient({
     if (oErr || !order) { setSaving(false); return }
     await supabase.from('order_items').insert(cart.map(i => ({ order_id: order.id, organization_id: orgId, product_id: i.productId, variant_id: i.variantId, product_name: i.productName, variant_name: i.variantName, sku: i.sku, quantity: i.quantity, unit_price: i.unitPrice, cost_price: i.costPrice, discount_amount: i.discount, subtotal: i.unitPrice * i.quantity - i.discount })))
     if (totalPaid > 0) {
-      await supabase.from('order_payments').insert({ order_id: order.id, organization_id: orgId, method: payMethod, amount: totalPaid, reference: payMethod === 'link_pago' ? (paymentLink.trim() || null) : null })
+      // Si esto falla, la orden quedaría marcada como pagada sin ningún
+      // registro de pago real detrás — mejor frenar aquí y avisar que no se
+      // guardó, que dejarlo pasar en silencio como pasaba antes.
+      const { error: payErr } = await supabase.from('order_payments').insert({ order_id: order.id, organization_id: orgId, method: payMethod, amount: totalPaid, reference: payMethod === 'link_pago' ? (paymentLink.trim() || null) : null })
+      if (payErr) {
+        setSaving(false)
+        setStockError(`La orden ${order.folio} se creó pero el pago no se pudo registrar: ${payErr.message}. Avisa antes de entregar el producto.`)
+        return
+      }
     }
     const needsAddr = shipType === 'envio' && !skipAddr
     await supabase.from('order_shipping').insert({ order_id: order.id, organization_id: orgId, type: shipType, address_line1: needsAddr ? shipAddr.line1 || null : null, address_line2: needsAddr ? shipAddr.line2 || null : null, city: needsAddr ? shipAddr.city || null : null, state: needsAddr ? shipAddr.state || null : null, zip: needsAddr ? shipAddr.zip || null : null })
